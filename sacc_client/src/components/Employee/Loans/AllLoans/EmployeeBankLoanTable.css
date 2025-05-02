@@ -1,0 +1,166 @@
+/* General styling */
+.employeebank_page-body {
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+/* .employeebank_container-xl {
+    max-width: 1200px;
+    margin: auto;
+} */
+
+.employeebank_card {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.employeebank_table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.employeebank_table th,
+.employeebank_table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 16px;
+}
+
+.employeebank_table th {
+    font-weight: bold;
+    color: #495057;
+    background-color: #e9ecef;
+}
+
+.employeebank_text-info {
+    color: #17a2b8;
+}
+
+.employeebank_badge {
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    color: #fff;
+}
+
+.employeebank_bg-warning {
+    background-color: #ffc107;
+}
+
+.employeebank_btn-list {
+    display: flex;
+    gap: 10px;
+}
+
+.employeebank_btn {
+    padding: 8px 12px;
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+}
+
+.employeebank_btn:hover {
+    background-color: #007bff;
+    color: #fff;
+}
+
+.employeebank_pagination {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.employeebank_page-item {
+    margin: 0 5px;
+}
+
+.employeebank_page-link {
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    color: #007bff;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.employeebank_page-link:hover {
+    background-color: #007bff;
+    color: #fff;
+}
+
+.employeebank_disabled .employeebank_page-link,
+.employeebank_active .employeebank_page-link {
+    background-color: #007bff;
+    color: #fff;
+    pointer-events: none;
+}
+
+/* Responsive styling */
+@media (max-width: 768px) {
+    .employeebank_table,
+    .employeebank_table th,
+    .employeebank_table td {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .employeebank_container-xl {
+        padding: 0 10px;
+    }
+
+    .employeebank_table th {
+        display: none;
+    }
+
+    .employeebank_table td {
+        display: block;
+        width: 100%;
+        text-align: right;
+        border: none;
+        position: relative;
+        padding-left: 50%;
+    }
+
+    .employeebank_table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        font-weight: bold;
+        text-align: left;
+    }
+
+    .employeebank_btn-list {
+        flex-direction: column;
+        gap: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .employeebank_table td {
+        padding-left: 40%;
+    }
+
+    .employeebank_table td::before {
+        left: 5px;
+        width: 35%;
+    }
+
+    .employeebank_pagination {
+        flex-direction: column;
+    }
+
+    .employeebank_page-link {
+        padding: 6px;
+        font-size: 14px;
+    }
+}

@@ -1,0 +1,334 @@
+/* Main Container */
+.accountopening_container {
+    min-height: 100vh;
+    background-color: #f5f7fa;
+    transition: all 0.3s ease;
+  }
+  
+  /* Form Container */
+  .accountopening_form-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  }
+  
+  /* Title */
+  .accountopening_title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #2d3748;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Progress Indicator */
+  .accountopening_progress-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 2rem 0;
+  }
+  
+  .accountopening_progress-step {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: 600;
+    color: white;
+    background-color: #e2e8f0;
+    position: relative;
+  }
+  
+  .accountopening_step-completed {
+    background-color: #48bb78;
+  }
+  
+  .accountopening_step-active {
+    background-color: #4299e1;
+  }
+  
+  .accountopening_progress-line {
+    width: 60px;
+    height: 3px;
+    background-color: #e2e8f0;
+  }
+  
+  .accountopening_line-completed {
+    background-color: #48bb78;
+  }
+  
+  .accountopening_check-icon {
+    font-size: 1.2rem;
+  }
+  
+  /* Step Content */
+  .accountopening_step-content {
+    margin-top: 1.5rem;
+  }
+  
+  /* Labels */
+  .accountopening_label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #4a5568;
+  }
+  
+  /* Inputs */
+  .accountopening_input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    outline: none;
+    transition: all 0.3s;
+  }
+  
+  .accountopening_input:focus {
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+  }
+  
+  .accountopening_input-group {
+    display: flex;
+    margin-bottom: 1rem;
+  }
+  
+  .accountopening_input-prefix {
+    background-color: #edf2f7;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+    color: #4a5568;
+  }
+  
+  /* Select */
+  .accountopening_select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background-color: white;
+    outline: none;
+    transition: all 0.3s;
+  }
+  
+  .accountopening_select:focus {
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+  }
+  
+  /* Member Details */
+  .accountopening_member-details {
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .accountopening_member-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 1rem;
+  }
+  
+  .accountopening_member-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  
+  .accountopening_detail-label {
+    display: block;
+    font-size: 0.875rem;
+    color: #718096;
+  }
+  
+  .accountopening_detail-value {
+    display: block;
+    font-weight: 500;
+    color: #2d3748;
+  }
+  
+  /* Buttons */
+  .accountopening_button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .accountopening_button-primary {
+    background-color: #4299e1;
+    color: white;
+  }
+  
+  .accountopening_button-primary:hover {
+    background-color: #3182ce;
+  }
+  
+  .accountopening_button-secondary {
+    background-color: #e2e8f0;
+    color: #4a5568;
+  }
+  
+  .accountopening_button-secondary:hover {
+    background-color: #cbd5e0;
+  }
+  
+  .accountopening_button-next {
+    background-color: #48bb78;
+    color: white;
+  }
+  
+  .accountopening_button-next:hover {
+    background-color: #38a169;
+  }
+  
+  .accountopening_button-submit {
+    background-color: #9f7aea;
+    color: white;
+  }
+  
+  .accountopening_button-submit:hover {
+    background-color: #805ad5;
+  }
+  
+  .accountopening_button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+  }
+  
+  .accountopening_button-icon {
+    margin-left: 0.5rem;
+  }
+  
+  /* Loading */
+  .accountopening_loading {
+    color: #4299e1;
+    text-align: center;
+    margin: 1rem 0;
+  }
+  
+  /* Review Section */
+  .accountopening_review-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  
+  .accountopening_review-details {
+    background-color: #f8fafc;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .accountopening_review-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #edf2f7;
+  }
+  
+  .accountopening_review-row:last-child {
+    border-bottom: none;
+  }
+  
+  .accountopening_review-label {
+    color: #718096;
+  }
+  
+  .accountopening_review-value {
+    font-weight: 500;
+    color: #2d3748;
+  }
+  
+  /* Success Screen */
+  .accountopening_success-container {
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .accountopening_success-icon {
+    font-size: 4rem;
+    color: #48bb78;
+    margin-bottom: 1.5rem;
+  }
+  
+  .accountopening_success-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 1rem;
+  }
+  
+  .accountopening_success-message {
+    color: #4a5568;
+    margin-bottom: 2rem;
+  }
+  
+  .accountopening_success-details {
+    background-color: #f8fafc;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    text-align: left;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .accountopening_success-details p {
+    margin-bottom: 0.75rem;
+  }
+  
+  .accountopening_success-details p:last-child {
+    margin-bottom: 0;
+  }
+  
+  /* Form Groups */
+  .accountopening_form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 640px) {
+    .accountopening_form-container {
+      margin: 1rem;
+      padding: 1.5rem;
+    }
+    
+    .accountopening_title {
+      font-size: 1.5rem;
+    }
+    
+    .accountopening_member-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .accountopening_button-group {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .accountopening_button {
+      width: 100%;
+    }
+  }

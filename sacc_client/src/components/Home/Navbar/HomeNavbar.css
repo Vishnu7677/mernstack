@@ -1,0 +1,293 @@
+/* HomeNavbar.css */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --home_navbar_primary_color: #2563eb;
+  --home_navbar_secondary_color: #1e40af;
+  --home_navbar_accent_color: #3b82f6;
+  --home_navbar_text_color: #f8fafc;
+  --home_navbar_hover_color: #60a5fa;
+  --home_navbar_background_dark: #0f172a;
+  --home_navbar_background_light: #1e293b;
+  --home_navbar_gradient_start: #1e3a8a;
+  --home_navbar_gradient_end: #0f172a;
+  --home_navbar_shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --home_navbar_transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.home_navbar {
+  width: 100%;
+  height: 80px;
+  background: linear-gradient(135deg, var(--home_navbar_gradient_start), var(--home_navbar_gradient_end));
+  box-shadow: var(--home_navbar_shadow);
+  position: fixed;
+  top: 0;
+  z-index: 1000;
+  transition: var(--home_navbar_transition);
+  border-bottom: 2px solid var(--home_navbar_accent_color);
+}
+
+.home_navbar.home_navbar_scrolled {
+  height: 70px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+.home_navbar_container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.home_navbar_left_section {
+  display: flex;
+  align-items: center;
+}
+
+.home_navbar_right_section {
+  display: flex;
+  align-items: center;
+}
+
+.home_navbar_logo_container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  transition: var(--home_navbar_transition);
+}
+
+.home_navbar_logo_container:hover {
+  transform: scale(1.02);
+}
+
+.home_navbar_bank_logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--home_navbar_accent_color);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+.home_navbar_logo_text {
+  color: var(--home_navbar_text_color);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+  background: linear-gradient(to right, #fff, #cbd5e1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.home_navbar_links {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+}
+
+.home_navbar_link {
+  color: var(--home_navbar_text_color);
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 500;
+  position: relative;
+  padding: 0.5rem 0;
+  transition: var(--home_navbar_transition);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  display: inline-block;
+}
+
+/* Keep all the existing hover and after effects */
+.home_navbar_link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--home_navbar_accent_color);
+  transition: var(--home_navbar_transition);
+}
+
+.home_navbar_link:hover {
+  color: var(--home_navbar_hover_color);
+}
+
+.home_navbar_link:hover::after {
+  width: 100%;
+}
+
+/* Special styles for the login button (which remains a Link) */
+.home_navbar_login_btn {
+  background-color: var(--home_navbar_accent_color);
+  padding: 0.5rem 1.5rem;
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--home_navbar_transition);
+  border: 2px solid transparent;
+  text-decoration: none;
+}
+
+.home_navbar_login_btn:hover {
+  background-color: transparent;
+  border-color: var(--home_navbar_accent_color);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+}
+
+.home_navbar_login_btn:hover::after {
+  width: 0;
+}
+
+.home_navbar_login_arrow {
+  transition: var(--home_navbar_transition);
+}
+
+.home_navbar_login_btn:hover .home_navbar_login_arrow {
+  transform: translateX(3px);
+}
+
+.home_navbar_mobile_menu_icon {
+  display: none;
+  cursor: pointer;
+  z-index: 1100;
+}
+
+.home_navbar_hamburger {
+  width: 30px;
+  height: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: var(--home_navbar_transition);
+}
+
+.home_navbar_hamburger span {
+  width: 100%;
+  height: 3px;
+  background-color: var(--home_navbar_text_color);
+  border-radius: 3px;
+  transition: var(--home_navbar_transition);
+  transform-origin: left center;
+}
+
+.home_navbar_hamburger.home_navbar_active span:nth-child(1) {
+  transform: rotate(45deg) translate(1px, -1px);
+  background-color: var(--home_navbar_accent_color);
+}
+
+.home_navbar_hamburger.home_navbar_active span:nth-child(2) {
+  opacity: 0;
+}
+
+.home_navbar_hamburger.home_navbar_active span:nth-child(3) {
+  transform: rotate(-45deg) translate(1px, 1px);
+  background-color: var(--home_navbar_accent_color);
+}
+
+/* Mobile styles */
+@media screen and (max-width: 768px) {
+  .home_navbar_container {
+    padding: 0 1.5rem;
+  }
+  
+  .home_navbar_links:not(.home_navbar_mobile) {
+    display: none;
+  }
+  
+  .home_navbar_links.home_navbar_mobile {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 80%;
+    max-width: 300px;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.98);
+    backdrop-filter: blur(10px);
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2.5rem;
+    padding: 2rem;
+    margin: 0;
+    transition: right 0.5s cubic-bezier(0.77, 0.2, 0.05, 1);
+    z-index: 1000;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .home_navbar_links.home_navbar_mobile.home_navbar_active {
+    right: 0;
+  }
+  
+  .home_navbar_link {
+    font-size: 1.3rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .home_navbar_login_btn {
+    padding: 0.75rem 2rem;
+    font-size: 1.2rem;
+  }
+  
+  .home_navbar_mobile_menu_icon {
+    display: flex;
+    align-items: center;
+  }
+  
+  .home_navbar_hamburger {
+    width: 25px;
+  }
+}
+
+/* Animation for mobile menu items */
+@keyframes home_navbar_fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.home_navbar_links.home_navbar_mobile.home_navbar_active li {
+  animation: home_navbar_fadeIn 0.4s ease forwards;
+}
+
+.home_navbar_links.home_navbar_mobile.home_navbar_active li:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.home_navbar_links.home_navbar_mobile.home_navbar_active li:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.home_navbar_links.home_navbar_mobile.home_navbar_active li:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.home_navbar_links.home_navbar_mobile.home_navbar_active li:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.home_navbar_links.home_navbar_mobile.home_navbar_active li:nth-child(5) {
+  animation-delay: 0.5s;
+}

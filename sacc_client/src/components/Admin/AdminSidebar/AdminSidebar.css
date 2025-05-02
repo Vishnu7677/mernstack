@@ -1,0 +1,327 @@
+.admin_sidebar {
+  --sidebar-bg: #1e293b;
+  --sidebar-text: #e2e8f0;
+  --sidebar-active: #3b82f6;
+  --sidebar-hover: #334155;
+  --sidebar-icon: #94a3b8;
+  --sidebar-width: 260px;
+  --sidebar-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: var(--sidebar-width);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  transition: var(--sidebar-transition);
+  z-index: 1100;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mobile Topbar */
+.admin-mobile-topbar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: var(--sidebar-bg);
+  z-index: 1000;
+  padding: 0 1rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.admin-mobile-topbar__profile-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--sidebar-active);
+  cursor: pointer;
+}
+
+/* Sidebar Brand/Logo */
+.admin_sidebar__brand {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin_sidebar__logo-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+}
+
+.admin_sidebar__logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--sidebar-active);
+}
+
+.admin_sidebar__title {
+  margin-top: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+}
+
+/* Profile Info */
+.admin_sidebar__profile-info {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin_sidebar__profile-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--sidebar-active);
+  margin-right: 1rem;
+}
+
+.admin_sidebar__profile-details h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.admin_sidebar__profile-details p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--sidebar-icon);
+}
+
+/* Navigation Menu */
+.admin_sidebar__nav {
+  padding: 1rem 0;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.admin_sidebar__menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.admin_sidebar__item {
+  position: relative;
+}
+
+.admin_sidebar__item--has-submenu {
+  margin-bottom: 0.25rem;
+}
+
+.admin_sidebar__link {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  font-weight: 500;
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: var(--sidebar-transition);
+}
+
+.admin_sidebar__link:hover,
+.admin_sidebar__link--active {
+  background: var(--sidebar-hover);
+  color: white;
+}
+
+.admin_sidebar__link--active .admin_sidebar__icon {
+  color: var(--sidebar-active);
+}
+
+.admin_sidebar__icon {
+  font-size: 1.1rem;
+  color: var(--sidebar-icon);
+  transition: var(--sidebar-transition);
+  min-width: 24px;
+  text-align: center;
+}
+
+.admin_sidebar__text {
+  margin-left: 1rem;
+  transition: var(--sidebar-transition);
+  white-space: nowrap;
+}
+
+.admin_sidebar__chevron {
+  margin-left: auto;
+  font-size: 0.75rem;
+  transition: var(--sidebar-transition);
+  color: var(--sidebar-icon);
+}
+
+/* Submenu */
+.admin_sidebar__submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.admin_sidebar__submenu--open {
+  max-height: 500px;
+}
+
+.admin_sidebar__submenu-link {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1.5rem 0.5rem 3.5rem;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: var(--sidebar-transition);
+}
+
+.admin_sidebar__submenu-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+/* Footer/Logout */
+.admin_sidebar__footer {
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin_sidebar__logout-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--sidebar-transition);
+  border-radius: 0.25rem;
+}
+
+.admin_sidebar__logout-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+/* Scrollbar */
+.admin_sidebar__nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin_sidebar__nav::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.admin_sidebar__nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.admin_sidebar__nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Overlay */
+.admin-sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1099;
+  display: none;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .admin-mobile-topbar {
+    display: flex;
+  }
+  
+  .admin_sidebar {
+    transform: translateX(-100%);
+    z-index: 1100;
+    top: 60px;
+    height: calc(100vh - 60px);
+    width: 280px;
+  }
+  
+  .admin_sidebar--mobile-open {
+    transform: translateX(0);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .admin-sidebar-overlay {
+    display: block;
+  }
+  
+  .admin_sidebar__brand {
+    flex-direction: row;
+    padding: 1rem;
+    justify-content: flex-start;
+  }
+  
+  .admin_sidebar__logo-link {
+    flex-direction: row;
+    align-items: center;
+  }
+  
+  .admin_sidebar__logo {
+    width: 30px;
+    height: 30px;
+    margin-right: 0.75rem;
+  }
+  
+  .admin_sidebar__title {
+    margin-top: 0;
+    font-size: 1rem;
+  }
+  
+  .admin_sidebar__profile-info {
+    padding: 1rem;
+  }
+  
+  .admin_sidebar__profile-img {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .admin_sidebar__profile-details h4 {
+    font-size: 0.85rem;
+    max-width: 180px;
+  }
+  
+  .admin_sidebar__link {
+    padding: 0.75rem 1rem;
+  }
+  
+  .admin_sidebar__submenu-link {
+    padding-left: 3rem;
+  }
+}

@@ -1,0 +1,337 @@
+/* Main container styles */
+.scholar_login_container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Image container styles */
+.scholar_login_image_container {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 2rem;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.scholar_login_image {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Card container styles */
+.scholar_login_card_container {
+  width: 100%;
+  max-width: 32rem;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.scholar_login_card {
+  background-color: white;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Header styles */
+.scholar_login_header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.scholar_login_title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.scholar_login_title_school {
+  color: #9b59b6;
+}
+
+.scholar_login_subtitle {
+  font-size: 1rem;
+  color: #7f8c8d;
+}
+
+/* Tab styles */
+.scholar_login_tabs {
+  display: flex;
+  background: #f8f9fa;
+  border-radius: 50px;
+  padding: 0.5rem;
+  margin-bottom: 2rem;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.scholar_login_tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 50px;
+  border: none;
+  background: transparent;
+}
+
+.scholar_login_tab_active {
+  color: white;
+  background: linear-gradient(90deg, #3498db, #9b59b6);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Form styles */
+.scholar_login_form {
+  margin-top: 1rem;
+}
+
+.scholar_login_form_group {
+  margin-bottom: 1.5rem;
+}
+
+.scholar_login_label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.scholar_login_input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+}
+
+.scholar_login_input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+  background-color: white;
+}
+
+.scholar_login_input::placeholder {
+  color: #bdc3c7;
+}
+
+/* Error styles */
+.scholar_login_error {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: #e74c3c;
+  display: flex;
+  align-items: center;
+}
+
+.scholar_login_error::before {
+  content: '⚠ ';
+  margin-right: 4px;
+}
+
+.scholar_login_submit_error {
+  text-align: center;
+  margin-top: -1rem;
+  margin-bottom: 1rem;
+}
+
+/* Helper styles */
+.scholar_login_helpers {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.scholar_login_remember {
+  display: flex;
+  align-items: center;
+}
+
+.scholar_login_checkbox {
+  margin-right: 0.5rem;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #bdc3c7;
+  border-radius: 4px;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scholar_login_checkbox:checked {
+  background-color: #3498db;
+  border-color: #3498db;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.scholar_login_remember_label {
+  font-size: 0.875rem;
+  color: #7f8c8d;
+  cursor: pointer;
+}
+
+.scholar_login_forgot {
+  font-size: 0.875rem;
+  color: #3498db;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.scholar_login_forgot:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+/* Button styles */
+.scholar_login_button {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(90deg, #3498db, #9b59b6);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.scholar_login_button_school {
+  background: linear-gradient(90deg, #9b59b6, #8e44ad);
+}
+
+.scholar_login_button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.scholar_login_button:active {
+  transform: translateY(0);
+}
+
+.scholar_login_button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Loading spinner */
+.scholar_login_spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: scholar_login_spin 1s ease-in-out infinite;
+}
+
+@keyframes scholar_login_spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Auth switch styles */
+.scholar_login_auth_switch {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.scholar_login_auth_text {
+  font-size: 0.9375rem;
+  color: #7f8c8d;
+  margin-right: 0.5rem;
+}
+
+.scholar_login_auth_link {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #3498db;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.scholar_login_auth_link:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+/* Animation keyframes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .scholar_login_image_container {
+    max-width: 300px;
+  }
+  
+  .scholar_login_card {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .scholar_login_title {
+    font-size: 1.75rem;
+  }
+  
+  .scholar_login_tabs {
+    flex-direction: column;
+    border-radius: 8px;
+  }
+  
+  .scholar_login_tab {
+    padding: 0.75rem;
+  }
+  
+  .scholar_login_helpers {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .scholar_login_forgot {
+    margin-top: 0.5rem;
+  }
+}

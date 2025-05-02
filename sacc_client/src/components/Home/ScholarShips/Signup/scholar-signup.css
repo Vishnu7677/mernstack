@@ -1,0 +1,320 @@
+/* Main container styles - Gradient background */
+.scholar_signup_container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 1rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header styles with animation */
+.scholar_signup_header {
+  width: 100%;
+  max-width: 32rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.scholar_signup_title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  position: relative;
+  display: inline-block;
+}
+
+.scholar_signup_title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(90deg, #3498db, #9b59b6);
+  border-radius: 2px;
+}
+
+/* Card styles with subtle shadow and animation */
+.scholar_signup_card_container {
+  width: 100%;
+  max-width: 32rem;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.scholar_signup_card {
+  background-color: white;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.scholar_signup_card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+/* Tab styles - Modern pill design */
+.scholar_signup_tabs {
+  display: flex;
+  background: #f8f9fa;
+  border-radius: 50px;
+  padding: 0.5rem;
+  margin-bottom: 2rem;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.scholar_signup_tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 50px;
+  border: none;
+  background: transparent;
+}
+
+.scholar_signup_tab_active {
+  color: white;
+  background: linear-gradient(90deg, #3498db, #9b59b6);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Form styles - Modern inputs */
+.scholar_signup_form_group {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.scholar_signup_label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.scholar_signup_input, 
+.scholar_signup_select,
+.scholar_signup_file_input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+}
+
+.scholar_signup_input:focus,
+.scholar_signup_select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+  background-color: white;
+}
+
+.scholar_signup_textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* Error styles */
+.scholar_signup_error {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: #e74c3c;
+  display: flex;
+  align-items: center;
+}
+
+.scholar_signup_error::before {
+  content: '⚠ ';
+  margin-right: 4px;
+}
+
+/* Button styles - Gradient button */
+.scholar_signup_button {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(90deg, #3498db, #9b59b6);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-top: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.scholar_signup_button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(90deg, #2980b9, #8e44ad);
+}
+
+.scholar_signup_button:active {
+  transform: translateY(0);
+}
+
+/* Address Section Styles */
+.scholar_signup_address_section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: linear-gradient(to bottom right, #f8f9fa, #e9ecef);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.scholar_signup_section_title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.scholar_signup_section_title::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 24px;
+  background: linear-gradient(to bottom, #3498db, #9b59b6);
+  margin-right: 12px;
+  border-radius: 3px;
+}
+
+/* Auth switch styles */
+.scholar_signup_auth_switch {
+  margin-top: 2rem;
+  position: relative;
+  text-align: center;
+}
+
+.scholar_signup_auth_divider {
+  position: relative;
+  margin: 1.5rem 0;
+  color: #95a5a6;
+  font-size: 0.875rem;
+}
+
+.scholar_signup_auth_divider::before,
+.scholar_signup_auth_divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 45%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #bdc3c7, transparent);
+}
+
+.scholar_signup_auth_divider::before {
+  left: 0;
+}
+
+.scholar_signup_auth_divider::after {
+  right: 0;
+}
+
+.scholar_signup_auth_link {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #3498db;
+  background-color: white;
+  border: 2px solid #3498db;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  margin-top: 1rem;
+}
+
+.scholar_signup_auth_link:hover {
+  background-color: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* File input custom style */
+.scholar_signup_file_input {
+  padding: 0.5rem;
+  border: 2px dashed #bdc3c7;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.scholar_signup_file_input:hover {
+  border-color: #3498db;
+  background-color: rgba(52, 152, 219, 0.05);
+}
+
+/* Animation keyframes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive layout for address fields */
+@media (min-width: 640px) {
+  .scholar_signup_address_grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .scholar_signup_card {
+    padding: 2.5rem;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .scholar_signup_title {
+    font-size: 1.75rem;
+  }
+  
+  .scholar_signup_tabs {
+    flex-direction: column;
+    border-radius: 8px;
+  }
+  
+  .scholar_signup_tab {
+    padding: 0.75rem;
+  }
+}

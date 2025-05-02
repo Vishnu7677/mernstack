@@ -1,0 +1,492 @@
+/* HomePage.css */
+
+/* Base Styles */
+.homepage_container {
+  font-family: 'Poppins', sans-serif;
+  color: #333;
+  overflow-x: hidden;
+}
+
+/* Hero Section */
+.homepage_hero {
+  position: relative;
+  height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+  color: white;
+  text-align: center;
+  padding: 0 20px;
+  overflow: hidden;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.homepage_hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.homepage_hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 800px;
+}
+
+.homepage_hero-title-main {
+  display: block;
+  font-size: 3.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.homepage_hero-title-sub {
+  display: block;
+  font-size: 2rem;
+  font-weight: 400;
+  margin-bottom: 1.5rem;
+}
+
+.homepage_tagline {
+  font-size: 1.5rem;
+  font-style: italic;
+  color: #ffd700;
+  margin-bottom: 2rem;
+}
+
+.homepage_intro-text {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
+}
+
+.homepage_cta-button {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+
+.homepage_cta-button:hover {
+  background: #ff5252;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+}
+
+.homepage_hero-scroll-indicator {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.homepage_scroll-arrow {
+  width: 20px;
+  height: 35px;
+  border: 2px solid white;
+  border-radius: 10px;
+  margin-top: 10px;
+  position: relative;
+}
+
+.homepage_scroll-arrow::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 8px;
+  background: white;
+  border-radius: 2px;
+  animation: scrollAnimation 2s infinite;
+}
+
+@keyframes scrollAnimation {
+  0% { top: 5px; opacity: 1; }
+  50% { top: 15px; opacity: 0.5; }
+  100% { top: 5px; opacity: 1; }
+}
+
+/* Stats Section */
+.homepage_stats-section {
+  display: flex;
+  justify-content: space-around;
+  padding: 60px 20px;
+  background: white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.homepage_stat-item {
+  text-align: center;
+}
+
+.homepage_stat-number {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #1a2a6c;
+  margin-bottom: 10px;
+}
+
+.homepage_stat-label {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+/* Section Header Styles */
+.homepage_section-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.homepage_section-header h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.homepage_section-header h2 span {
+  color: #1a2a6c;
+  position: relative;
+}
+
+.homepage_section-header h2 span::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(to right, #1a2a6c, #b21f1f);
+}
+
+.homepage_section-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Membership Section */
+.homepage_membership {
+  padding: 80px 20px;
+  background: #f9f9f9;
+}
+
+.homepage_membership-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.homepage_membership-card {
+  background: white;
+  border-radius: 10px;
+  padding: 30px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.homepage_membership-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.homepage_card-icon {
+  font-size: 3rem;
+  color: #1a2a6c;
+  margin-bottom: 20px;
+}
+
+.homepage_membership-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.homepage_membership-card p {
+  color: #666;
+  line-height: 1.6;
+}
+
+/* Services Section */
+.homepage_services {
+  padding: 80px 20px;
+  background: white;
+}
+
+.homepage_services-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.homepage_service-item {
+  text-align: center;
+  padding: 40px 30px;
+  border-radius: 10px;
+  background: #f9f9f9;
+  transition: all 0.3s ease;
+}
+
+.homepage_service-item:hover {
+  background: #1a2a6c;
+  color: white;
+}
+
+.homepage_service-item:hover .homepage_service-icon {
+  color: white;
+}
+
+.homepage_service-item:hover p {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.homepage_service-icon {
+  font-size: 3rem;
+  color: #1a2a6c;
+  margin-bottom: 20px;
+}
+
+.homepage_service-item h3 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.homepage_service-item p {
+  color: #666;
+  line-height: 1.6;
+}
+
+/* Why Choose Us Section */
+.homepage_why-choose-us {
+  padding: 80px 20px;
+  background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+  color: white;
+}
+
+.homepage_features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.homepage_feature-item {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  padding: 30px;
+  transition: all 0.3s ease;
+}
+
+.homepage_feature-item:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.homepage_feature-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.3);
+  margin-bottom: 15px;
+}
+
+.homepage_feature-item h3 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.homepage_feature-item p {
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+}
+
+/* Scholarships Section */
+.homepage_scholarships {
+  padding: 80px 20px;
+  background: url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') no-repeat center center;
+  background-size: cover;
+  position: relative;
+  color: white;
+}
+
+.homepage_scholarships::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(26, 42, 108, 0.8);
+}
+
+.homepage_scholarship-content {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.homepage_scholarship-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.homepage_scholarship-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  color: #ffd700;
+}
+
+.homepage_scholarship-details p {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.homepage_outline-button {
+  background: transparent;
+  color: white;
+  border: 2px solid white;
+  padding: 12px 30px;
+  font-size: 1.1rem;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.homepage_outline-button:hover {
+  background: white;
+  color: #1a2a6c;
+}
+
+/* Contact Section */
+.homepage_contact {
+  padding: 80px 20px;
+  background: #f9f9f9;
+}
+
+.homepage_contact-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 50px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.homepage_contact-info h2, .homepage_contact-form h3 {
+  margin-bottom: 30px;
+}
+
+.homepage_contact-item {
+  margin-bottom: 30px;
+}
+
+.homepage_contact-item h3 {
+  font-size: 1.3rem;
+  color: #1a2a6c;
+  margin-bottom: 15px;
+}
+
+.homepage_contact-item p {
+  color: #666;
+  line-height: 1.6;
+}
+
+.homepage_contact-form {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.homepage_form-group {
+  margin-bottom: 20px;
+}
+
+.homepage_form-group input, .homepage_form-group textarea {
+  width: 100%;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.homepage_form-group textarea {
+  height: 150px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .homepage_hero-title-main {
+    font-size: 2.5rem;
+  }
+  
+  .homepage_hero-title-sub {
+    font-size: 1.5rem;
+  }
+  
+  .homepage_tagline {
+    font-size: 1.2rem;
+  }
+  
+  .homepage_stats-section {
+    flex-direction: column;
+    gap: 30px;
+  }
+  
+  .homepage_section-header h2 {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .homepage_hero-title-main {
+    font-size: 2rem;
+  }
+  
+  .homepage_hero-title-sub {
+    font-size: 1.2rem;
+  }
+  
+  .homepage_intro-text {
+    font-size: 1rem;
+  }
+  
+  .homepage_section-header h2 {
+    font-size: 1.8rem;
+  }
+}

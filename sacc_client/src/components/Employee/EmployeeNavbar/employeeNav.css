@@ -1,0 +1,236 @@
+/* General Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+/* Navbar */
+.employeeNav {
+  width: 100%;
+  background: #222;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.employeeNav_container {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Logo */
+.employeeNav_logoContainer {
+  display: flex;
+  align-items: center;
+}
+
+.employeeNav_logoImage {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.employeeNav_logoText {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ff9800;
+  margin-left: 10px;
+}
+
+/* Search Bar */
+.employeeNav_searchContainer {
+  flex-grow: 1;
+  text-align: center;
+  position: relative;
+  color: #fff;
+  border:  #fff;
+}
+
+.employeeNav_searchInput {
+  width: 280px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  
+}
+
+.employeeNav_searchInput:focus {
+  transition: 0.5s ease-in-out;
+  outline: 2px solid #ff9800;
+}
+
+/* Search Results */
+.employeeNav_searchResults {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  width: 320px;
+  max-height: 300px;
+  overflow-y: auto;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+.employeeNav_searchResultItem {
+  padding: 10px;
+  border-bottom: 1px solid #157eaf;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.employeeNav_searchResultItem:hover {
+  background: #06518f;
+  color: #fff;
+}
+
+.employeeNav_noResults {
+  padding: 10px;
+  text-align: center;
+  color: #fff;
+}
+
+.employeeNav_closeSearch {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+}
+
+/* Navigation Links */
+.employeeNav_links {
+  display: flex;
+  list-style: none;
+  align-items: center;
+}
+
+.employeeNav_link {
+  color: white;
+  text-decoration: none;
+  padding: 10px 15px;
+  font-size: 14px;
+  transition: color 0.3s ease;
+  cursor: pointer;
+}
+
+.employeeNav_link:hover {
+  color: #ff9800;
+}
+
+/* Dropdown Menu */
+
+.employeeNav_subMenu {
+  position: absolute;
+  background: #222;
+  border-radius: 5px;
+  min-width: 180px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+  pointer-events: none; 
+  left: 50%;  
+  transform: translateX(-50%) translateY(-10px);
+}
+
+.employeeNav_subMenu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  padding: 10px;
+  pointer-events: auto; 
+}
+
+
+.employeeNav li {
+  position: relative; 
+  list-style-type: none;
+}
+
+.employeeNav_subLink {
+  display: block;
+  padding: 8px 12px;
+  color: white;
+  text-decoration: none;
+  transition: 0.3s ease;
+}
+
+.employeeNav_subLink:hover {
+  background: #ff9800;
+  color: black;
+}
+
+/* Mobile Menu */
+.employeeNav_mobileMenuIcon {
+  display: none;
+  cursor: pointer;
+}
+
+/* Mobile View */
+@media screen and (max-width: 768px) {
+  .employeeNav {
+      flex-wrap: wrap;
+      padding: 10px;
+  }
+
+  .employeeNav_logoContainer {
+      flex-grow: 1;
+  }
+
+  .employeeNav_links {
+      display: none;
+      flex-direction: column;
+      background: #222;
+      width: 100%;
+      position: absolute;
+      top: 60px;
+      left: 0;
+      text-align: center;
+      padding: 15px 0;
+      z-index: 100;
+  }
+
+  .employeeNav_linksMobile {
+      display: flex;
+  }
+
+  .employeeNav_link {
+      padding: 12px;
+      font-size: 16px;
+      width: 100%;
+  }
+
+  .employeeNav_searchContainer {
+      width: 100%;
+      text-align: center;
+      margin: 10px 0;
+      color: #fff;
+      border: #fff;
+  }
+
+  .employeeNav_searchInput {
+      width: 100%;
+      max-width: 90%;
+  }
+
+  .employeeNav_mobileMenuIcon {
+      display: block;
+      color: #fff;
+  }
+}

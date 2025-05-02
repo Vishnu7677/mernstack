@@ -1,0 +1,159 @@
+/* Main Container */
+.adminuserlist_container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f5f7fa;
+  }
+  
+  /* Content Area */
+  .adminuserlist_content {
+    flex: 1;
+    padding: 2rem;
+    margin-left: 250px;
+  }
+  
+  /* Header Styles */
+  .adminuserlist_header {
+    margin-bottom: 2rem;
+  }
+  
+  .adminuserlist_header-content {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .adminuserlist_title {
+    font-size: 1.8rem;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+  
+  .adminuserlist_breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #7f8c8d;
+  }
+  
+  .adminuserlist_breadcrumb a {
+    color: #3498db;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  
+  .adminuserlist_breadcrumb a:hover {
+    color: #2980b9;
+  }
+  
+  /* Card Styles */
+  .adminuserlist_card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    overflow: hidden;
+  }
+  
+  /* Table Styles */
+  .adminuserlist_table-container {
+    overflow-x: auto;
+  }
+  
+  .adminuserlist_table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .adminuserlist_table thead {
+    background-color: #f8f9fa;
+  }
+  
+  .adminuserlist_table th {
+    padding: 1rem;
+    text-align: left;
+    color: #34495e;
+    font-weight: 600;
+    border-bottom: 2px solid #eaecef;
+  }
+  
+  .adminuserlist_table td {
+    padding: 1rem;
+    border-bottom: 1px solid #eaecef;
+    color: #495057;
+  }
+  
+  .adminuserlist_table tr:hover {
+    background-color: #f8f9fa;
+  }
+  
+  /* Status Badges */
+  .adminuserlist_status {
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .adminuserlist_status.verified {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  
+  .adminuserlist_status.pending {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+  
+  /* Button Styles */
+  .adminuserlist_button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .adminuserlist_button-view {
+    background-color: #3498db;
+    color: white;
+  }
+  
+  .adminuserlist_button-view:hover {
+    background-color: #2980b9;
+  }
+  
+  /* Empty State */
+  .adminuserlist_empty {
+    text-align: center;
+    padding: 2rem;
+    color: #7f8c8d;
+  }
+  
+  /* Loading State */
+  .adminuserlist_loading {
+    text-align: center;
+    padding: 2rem;
+    color: #3498db;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 992px) {
+    .adminuserlist_content {
+      margin-left: 0;
+      padding: 1rem;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .adminuserlist_title {
+      font-size: 1.5rem;
+    }
+    
+    .adminuserlist_table th,
+    .adminuserlist_table td {
+      padding: 0.75rem 0.5rem;
+      font-size: 0.9rem;
+    }
+  }

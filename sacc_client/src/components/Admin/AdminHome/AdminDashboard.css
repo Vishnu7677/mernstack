@@ -1,0 +1,221 @@
+.admin_layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.admin_content {
+  margin-left: 260px;
+  width: calc(100% - 260px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin_main {
+  padding: 2rem;
+}
+
+.admin_header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem 2rem 0;
+}
+
+.admin_title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.admin_breadcrumb__toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: #1e293b;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.3s ease;
+}
+
+.admin_breadcrumb__toggle:hover {
+  background: #f1f5f9;
+}
+
+.admin_breadcrumb__list {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.admin_breadcrumb__item {
+  display: flex;
+  align-items: center;
+}
+
+.admin_breadcrumb__item:not(:last-child)::after {
+  content: '/';
+  margin: 0 0.5rem;
+  color: #94a3b8;
+}
+
+.admin_breadcrumb__link {
+  color: #64748b;
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.2s ease;
+}
+
+.admin_breadcrumb__link:hover {
+  color: #3b82f6;
+}
+  
+  /* Stats Cards */
+  .admin_stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .admin_stats__card {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-left: 4px solid;
+  }
+  
+  .admin_stats__card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .admin_stats__card--primary {
+    border-left-color: #3b82f6;
+  }
+  
+  .admin_stats__card--danger {
+    border-left-color: #ef4444;
+  }
+  
+  .admin_stats__card--success {
+    border-left-color: #10b981;
+  }
+  
+  .admin_stats__card--info {
+    border-left-color: #06b6d4;
+  }
+  
+  .admin_stats__card--warning {
+    border-left-color: #f59e0b;
+  }
+  
+  .admin_stats__label {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0 0 0.5rem 0;
+    font-weight: 500;
+  }
+  
+  .admin_stats__value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+  }
+  
+  .admin_stats__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+  
+  .admin_stats__card--primary .admin_stats__icon {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+  
+  .admin_stats__card--danger .admin_stats__icon {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+  
+  .admin_stats__card--success .admin_stats__icon {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+  
+  .admin_stats__card--info .admin_stats__icon {
+    background: rgba(6, 182, 212, 0.1);
+    color: #06b6d4;
+  }
+  
+  .admin_stats__card--warning .admin_stats__icon {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+  }
+  
+  /* Responsive Styles */
+@media (max-width: 1024px) {
+  .admin_content {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .admin_content--mobile-expanded {
+    margin-left: 260px;
+    width: calc(100% - 260px);
+  }
+  
+  .admin_content--mobile-expanded.admin_content--collapsed {
+    margin-left: 80px;
+    width: calc(100% - 80px);
+  }
+  
+  /* Overlay for mobile */
+  .admin_sidebar--mobile-open + .admin_content::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+  }
+}
+
+/* Ensure sidebar stays visible on larger screens */
+@media (min-width: 1025px) {
+  .admin_sidebar {
+    transform: translateX(0) !important;
+  }
+}
+  
+  @media (max-width: 768px) {
+    .admin_stats {
+      grid-template-columns: 1fr;
+    }
+    
+    .admin_header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .admin_breadcrumb {
+      margin-top: 0.5rem;
+    }
+  }

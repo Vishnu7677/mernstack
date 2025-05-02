@@ -1,0 +1,141 @@
+/* Employee Home Page */
+.employeehome_page-wrapper {
+    padding: 20px;
+    background-color: #f4f6f9;
+  }
+  
+  .employeehome_container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .employeehome_card {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+  }
+  
+  .employeehome_card-header {
+    background-color: #007bff;
+    color: #ffffff;
+    padding: 15px;
+    border-radius: 8px 8px 0 0;
+    font-size: 18px;
+    text-align: center;
+  }
+  
+  .employeehome_card-body {
+    padding: 20px;
+  }
+  
+  .employeehome_detail-item {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+    font-size: 1rem;
+  }
+  
+  .employeehome_label {
+    font-weight: bold;
+    width: 150px;
+    flex-shrink: 0;
+  }
+  
+  .employeehome_value {
+    color: #555555;
+    flex-grow: 1;
+  }
+  
+  .employeehome_transaction-section {
+    margin-top: 30px;
+  }
+  
+  .employeehome_table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.95rem;
+  }
+  
+  .employeehome_table th,
+  .employeehome_table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  
+  .employeehome_table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+  }
+  
+  /* Media Queries */
+  @media (max-width: 768px) {
+    .employeeNav_links {
+      display: none;
+    }
+  
+    .employeeNav_linksMobile {
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 70px;
+      right: 0;
+      width: 100%;
+      background-color: #000;
+      z-index: 1000;
+      animation: slideIn 0.5s ease forwards;
+    }
+  
+    .employeeNav_linksMobile li {
+      margin: 20px 0;
+    }
+  
+    .employeeNav_mobileMenuIcon {
+      display: block;
+    }
+  
+    .employeehome_card-body {
+      padding: 15px;
+    }
+  
+    .employeehome_detail-item {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  
+    .employeehome_label {
+      width: auto;
+      margin-bottom: 5px;
+    }
+  
+    .employeehome_table {
+      font-size: 0.9rem;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .employeehome_card-header h2 {
+      font-size: 1.25rem;
+    }
+  
+    .employeehome_table {
+      font-size: 0.85rem;
+    }
+  
+    .employeehome_table th,
+    .employeehome_table td {
+      padding: 6px;
+    }
+  }
+  
+  @keyframes slideIn {
+    from {
+      right: -100%;
+    }
+    to {
+      right: 0;
+    }
+  }

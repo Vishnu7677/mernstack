@@ -1,0 +1,183 @@
+.employee_login_container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #00b4db, #0083b0);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+}
+
+.employee_login_card {
+    width: 400px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+}
+
+.employee_login_card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    transform: skewX(-15deg);
+    transition: 0.5s;
+    z-index: -1;
+}
+
+.employee_login_card:hover::before {
+    left: 100%;
+}
+
+.employee_login_header {
+    text-align: center;
+    margin-bottom: 40px;
+    color: white;
+}
+
+.employee_login_header h2 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.employee_login_header p {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.employee_login_form {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.employee_login_input_group {
+    position: relative;
+}
+
+.employee_login_input {
+    width: 100%;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: 0.3s;
+}
+
+.employee_login_input:focus {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.employee_login_label {
+    position: absolute;
+    top: 15px;
+    left: 20px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    pointer-events: none;
+    transition: 0.3s;
+}
+
+.employee_login_input:focus + .employee_login_label,
+.employee_login_input:not(:placeholder-shown) + .employee_login_label {
+    top: -10px;
+    left: 10px;
+    font-size: 0.8rem;
+    background: linear-gradient(135deg, #00b4db, #0083b0);
+    padding: 0 5px;
+    color: white;
+    border-radius: 3px;
+}
+
+.employee_login_highlight {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #00b4db, #0083b0);
+    transition: 0.4s;
+}
+
+.employee_login_input:focus ~ .employee_login_highlight {
+    width: 100%;
+}
+
+.employee_login_show_password {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-size: 0.9rem;
+}
+
+.employee_login_show_password input {
+    accent-color: #0083b0;
+}
+
+.employee_login_button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px;
+    background: linear-gradient(90deg, #00b4db, #0083b0);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    overflow: hidden;
+    position: relative;
+}
+
+.employee_login_button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.employee_login_button:active {
+    transform: translateY(-1px);
+}
+
+.employee_login_button svg {
+    transition: 0.3s;
+}
+
+.employee_login_button:hover svg {
+    transform: translateX(5px);
+}
+
+.employee_login_footer {
+    text-align: center;
+    margin-top: 30px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+}
+
+@keyframes gradientBG {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
