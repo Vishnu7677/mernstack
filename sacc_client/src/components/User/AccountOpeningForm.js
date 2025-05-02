@@ -78,6 +78,7 @@ const AccountOpeningForm = () => {
         accountStatus: formDetails.accountStatus,
         isVerified: formDetails.isVerified
       };
+      
 
       const response = await axios.post(
         apiList.createAccount, 
