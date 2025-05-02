@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const repository  = require('./adminRepository');
 const {getToken } = require('../../commons/auth/JWTManager/JWTService');
 const GeneralUtil = require('../../commons/util/general/utility');
