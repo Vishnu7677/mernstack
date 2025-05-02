@@ -1,0 +1,11 @@
+FROM node:14.15.1 AS builder
+
+ENV TZ="Asia/Kolkata"
+
+COPY source /usr/src/sac-core
+
+WORKDIR /usr/src/sac-core
+
+RUN npm install
+
+CMD ["npm", "start"]

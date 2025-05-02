@@ -1,0 +1,119 @@
+#!/usr/bin/env groovy
+
+node('master') {
+
+  checkout scm
+
+  try {
+    property = readYaml file: "config.yaml"
+    if(ENVIRONMENT == "prod" ) {
+      config=property.prod
+      echo "${config}"
+    }
+    else if(ENVIRONMENT == "staging" ) {
+      config=property.staging
+      echo "${config}"
+    }
+    else if(ENVIRONMENT == "dev" ) {
+      config=property.dev
+      echo "${config}"
+    }
+    else {
+      error "ENVIRONMENT NOT SET"
+    }
+
+  }
+  catch (Exception e) {
+    error "Failed at reading config file.\n${e}"
+  }
+
+  try {
+    final gitscm = checkout scm
+
+    stage('Clone repository') {
+      current = "Stage Cloning"
+      checkout scm
+      GIT_BRANCH = gitscm.GIT_BRANCH.replace("/", "");
+      GIT_BRANCH=GIT_BRANCH.split("origin")
+    }
+
+
+    // echo "${config.path}"
+    // stage('Test Cases') {
+    //   echo "${config.path}"
+    //   dir("${config.path}/source") {
+    //     if (ENVIRONMENT == "dev") {
+    //       // echo "Command to prnt === ${process.env}"
+    //       // echo "${REDIS_QMS_KEY}"
+    //       sh "npm install"
+    //       sh "npm test"
+    //     }
+    //   }
+    // }
+
+    // echo "${config.path}"
+    // stage('Test Cases') {
+    //   echo "${config.path}"
+    //   dir("${config.path}/source") {
+    //     if (ENVIRONMENT == "stage") {
+    //       // echo "Command to prnt === ${process.env}"
+    //       // echo "${REDIS_QMS_KEY}"
+    //       sh "npm install"
+    //       sh "npm test"
+    //     }
+    //   }
+    // }
+
+/*
+    stage('Sonarqube'){
+      dir("${config.path}") {
+        if (ENVIRONMENT == "dev") {
+          sh "npm install"
+          def scannerHome = tool 'sonar-scanner';
+          withSonarQubeEnv('sonarqube-dev') { 
+            sh "${scannerHome}/bin/sonar-scanner"
+          }
+        } else if (ENVIRONMENT == "staging") {
+          sh "npm install"
+          def scannerHome = tool 'sonar-scanner';
+          withSonarQubeEnv('sonarqube') {
+            sh "${scannerHome}/bin/sonar-scanner"
+          }
+        }
+      }
+    }
+*/
+    
+    stage('Docker build') {
+      dir("${config.path}") {
+        current = "Stage Docker build"
+         if (ENVIRONMENT == "prod") {
+            sh "docker build -t ${config.ecr_url}/${config.repo_name}:${GIT_BRANCH[1]}-${gitscm.GIT_COMMIT} -f Dockerfile.prod ."
+         } else if (ENVIRONMENT == "staging") { 
+            sh "docker build -t ${config.ecr_url}/${config.repo_name}:${GIT_BRANCH[1]}-${gitscm.GIT_COMMIT} -f Dockerfile.stage ."
+         } else {
+           sh "docker build -t ${config.ecr_url}/${config.repo_name}:${GIT_BRANCH[1]}-${gitscm.GIT_COMMIT} -f Dockerfile.dev ."
+         }
+        sh "docker tag ${config.ecr_url}/${config.repo_name}:${GIT_BRANCH[1]}-${gitscm.GIT_COMMIT} ${config.ecr_url}/${config.repo_name}:latest"
+      }
+    }
+  
+    stage('Docker Image Push to ECR Repo') {
+        dir("${config.path}") {
+          stage('Docker Image Push to Ecr') {
+            current = "Stage Docker Image Push to Ecr"
+            sh "aws ecr get-login-password --region ${config.region} | docker login --username AWS --password-stdin ${config.ecr_url}"
+            sh "docker push ${config.ecr_url}/${config.repo_name}:${GIT_BRANCH[1]}-${gitscm.GIT_COMMIT}"
+            sh "docker push ${config.ecr_url}/${config.repo_name}:latest"
+        }
+      }
+    }
+
+    stage('Sending Success Notification') {
+      // slackSend channel: config.SLACK, message: "Successful Job ${JOB_NAME}"
+    }
+  } catch (Exception e) {
+    //slackSend channel: config.SLACK, message: "Failed ${e}"
+    error "Your contionus build failed at ${current} , Sending Notification ${e}"
+  }
+}

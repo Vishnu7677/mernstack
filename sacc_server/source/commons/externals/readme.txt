@@ -1,0 +1,1 @@
+// configurations related to external communication [context related]

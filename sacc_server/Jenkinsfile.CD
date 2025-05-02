@@ -1,0 +1,64 @@
+#!/usr/bin/env groovy
+
+node('master') {
+
+  checkout scm
+
+  try {
+    property = readYaml file: "config.yaml"
+    if(ENVIRONMENT == "prod" ) {
+      config=property.prod
+      echo "${config}"
+    }
+    else if(ENVIRONMENT == "staging" ) {
+      config=property.staging
+      echo "${config}"
+    }
+    else if(ENVIRONMENT == "dev" ) {
+      config=property.dev
+      echo "${config}"
+    }
+    else {
+      error "ENVIRONMENT NOT SET"
+    }
+
+  }
+  catch (Exception e) {
+    error "Failed at reading config file.\n${e}"
+  }
+
+  try {
+    final gitscm = checkout scm
+
+    stage('Clone repository') {
+      current = "Stage Cloning"
+      checkout scm
+    }
+
+    stage('Kustomize Set Image') {
+      dir("${config.kustomization_file_path}") {
+        current = "Kustomize Set Image"
+        sh "kustomize edit set image ${config.repo_name}=${config.ecr_url}/${config.repo_name}:${IMAGE_TAG}"
+      }
+    }
+    stage('Kustome Build') {
+        current = "Kustome Build"
+        sh "kustomize build ${config.kustomization_file_path}"
+    }
+    stage('Approval Step') {
+        current = "Approve"
+        input 'Please check the image and manifest to be deployed'
+    }
+    stage('Deploy') {
+        current = "Kustome Build"
+        sh "kustomize build ${config.kustomization_file_path} | kubectl apply --context ${config.cluster} -f -"
+    }
+
+    stage('Sending Success Notification') {
+      // slackSend channel: config.SLACK, message: "Successful Job ${JOB_NAME}"
+    }
+  } catch (Exception e) {
+    //slackSend channel: config.SLACK, message: "Failed ${e}"
+    error "Your contionus build failed at ${current} , Sending Notification ${e}"
+  }
+}
