@@ -78,7 +78,7 @@ const Login = () => {
             }
         } catch (error) {
             console.error('Error during login:', error);
-            showToast('error', 'An unexpected error occurred. Please try again.');
+            showToast('error', error);
         }
 
         setEmail('');
