@@ -1,4 +1,4 @@
-export const server = "http://localhost:5000/api";
+export const server = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
 
 const apiList ={
     // Admin
