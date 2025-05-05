@@ -29,11 +29,11 @@ const EmployeeHome = () => {
           }
         };
         fetchUsers();
-      }, []);
+      }, [token]);
     
 
     if (!employeeDetails) {
-        return <div>Loading...</div>;
+        return <div>{loading}</div>;
     }
 
     return (

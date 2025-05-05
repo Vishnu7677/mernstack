@@ -38,34 +38,48 @@ const Login = () => {
         e.preventDefault();
         const url = apiList.EmployeeLogin;
         const options = {
-            method: "POST",
-            headers: {
-                'Content-Type': "application/json",
-            },
-            body: JSON.stringify({ email, password }),
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+          credentials: 'include', // Include cookies
         };
-
+    
         try {
-            const response = await fetch(url, options);
-            const data = await response.json();
-            if (response.ok) {
-                const { token, expiresIn, tokenType } = data.data;
-                const expiresInDays = parseExpiresIn(expiresIn);
-                Cookies.set('employee_token', token, { expires: expiresInDays });
-                Cookies.set('token_type', tokenType, { expires: expiresInDays });                
-                showToast('success', 'Login Successful!');
-                setTimeout(() => navigate('/employee/dashboard'), 1500);
+          const response = await fetch(url, options);
+          const data = await response.json();
+          if (response.ok) {
+            const { token, expiresIn, tokenType } = data.data;
+            console.log('expiresIn:', expiresIn); // Debug
+            const expiresInDays = parseExpiresIn(expiresIn);
+            Cookies.set('employee_token', token, {
+              expires: expiresInDays,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'Strict',
+            });
+            Cookies.set('token_type', tokenType, {
+              expires: expiresInDays,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'Strict',
+            });
+            showToast('success', 'Login Successful!');
+            if (Cookies.get('employee_token')) {
+              navigate('/employee/dashboard');
             } else {
-                showToast('error', data.message || 'Login Failed. Please try again.');
+              showToast('error', 'Failed to set authentication token');
             }
+          } else {
+            showToast('error', data.message || 'Login Failed. Please try again.');
+          }
         } catch (error) {
-            console.error('Error during login:', error);
-            showToast('error', 'An unexpected error occurred. Please try again.');
+          console.error('Error during login:', error);
+          showToast('error', 'An unexpected error occurred. Please try again.');
         }
-
-        setEmail("");
-        setPassword("");
-    };
+    
+        setEmail('');
+        setPassword('');
+      };
 
     return (
         <div className="employee_login_container">
