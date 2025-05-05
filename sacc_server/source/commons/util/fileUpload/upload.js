@@ -1,5 +1,3 @@
-// upload.js
-
 const AWS = require('aws-sdk');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
@@ -9,26 +7,47 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
+// Validate required environment variables
+const requiredEnvVars = [
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY', 
+  'AWS_REGION',
+  'AWS_BUCKET_NAME'
+];
+
+requiredEnvVars.forEach(varName => {
+  if (!process.env[varName]) {
+    throw new Error(`Missing required environment variable: ${varName}`);
+  }
+});
+
 // Configure AWS S3
 const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID || process.env.AWS_KEY,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: process.env.AWS_REGION
 });
 
-// S3 Storage configuration
-const s3Storage = (folder) => multerS3({
-  s3: s3,
-  bucket: process.env.AWS_BUCKET_NAME,
-  acl: 'public-read',
-  metadata: (req, file, cb) => {
-    cb(null, { fieldName: file.fieldname });
-  },
-  key: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${folder}/${file.fieldname}-${Date.now()}${ext}`);
+// Improved S3 Storage configuration with validation
+const s3Storage = (folder) => {
+  if (!process.env.AWS_BUCKET_NAME) {
+    throw new Error('AWS_BUCKET_NAME is not defined in environment variables');
   }
-});
+
+  return multerS3({
+    s3: s3,
+    bucket: process.env.AWS_BUCKET_NAME,
+    acl: 'public-read',
+    metadata: (req, file, cb) => {
+      cb(null, { fieldName: file.fieldname });
+    },
+    key: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      const filename = `${folder}/${file.fieldname}-${Date.now()}${ext}`;
+      cb(null, filename);
+    }
+  });
+};
 
 // Common file filter for all uploads
 const fileFilter = (req, file, cb) => {
@@ -156,6 +175,20 @@ const membershipDocumentUpload = multer({
   { name: 'signature', maxCount: 1 }
 ]);
 
+const uploadEmployeePhoto = multer({
+  storage: s3Storage('employee-photos'),
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png'];
+    if (allowedTypes.includes(file.mimetype)) {
+      return cb(null, true);
+    }
+    cb(new Error('Employee photo must be JPG or PNG'), false);
+  },
+  limits: { 
+    fileSize: 2 * 1024 * 1024 // 2MB limit
+  }
+}).single('employee_photo');
+
 
 
 module.exports = {
@@ -163,5 +196,6 @@ module.exports = {
   scholarshipApplicationUpload,
   uploadSignaturesOnly,
   uploadPhotoOnly,
-  membershipDocumentUpload
+  membershipDocumentUpload,
+   uploadEmployeePhoto 
 };

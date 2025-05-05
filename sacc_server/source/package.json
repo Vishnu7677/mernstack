@@ -25,6 +25,7 @@
     "axios": "^0.21.4",
     "axios-retry": "^3.2.5",
     "bcrypt": "^5.0.1",
+    "bcryptjs": "^3.0.2",
     "circular-json": "^0.5.9",
     "convert-excel-to-json": "^1.7.0",
     "cors": "^2.8.5",

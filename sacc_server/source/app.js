@@ -14,7 +14,10 @@ const swaggerDocs = require('./swagger.json');
 const app = express();
 
 // Cross-origin
-app.use(cors());
+app.use(cors({
+  origin: 'http://sacb.co.in', // Replace with your frontend URL
+  credentials: true,
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -26,13 +29,13 @@ app.use(appLog('common', {
 }));
 app.use(appLog('dev'));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({
-  resave: false,
-  saveUninitialized: true,
-  secret: 'i6lolr556x7'
-}));
-app.use(passport.initialize());
-app.use(passport.session());
+// app.use(session({
+//   resave: false,
+//   saveUninitialized: true,
+//   secret: 'i6lolr556x7'
+// }));
+// app.use(passport.initialize());
+// app.use(passport.session());
 
 
 // DB initialization

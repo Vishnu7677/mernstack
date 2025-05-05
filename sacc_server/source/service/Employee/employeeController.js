@@ -6,48 +6,54 @@ const { uploadEmployeePhoto } = require('../../commons/util/fileUpload/upload')
 function Controller() {}
 
 Controller.prototype.createEmployee = async (req, res) => {
-  // Upload employee photo
-  uploadEmployeePhoto(req, res, async (err) => {
-    if (err) {
-      console.error('Employee photo upload error:', err.message);
-      return res.status(400).json({ message: err.message });
+  try {
+    const employeeData = req.body;
+    const AdminId = req.user.id.toString(); 
+
+    // Validate photo upload
+    if (!req.file || !req.file.location) {
+      throw new Error('Employee photo upload failed or is missing.');
     }
 
-    try {
-      const employeeData = req.body;
-      const AdminId = req.user.id.toString(); 
+    // Get S3 URL of uploaded employee photo
+    employeeData.employee_photo = req.file.location;
 
-      if (!req.file || !req.file.location) {
-        throw new Error('Employee photo upload failed or is missing.');
-      }
-
-      // Get S3 URL of uploaded employee photo
-      employeeData.employee_photo = req.file.location;
-
-      // Validate and assign email
-      if (!employeeData.employee_email || employeeData.employee_email.trim() === '') {
-        throw new Error('Employee email is required.');
-      }
-
-      // Validate email format
-      const emailRegex = GeneralUtil.isValidEmail(employeeData.employee_email);
-      if (!emailRegex) {
-        throw new Error('Invalid email format.');
-      }
-
-
-      // Generate Employee ID
-      employeeData.employee_id = await GeneralUtil.generateEmployeeID();
-      employeeData.approved_by = AdminId;
-
-      // Call the service to create the employee
-      const result = await service.createEmployeeService(employeeData);
-      res.status(201).json({ message: 'Employee created successfully', result });
-    } catch (error) {
-      console.error('Error creating employee:', error.message);
-      res.status(400).json({ message: error.message });
+    // Validate email presence
+    if (!employeeData.employee_email || employeeData.employee_email.trim() === '') {
+      throw new Error('Employee email is required.');
     }
-  });
+
+    // Validate email format
+    if (!GeneralUtil.isValidEmail(employeeData.employee_email)) {
+      throw new Error('Invalid email format.');
+    }
+
+    // Generate Employee ID
+    employeeData.employee_id = await GeneralUtil.generateEmployeeID();
+    employeeData.approved_by = AdminId;
+
+    // Call the service to create the employee
+    const result = await service.createEmployeeService(employeeData);
+    
+    res.status(201).json({ 
+      message: 'Employee created successfully', 
+      result 
+    });
+    
+  } catch (error) {
+    console.error('Error in createEmployee:', error);
+    
+    // Handle specific error types if needed
+    let statusCode = 400;
+    if (error.message.includes('already exists')) {
+      statusCode = 409; // Conflict
+    }
+    
+    res.status(statusCode).json({ 
+      message: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
 };
 
 
