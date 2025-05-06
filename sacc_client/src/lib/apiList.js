@@ -1,4 +1,6 @@
-export const server = "http://localhost:5000/api";
+export const server = process.env.NODE_ENV === 'production' 
+  ? 'https://sacb.co.in/api' 
+  : 'http://localhost:5000/api'
 
 const apiList ={
     // Admin
