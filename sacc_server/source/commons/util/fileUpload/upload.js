@@ -210,6 +210,5 @@ module.exports = {
   uploadPhotoOnly,
   membershipDocumentUpload,
    uploadEmployeePhoto,
-uploadAdminPhoto
-
+   uploadAdminPhoto
 };

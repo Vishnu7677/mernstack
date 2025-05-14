@@ -19,6 +19,7 @@ router.post('/createadmin',
       next();
     });
   },  ServiceManager.Admin.createAdmin);
+
 router.post('/adminlogin', ServiceManager.Admin.loginAdmin);
 
 router.use(verifyAdminJWT);

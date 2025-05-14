@@ -63,9 +63,8 @@ Controller.prototype.createEmployee = async (req, res) => {
 
 Controller.prototype.loginEmployee = async (req, res) => {
   try {
-    console.log('Login attempt for email:', req.body.email); // Log the email
+
     const token = await service.loginEmployee(req.body.email, req.body.password);
-    console.log('Login successful for:', req.body.email); // Success log
     res.status(200).json({
       data: {
         message: "Employee Login successful",
@@ -90,10 +89,8 @@ Controller.prototype.loginEmployee = async (req, res) => {
 
 Controller.prototype.getEmployeeDetails = async (req, res) => {
   try {
-console.log('Decoded JWT user:', req.user);
     // Extract the employee ID from the decoded JWT (set by the middleware)
     const employeeId = req.user.id;
-    console.log(employeeId)
     // Fetch the employee data using the ID from the database
     const employee = await service.getEmployeeById(employeeId);
 

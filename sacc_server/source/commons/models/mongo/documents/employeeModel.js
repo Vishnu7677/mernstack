@@ -7,7 +7,7 @@ const employeeSchema = new mongoose.Schema({
   designation:{type:String,required: true},
   employee_id: {type:String,required: true},
   employee_email: { type: String, required: true, unique: true, sparse: true },
-  approved_by:{ type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+  approved_by:{ type: mongoose.Schema.Types.ObjectId, ref: 'admin' },
   employee_password: { type: String, required: true },
   role: { type: String, default: 'employee' },
   isVerified: { type: Boolean, default: true},

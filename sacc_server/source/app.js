@@ -59,6 +59,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // DB initialization
 require('./commons/models/initialize');
+
 // Enhanced debug middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] Incoming request: ${req.method} ${req.originalUrl}`);
@@ -82,12 +83,6 @@ app._router.stack.forEach((middleware) => {
     });
   }
 });
-// Add this before your routes
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  next();
-});
-
 
 
 app.use((req, res) => {
