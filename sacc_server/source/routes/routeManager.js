@@ -21,7 +21,7 @@ const Scholar = require('./route/SchoolScholar')
  router.use('/api/aadharOtp', aadhaarOtp);
  router.use('/api/admin', Admin);
  router.use('/api/user', Users);
- router.use('/api/employee', Employee);
+router.use('/api/employee',Employee);
 router.use('/api/scholar', Scholar);
 
 

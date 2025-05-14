@@ -90,9 +90,10 @@ Controller.prototype.loginEmployee = async (req, res) => {
 
 Controller.prototype.getEmployeeDetails = async (req, res) => {
   try {
+console.log('Decoded JWT user:', req.user);
     // Extract the employee ID from the decoded JWT (set by the middleware)
     const employeeId = req.user.id;
-    
+    console.log(employeeId)
     // Fetch the employee data using the ID from the database
     const employee = await service.getEmployeeById(employeeId);
 

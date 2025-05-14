@@ -2,12 +2,23 @@ const express = require('express');
 const router = express.Router();
 const ServiceManager = require('../../service/ServiceManager');
 const verifyAdminJWT = require('../../middleware/adminAuthMiddleware/adminAuthMiddleware');
-const uploadEmployeePhoto = require('../../commons/util/fileUpload/upload')
+const { uploadEmployeePhoto,uploadAdminPhoto } = require('../../commons/util/fileUpload/upload')
 
 
 router.use(express.json());
 
-router.post('/createadmin', ServiceManager.Admin.createAdmin);
+router.post('/createadmin',
+ (req, res, next) => {
+    // First handle the file upload
+    uploadAdminPhoto(req, res, (err) => {
+      if (err) {
+        console.error('Upload error:', err);
+        return res.status(400).json({ message: err.message });
+      }
+      // If upload succeeds, proceed to the controller
+      next();
+    });
+  },  ServiceManager.Admin.createAdmin);
 router.post('/adminlogin', ServiceManager.Admin.loginAdmin);
 
 router.use(verifyAdminJWT);

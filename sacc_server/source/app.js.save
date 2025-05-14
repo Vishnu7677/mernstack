@@ -59,50 +59,29 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // DB initialization
 require('./commons/models/initialize');
-// Enhanced debug middleware
+
+testRouter.get('/test', (req, res) => res.send("A
+// Gateway controls and routes
+app.use('/', RouteManager);router.use('/', (req, res) => res.send("Catch-all"));
+
+
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] Incoming request: ${req.method} ${req.originalUrl}`);
-  console.log('Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
-  console.log('Headers:', req.headers);
+  console.log('Incoming request:', req.method, req.url);
   next();
 });
 
-// Route manager
-app.use('/', RouteManager);
-// In app.js, right after DB initialization:
-console.log('Registered routes:');
-app._router.stack.forEach((middleware) => {
-  if (middleware.route) {
-    console.log(middleware.route.path);
-  } else if (middleware.name === 'router') {
-    middleware.handle.stack.forEach((handler) => {
-      if (handler.route) {
-        console.log(handler.route.path);
-      }
-    });
-  }
-});
-// Add this before your routes
+// Catch 404 and forward to error handler
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  next();
-});
-
-
-
-app.use((req, res) => {
-  if (req.originalUrl.startsWith('/api')) {
-    return res.status(404).json({ 
-      error: 'Endpoint not found',
-      path: req.originalUrl 
-    });
-  }
-  res.status(404).send('Page not found');
+  res.locals.message = 'Welcome to SACC Bank';
+  res.locals.error = {
+    status: 'Root Route',
+    stack: 'You have called for root API or the API that you want does not exist',
+  };
+  res.render('error');
 });
 
 // Error handler
 app.use(errorHandeler);
 
 module.exports = app;
-
 

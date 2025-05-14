@@ -9,7 +9,7 @@ const employeeSchema = new mongoose.Schema({
   employee_email: { type: String, required: true, unique: true, sparse: true },
   approved_by:{ type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
   employee_password: { type: String, required: true },
-  role: { type: String, default: 'Employee' },
+  role: { type: String, default: 'employee' },
   isVerified: { type: Boolean, default: true},
   isDeleted: {type: Boolean, default: false}
 });
