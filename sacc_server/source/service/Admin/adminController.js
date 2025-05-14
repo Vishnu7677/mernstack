@@ -6,10 +6,16 @@ function Controller() {}
 
 Controller.prototype.createAdmin = async (req, res) => {
   try {
-    if (!req.body.admin_password) {
+    const AdminData = req.body;
+    if (!req.file || !req.file.location) {
+      throw new Error('Admin photo upload failed or is missing.');
+    }
+    if (!AdminData.admin_password) {
       throw new Error("Password is required");
     }
-    const result = await service.createAdminService(req.body);
+    AdminData.admin_photo = req.file.location;
+    AdminData.isVerified = true;
+    const result = await service.createAdminService(AdminData);
     res.status(201).json({ message: 'Admin created', result });
   } catch (error) {
     console.error(error); // Debugging

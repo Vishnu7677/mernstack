@@ -9,7 +9,7 @@ const subAdminSchema = new mongoose.Schema({
   manager_email: { type: String, required: true, unique: true, sparse: true },
   approved_by:{ type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
   manager_password: { type: String, required: true },
-  role: { type: String, default: 'Manager' },
+  role: { type: String, default: 'subadmin' },
   isVerified: { type: Boolean, default: true},
   isDeleted: {type: Boolean, default: false}
 });

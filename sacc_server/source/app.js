@@ -60,17 +60,24 @@ app.use(express.static(path.join(__dirname, 'public')));
 // DB initialization
 require('./commons/models/initialize');
 
+app.use((req, res, next) => {
+  console.log(`Incoming: ${req.method} ${req.url}`);
+  next();
+});
+
 // Gateway controls and routes
-app.use('/', RouteManager);
+app.use('/api', RouteManager);
 
 // Catch 404 and forward to error handler
-app.use((req, res, next) => {
-  res.locals.message = 'Welcome to SACC Bank';
-  res.locals.error = {
-    status: 'Root Route',
-    stack: 'You have called for root API or the API that you want does not exist',
-  };
-  res.render('error');
+// Remove any existing 404 handler and replace with:
+app.use((req, res) => {
+  if (req.originalUrl.startsWith('/api')) {
+    return res.status(404).json({ 
+      error: 'Endpoint not found',
+      path: req.originalUrl 
+    });
+  }
+  res.status(404).send('Page not found');
 });
 
 // Error handler

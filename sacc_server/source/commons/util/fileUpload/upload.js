@@ -189,7 +189,19 @@ const uploadEmployeePhoto = multer({
   }
 }).single('employee_photo');
 
-
+const uploadAdminPhoto = multer({
+  storage: s3Storage('Admin-photos'),
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png'];
+    if (allowedTypes.includes(file.mimetype)) {
+      return cb(null, true);
+    }
+    cb(new Error('Admin photo must be JPG or PNG'), false);
+  },
+  limits: { 
+    fileSize: 2 * 1024 * 1024 // 2MB limit
+  }
+}).single('admin_photo');
 
 module.exports = {
   schoolLicenseUpload,
@@ -197,6 +209,7 @@ module.exports = {
   uploadSignaturesOnly,
   uploadPhotoOnly,
   membershipDocumentUpload,
-   uploadEmployeePhoto
+   uploadEmployeePhoto,
+   uploadAdminPhoto
 
 };

@@ -66,6 +66,7 @@ Controller.prototype.loginEmployee = async (req, res) => {
     console.log('Login attempt for email:', req.body.email); // Log the email
     const token = await service.loginEmployee(req.body.email, req.body.password);
     console.log('Login successful for:', req.body.email); // Success log
+    res.json({ token: 'test' });
     res.status(200).json({
       data: {
         message: "Employee Login successful",
@@ -85,6 +86,7 @@ Controller.prototype.loginEmployee = async (req, res) => {
       message: error.message,
       error: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
+    next(err);
   }
 };
 
