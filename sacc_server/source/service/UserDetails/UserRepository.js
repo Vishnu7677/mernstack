@@ -120,5 +120,23 @@ Repository.prototype.deleteById = async (userId) => {
     );
 };
 
+Repository.prototype.create = async function(userData) {
+  try {
+      // Check if user exists by Aadhaar number
+      const existingUser = await UserDetails.findOne({ aadhaar_number: userData.aadhaar_number });
+
+      if (existingUser) {
+          throw new Error('User with this Aadhaar number already exists');
+      }
+
+      // Create new user
+      const newUser = new UserDetails(userData);
+      await newUser.save();
+      return newUser;
+  } catch (error) {
+      console.error('Error in MembershipRepository:', error);
+      throw error;
+  }
+};
 
 module.exports = new Repository();

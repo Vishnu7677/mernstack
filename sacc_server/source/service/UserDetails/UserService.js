@@ -1,4 +1,6 @@
 const Repository = require('./UserRepository');
+const GeneralUtil = require('../../commons/util/general/utility');
+
 
 function Service() {}
 
@@ -218,6 +220,155 @@ Service.prototype.editUser = async (userId, updateData) => {
     };
 };
   
+
+Service.prototype.processMembershipApplication = async function(formData, files) {
+  try {
+      // Validate required fields
+      const requiredFields = [
+          'name', 'father_name', 'date_of_birth', 'gender', 
+          'phone_number', 'marital_status', 'membership_type',
+          'occupation', 'annual_income', 'name_of_employer_business',
+          'application_fee_received', 'employeeId','aadhar_number'
+      ];
+      
+      const missingFields = requiredFields.filter(field => !formData[field]);
+      
+      if (missingFields.length > 0) {
+          const error = new Error('Missing required fields');
+          error.missingFields = missingFields;
+          error.statusCode = 400;
+          throw error;
+      }
+
+      // Calculate age and determine if applicant is minor
+      const age = GeneralUtil.calculateAge(formData.date_of_birth);
+      const isMinor = age < 18;
+      formData.is_minor = isMinor;
+
+      // Validate documents based on requirements
+      const requiredDocuments = ['aadhaar_front', 'aadhaar_back', 'photo', 'signature'];
+      
+      // Add birth certificate requirement for minors
+      if (isMinor) {
+          requiredDocuments.push('birthCertificate');
+          
+          // Validate guardian details for minors
+          if (!formData.guardian_name || !formData.guardian_phone_number || !formData.relationship) {
+              throw new Error('Missing guardian details for minor applicant');
+          }
+      }
+
+      // Check for missing documents
+      const missingDocuments = requiredDocuments.filter(doc => !files[doc] || !files[doc][0]);
+      if (missingDocuments.length > 0) {
+          const error = new Error('Missing required documents');
+          error.missingDocuments = missingDocuments;
+          error.statusCode = 400;
+          throw error;
+      }
+
+      // Process current address if provided
+      let currentAddress = null;
+      if (formData.current_house_no && formData.current_village_city && 
+          formData.current_pincode && formData.current_state && formData.current_country) {
+          currentAddress = {
+              house: formData.current_house_no,
+              street: formData.current_street || '',
+              vtc: formData.current_village_city,
+              landmark: formData.current_landmark || '',
+              pincode: formData.current_pincode,
+              district: formData.current_district || '',
+              state: formData.current_state,
+              country: formData.current_country,
+              isSame: false
+          };
+      }
+
+      // Prepare permanent address from full_address
+      const permanentAddress = {
+          full_address: formData.full_address,
+          isSame: currentAddress ? false : true
+      };
+
+      // Process documents
+      const documents = [];
+      const fileMappings = {
+          aadhaar_front: 'Aadhaar Front',
+          aadhaar_back: 'Aadhaar Back',
+          pan: 'PAN Card',
+          photo: 'Photograph',
+          addressProof: 'Address Proof',
+          birthCertificate: 'Birth Certificate',
+          signature: 'Signature'
+      };
+
+      for (const [field, docType] of Object.entries(fileMappings)) {
+          if (files[field] && files[field][0]) {
+              documents.push({
+                  type: docType,
+                  url: files[field][0].location,
+                  uploadedAt: new Date()
+              });
+          }
+      }
+
+      // Generate receipt number if not provided
+      const receiptNo = GeneralUtil.generateReceiptNumber();
+
+      // Prepare membership data
+      const membershipData = {
+          membership_type: formData.membership_type,
+          membership_opened_by: formData.employeeId,
+          application_fee_received: parseFloat(formData.application_fee_received),
+          receipt_no: receiptNo,
+          documents: documents,
+          applicants_signature: files.signature?.[0]?.location || '',
+          marital_status: formData.marital_status,
+          annual_income: parseFloat(formData.annual_income) || 0,
+          occupation: formData.occupation,
+          name_of_employer_business: formData.name_of_employer_business,
+          membership_status: 'Pending',
+          isVerified: false
+      };
+
+      // Prepare user data
+      const userData = {
+          aadhaar_number: formData.aadhar_number,
+          name: formData.name,
+          date_of_birth: formData.date_of_birth,
+          gender: formData.gender,
+          father_name: formData.father_name,
+          mother_name: formData.mother_name,
+          phone_number: formData.phone_number,
+          email_id: formData.email_id || '',
+          current_address: currentAddress,
+          permanent_address: permanentAddress,
+          pan_number: formData.pan_number || '',
+          membership: membershipData,
+          is_minor: isMinor
+      };
+
+      // Handle guardian data for minors
+      if (isMinor) {
+          userData.guardian = [{
+              guardians_full_name: formData.guardian_name,
+              guardians_phone_number: formData.guardian_phone_number,
+              relationship_with_applicant: formData.relationship
+          }];
+      }
+
+      // Save to database
+      const result = await Repository.create(userData);
+
+      return {
+          receiptNo: receiptNo,
+          applicationId: result._id
+      };
+  } catch (error) {
+      console.error('Error in MembershipService:', error);
+      throw error;
+  }
+};
   
 
 module.exports = new Service();

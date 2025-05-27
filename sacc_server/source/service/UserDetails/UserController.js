@@ -52,7 +52,7 @@ Controller.prototype.getUserDetailsById = async function (req, res) {
 };
 
 // Create a new user
-Controller.prototype.createOrUpdateUser = async (req, res) => {
+Controller.prototype.createOrUpdateUser = async (req, res) => {``
   try {
     let userData;
     const employeeId = req.user.id; // From JWT
@@ -266,6 +266,57 @@ Controller.prototype.openAccount = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+Controller.prototype.submitMembershipApplication = async function(req, res) {
+  try {
+      let formData;
+      
+      // Parse incoming data if sent as JSON string
+      if (req.body.data) {
+          try {
+              formData = JSON.parse(req.body.data);
+          } catch (parseError) {
+              return res.status(400).json({
+                  success: false,
+                  message: 'Invalid JSON data format'
+              });
+          }
+      } else {
+          formData = req.body;
+      }
+
+      // Add employee ID from JWT
+      formData.employeeId = req.user.id;
+
+      const result = await Service.processMembershipApplication(formData, req.files);
+
+      return res.status(200).json({
+          success: true,
+          message: 'Membership application submitted successfully',
+          data: {
+              receiptNo: result.receiptNo,
+              applicationId: result.applicationId
+          }
+      });
+  } catch (error) {
+      console.error('Error submitting membership application:', error);
+      
+      // Handle case where user already exists
+      if (error.message === 'User with this Aadhaar number already exists') {
+          return res.status(400).json({
+              success: false,
+              message: 'A membership application with this Aadhaar number already exists'
+          });
+      }
+
+      return res.status(error.statusCode || 500).json({
+          success: false,
+          message: error.message || 'Failed to submit membership application',
+          ...(error.missingFields && { missingFields: error.missingFields }),
+          ...(error.missingDocuments && { missingDocuments: error.missingDocuments })
+      });
   }
 };
 

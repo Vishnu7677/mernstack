@@ -1,26 +1,29 @@
+/* Membership Form Styles */
 .membership_form-container {
     max-width: 1200px;
     margin: 20px auto;
-    padding: 20px;
+    padding: 30px;
     background-color: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .membership_step-indicator {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 30px;
+    justify-content: center;
+    margin-bottom: 40px;
     position: relative;
+    gap: 40px;
 }
 
 .membership_step-indicator::before {
     content: '';
     position: absolute;
     top: 15px;
-    left: 0;
-    right: 0;
-    height: 2px;
+    left: 50px;
+    right: 50px;
+    height: 3px;
     background-color: #e0e0e0;
     z-index: 1;
 }
@@ -34,8 +37,8 @@
 }
 
 .membership_step-number {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background-color: #e0e0e0;
     color: #666;
@@ -43,64 +46,86 @@
     justify-content: center;
     align-items: center;
     font-weight: bold;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    border: 3px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .membership_step-label {
     font-size: 14px;
     color: #666;
     text-align: center;
+    font-weight: 500;
 }
 
 .membership_active .membership_step-number {
     background-color: #4a6baf;
     color: white;
+    border-color: white;
 }
 
 .membership_active .membership_step-label {
     color: #4a6baf;
-    font-weight: bold;
+    font-weight: 600;
 }
 
 .membership_completed .membership_step-number {
     background-color: #4CAF50;
     color: white;
+    border-color: white;
 }
 
 .membership_completed .membership_step-label {
     color: #4CAF50;
+    font-weight: 600;
 }
 
 .membership_form-step {
-    padding: 20px;
+    padding: 20px 0;
 }
 
 .membership_form-step h2 {
     color: #2c3e50;
     margin-bottom: 20px;
     text-align: center;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.membership_form-intro, .membership_review-intro {
+    text-align: center;
+    color: #555;
+    margin-bottom: 30px;
+    font-size: 16px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.5;
 }
 
 .membership_form-group {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .membership_form-group label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     font-weight: 500;
-    color: #555;
+    color: #444;
+    font-size: 14px;
 }
 
 .membership_form-group input,
 .membership_form-group select,
 .membership_form-group textarea {
     width: 100%;
-    padding: 10px;
+    padding: 12px 15px;
     border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 16px;
-    transition: border-color 0.3s;
+    border-radius: 6px;
+    font-size: 15px;
+    transition: all 0.3s;
+    background-color: #f9f9f9;
 }
 
 .membership_form-group input:focus,
@@ -108,74 +133,128 @@
 .membership_form-group textarea:focus {
     border-color: #4a6baf;
     outline: none;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(74, 107, 175, 0.1);
+}
+
+.membership_form-group textarea {
+    resize: vertical;
+    min-height: 80px;
 }
 
 .membership_radio-group {
     display: flex;
     flex-wrap: wrap;
     gap: 15px;
+    margin-top: 5px;
+    align-items: center;
 }
 
-.membership_radio-group label {
+.membership_radio-option {
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-weight: normal;
+    gap: 8px;
     cursor: pointer;
+}
+
+.membership_radio-option input[type="radio"] {
+    margin: 0;
+    width: auto;
+    order: -1;
+}
+
+.membership_radio-label {
+    font-weight: normal;
+    color: #444;
+}
+
+.membership_checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: normal;
+    color: #444;
+}
+
+.membership_checkbox-label input[type="checkbox"] {
+    margin: 0;
+    width: auto;
+    order: -1;
+}
+
+.membership_checkbox-custom {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    position: relative;
+    transition: all 0.2s;
+    order: -1;
+    margin-right: 8px;
+}
+
+.membership_checkbox-label input:checked ~ .membership_checkbox-custom {
+    background-color: #4a6baf;
+    border-color: #4a6baf;
+}
+
+.membership_checkbox-label input:checked ~ .membership_checkbox-custom::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
 .membership_button-group {
     display: flex;
     justify-content: center;
     gap: 15px;
-    margin-top: 30px;
+    margin-top: 40px;
 }
 
 .membership_primary-button {
     background-color: #4a6baf;
     color: white;
     border: none;
-    padding: 12px 25px;
-    border-radius: 5px;
+    padding: 12px 30px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 16px;
-    transition: background-color 0.3s;
+    font-weight: 500;
+    transition: all 0.3s;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    box-shadow: 0 2px 8px rgba(74, 107, 175, 0.3);
 }
 
 .membership_primary-button:hover {
     background-color: #3a5a9f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(74, 107, 175, 0.4);
 }
 
 .membership_secondary-button {
-    background-color: #f1f1f1;
+    background-color: #f8f9fa;
     color: #555;
     border: 1px solid #ddd;
-    padding: 12px 25px;
-    border-radius: 5px;
+    padding: 12px 30px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 16px;
+    font-weight: 500;
     transition: all 0.3s;
 }
 
 .membership_secondary-button:hover {
-    background-color: #e0e0e0;
-}
-
-.membership_profile-section {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.membership_profile-image {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid #4a6baf;
+    background-color: #e9ecef;
+    border-color: #ccc;
 }
 
 .membership_form-grid {
@@ -193,38 +272,73 @@
     font-size: 18px;
     font-weight: 600;
     color: #2c3e50;
-    margin: 20px 0 10px;
-    padding-bottom: 5px;
+    margin: 30px 0 15px;
+    padding-bottom: 8px;
     border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.membership_form-section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 80px;
+    height: 2px;
+    background-color: #4a6baf;
 }
 
 .membership_file-upload-wrapper {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .membership_file-upload-button {
-    padding: 8px 15px;
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: 10px 20px;
+    background-color: #f0f4f8;
+    border: 1px solid #d0d7e0;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s;
+    font-size: 14px;
+    color: #4a6baf;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    order: -1;
 }
 
 .membership_file-upload-button:hover {
-    background-color: #e0e0e0;
+    background-color: #e1e8f0;
+    border-color: #b8c2d0;
+}
+
+.membership_file-upload-button span::before {
+    content: '📎';
+    margin-right: 5px;
 }
 
 .membership_file-preview {
     flex-grow: 1;
-    padding: 8px;
+    padding: 10px 15px;
     border: 1px dashed #ccc;
-    border-radius: 4px;
+    border-radius: 6px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background-color: #f9f9f9;
+    font-size: 14px;
+}
+
+.membership_file-hint {
+    flex-grow: 1;
+    padding: 10px 15px;
+    color: #888;
+    font-size: 14px;
+    font-style: italic;
 }
 
 .membership_remove-file-button {
@@ -234,6 +348,7 @@
     font-size: 16px;
     cursor: pointer;
     padding: 0 5px;
+    margin-left: 10px;
 }
 
 .membership_remove-file-button:hover {
@@ -243,10 +358,11 @@
 .membership_error-message {
     color: #d32f2f;
     background-color: #fde8e8;
-    padding: 10px 15px;
-    border-radius: 5px;
-    margin: 15px 0;
+    padding: 12px 15px;
+    border-radius: 6px;
+    margin: 20px 0;
     font-size: 14px;
+    grid-column: 1 / -1;
 }
 
 .membership_review-step {
@@ -256,16 +372,18 @@
 
 .membership_review-section {
     margin-bottom: 30px;
-    padding: 20px;
+    padding: 25px;
     background-color: #f9f9f9;
     border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .membership_review-section h3 {
     color: #2c3e50;
-    margin-bottom: 15px;
-    padding-bottom: 5px;
+    margin-bottom: 20px;
+    padding-bottom: 8px;
     border-bottom: 1px solid #ddd;
+    font-size: 20px;
 }
 
 .membership_review-grid {
@@ -277,49 +395,92 @@
 .membership_review-item {
     display: flex;
     flex-direction: column;
+    padding: 8px 0;
 }
 
 .membership_review-label {
     font-weight: 500;
-    color: #555;
+    color: #666;
     font-size: 14px;
+    margin-bottom: 3px;
 }
 
 .membership_review-value {
     font-weight: 600;
     color: #333;
     word-break: break-word;
+    font-size: 15px;
 }
 
-.membership_document-list {
+.membership_document-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
 }
 
 .membership_document-item {
     display: flex;
     flex-direction: column;
-    padding: 10px;
-    background-color: #f0f0f0;
-    border-radius: 5px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eee;
+    transition: all 0.3s;
+}
+
+.membership_document-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.membership_document-preview {
+    width: 100%;
+    height: 120px;
+    background-color: #f5f5f5;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.membership_document-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.membership_document-icon {
+    font-size: 36px;
+    color: #666;
+}
+
+.membership_document-info {
+    text-align: center;
 }
 
 .membership_document-label {
     font-weight: 500;
-    font-size: 14px;
-    color: #555;
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 3px;
 }
 
-.membership_document-value {
-    font-size: 14px;
-    color: #333;
+.membership_document-name {
+    font-size: 12px;
+    color: #888;
     word-break: break-all;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .membership_declaration {
-    margin: 30px 0;
-    padding: 20px;
+    margin: 40px 0;
+    padding: 25px;
     background-color: #f5f9ff;
     border-radius: 8px;
     border: 1px solid #d6e4ff;
@@ -327,13 +488,15 @@
 
 .membership_declaration h3 {
     color: #2c3e50;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 20px;
 }
 
 .membership_declaration p {
     color: #555;
-    line-height: 1.5;
-    margin-bottom: 15px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-size: 15px;
 }
 
 .membership_declaration-checkbox {
@@ -344,22 +507,26 @@
 
 .membership_declaration-checkbox input {
     width: auto;
+    margin: 0;
 }
 
 .membership_success-step {
     text-align: center;
     padding: 40px 20px;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 .membership_success-icon {
     width: 80px;
     height: 80px;
-    margin: 0 auto 20px;
+    margin: 0 auto 25px;
     background-color: #4CAF50;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
 .membership_success-icon svg {
@@ -371,37 +538,34 @@
 .membership_success-step h2 {
     color: #2c3e50;
     margin-bottom: 15px;
+    font-size: 28px;
 }
 
-.membership_success-step p {
+.membership_success-message {
+    margin-bottom: 30px;
+}
+
+.membership_success-message p {
     color: #555;
-    margin-bottom: 10px;
-    line-height: 1.5;
+    margin-bottom: 15px;
+    line-height: 1.6;
+    font-size: 16px;
 }
 
-.membership_personal-details-step {
-    max-height: 80vh;
-    overflow-y: auto;
-    padding-right: 10px;
+.membership_receipt-number {
+    font-size: 22px;
+    font-weight: 600;
+    color: #4a6baf;
+    margin: 15px 0;
+    padding: 10px 20px;
+    background-color: #f5f9ff;
+    border-radius: 6px;
+    display: inline-block;
 }
 
-/* Scrollbar styling */
-.membership_personal-details-step::-webkit-scrollbar {
-    width: 8px;
-}
-
-.membership_personal-details-step::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-}
-
-.membership_personal-details-step::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 10px;
-}
-
-.membership_personal-details-step::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+.required {
+    color: #e53935;
+    margin-left: 3px;
 }
 
 /* Loading spinner */
@@ -421,17 +585,25 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+    .membership_form-container {
+        padding: 20px;
+    }
+    
     .membership_step-indicator {
-        flex-wrap: wrap;
-        gap: 15px;
+        gap: 20px;
     }
     
-    .membership_step {
-        flex: 1 0 100px;
+    .membership_step-indicator::before {
+        left: 30px;
+        right: 30px;
     }
     
-    .membership_form-grid, .membership_review-grid, .membership_document-list {
+    .membership_form-grid, .membership_review-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .membership_document-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
     
     .membership_button-group {
@@ -448,12 +620,24 @@
         padding: 15px;
     }
     
-    .membership_form-step {
-        padding: 15px 10px;
+    .membership_step-indicator {
+        gap: 10px;
     }
     
-    .membership_profile-image {
-        width: 100px;
-        height: 100px;
+    .membership_step-label {
+        font-size: 12px;
+    }
+    
+    .membership_form-step h2 {
+        font-size: 24px;
+    }
+    
+    .membership_review-section {
+        padding: 15px;
+    }
+    
+    .membership_radio-group {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

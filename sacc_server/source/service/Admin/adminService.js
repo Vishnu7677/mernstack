@@ -47,23 +47,28 @@ Service.prototype.updateUserDetailsService = async (identifier, action, updateDa
     return null;
   }
 
+  // Prepare the base update
+  const update = {
+    approved_by: updateData.approved_by,
+    approved_by_role: updateData.approved_by_role
+  };
+
+  // Add membership updates directly with dot notation
   if (action === 'accept') {
-    updateData.membership = {
-      ...user.membership, // Preserve existing data
-      membership_status: 'accepted',
-      isVerified: true,
-      membership_start_date: new Date(),
-      membership_id: GeneralUtil.generateMembershipId()
-    };
+    update['membership.membership_status'] = 'accepted';
+    update['membership.isVerified'] = true;
+    update['membership.membership_start_date'] = new Date();
+    update['membership.membership_id'] = GeneralUtil.generateMembershipId();
   } else if (action === 'reject') {
-    updateData.membership = {
-      ...user.membership, // Preserve existing data
-      membership_status: 'rejected',
-      isVerified: false
-    };
+    update['membership.membership_status'] = 'rejected';
+    update['membership.isVerified'] = false;
   }
 
-  return await repository.updateUserDetails(identifier, updateData);
+  // Convert to proper $set syntax
+  const finalUpdate = { $set: update };
+
+  
+  return await repository.updateUserDetails(identifier, finalUpdate);
 };
 
 

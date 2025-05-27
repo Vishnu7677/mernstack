@@ -130,4 +130,44 @@ GeneralUtil.prototype.generateLoanAccountNumber = function () {
   return `${prefix}${String(loanAccountCounter++).padStart(6, '0')}`;
 };
 
+// commons/util/ageCalculator.js
+GeneralUtil.prototype.calculateAge = function (dateString) {
+  if (!dateString) return 0;
+  
+  // Try to parse different date formats
+  let birthDate;
+  if (dateString.includes('-')) {
+      // Format: YYYY-MM-DD
+      birthDate = new Date(dateString);
+  } else if (dateString.includes('/')) {
+      // Format: DD/MM/YYYY
+      const [day, month, year] = dateString.split('/');
+      birthDate = new Date(`${year}-${month}-${day}`);
+  } else {
+      // Try parsing as ISO string
+      birthDate = new Date(dateString);
+  }
+
+  if (isNaN(birthDate.getTime())) {
+      throw new Error('Invalid date format');
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+  }
+  
+  return age;
+};
+
+GeneralUtil.prototype.generateReceiptNumber = function() {
+  const prefix = 'LNSAA';
+  const randomNum = Math.floor(Math.random() * 10000000);
+  return `${prefix}-${randomNum.toString().padStart(7, '0')}`;
+};
+
+
 module.exports = new GeneralUtil();

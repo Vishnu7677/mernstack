@@ -35,6 +35,7 @@ const apiList ={
     getUsers: `${server}/user/getallusers`,
     getUserbyID: `${server}/user/getuserbyid/:userId`,
     SubmitForm: `${server}/user/createuser`,
+    submitMembership: `${server}/user/submitmembershipform`,
     createAccount: `${server}/user/createaccount`,
 
     

@@ -46,37 +46,28 @@ Controller.prototype.updateUserDetails = async (req, res) => {
   try {
     const { _id, phone, action } = req.body;
     const approverId = req.user.id;
-    const approverRole = req.user.role; // 'Admin' or 'Manager'
+    const approverRole = req.user.role;
     
-    // Initialize updateData here
     const updateData = {
       approved_by: approverId,
       approved_by_role: approverRole
     };
     
-    // Ensure 'action' is valid
     if (!['accept', 'reject'].includes(action)) {
       return res.status(400).json({ message: "'action' must be either 'accept' or 'reject'" });
     }
 
-    // Handle case when both _id and phone are provided
-    if (_id && phone) {
-      const user = await repository.findUserByIdAndPhone(_id, phone);
-      if (!user) {
-        return res.status(404).json({ message: "User with matching '_id' and 'phone' not found" });
+    try {
+      const identifier = _id ? { _id } : { phone };
+      const result = await service.updateUserDetailsService(identifier, action, updateData);
+      if (!result) {
+        return res.status(404).json({ message: 'User not found' });
       }
-    } else if (!_id && !phone) {
-      return res.status(400).json({ message: "Either '_id' or 'phone' must be provided" });
+      res.status(200).json({ message: 'User details updated successfully', result });
+    } catch (error) {
+      console.error('Update error:', error);
+      res.status(500).json({ message: error.message });
     }
-
-    const identifier = _id ? { _id } : { phone };
-    const result = await service.updateUserDetailsService(identifier, action, updateData);
-
-    if (!result) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.status(200).json({ message: 'User details updated successfully', result });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

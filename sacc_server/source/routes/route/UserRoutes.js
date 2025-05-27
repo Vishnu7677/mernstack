@@ -9,6 +9,7 @@ router.use(express.json());
 router.get('/getallusers', ServiceManager.Users.getAllUserDetails);
 router.get('/getuserbyid/:userId', ServiceManager.Users.getUserDetailsById);
 router.post('/createuser',verifyEmployeeJWT,membershipDocumentUpload, ServiceManager.Users.createOrUpdateUser);
+router.post('/submitmembershipform',verifyEmployeeJWT,membershipDocumentUpload, ServiceManager.Users.submitMembershipApplication);
 router.post('/createaccount', verifyEmployeeJWT, ServiceManager.Users.openAccount);
 router.put('/edituser/:userId', ServiceManager.Users.editUser);
 router.delete('/deleteuser/:userId', ServiceManager.Users.deleteUser);
