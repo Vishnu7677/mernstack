@@ -5,4 +5,5 @@ module.exports = {
     Employee: require('./Employee/employeeController'),
     SchoolScholar: require('./ScholarShips/SchoolScholar/SchoolController'),
     IndividualAadhar : require('./AadharCard/IndividualScholar'),
+    IndividualScholar : require('./ScholarShips/IndividualScholar/IndividulaController'),
 }

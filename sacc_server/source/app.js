@@ -66,14 +66,13 @@ require('./commons/models/initialize');
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] Incoming request: ${req.method} ${req.originalUrl}`);
   console.log('Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
-  console.log('Headers:', req.headers);
+  // console.log('Headers:', req.headers);
   next();
 });
 
 // Route manager
 app.use('/', RouteManager);
-// In app.js, right after DB initialization:
-console.log('Registered routes:');
+
 app._router.stack.forEach((middleware) => {
   if (middleware.route) {
     console.log(middleware.route.path);

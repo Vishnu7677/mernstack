@@ -18,7 +18,6 @@ Service.prototype.loginEmployee = async (email, password) => {
   if (!employee || !(await bcrypt.compare(password, employee.employee_password))) {
     throw new Error('Invalid email or password');
   }
-console.log('Generated token for:', employee._id, 'email:', employee.employee_email);
 
   const tokenData = getToken({ id: employee._id, role: employee.role });
   return {

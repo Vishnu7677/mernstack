@@ -16,6 +16,34 @@ const AddressSchema = new mongoose.Schema({
 });
 
 const scholarSchema = new mongoose.Schema({
+  LoginUser:{
+    fullName: {
+      type: String,
+      trim: true
+    },
+    aadharNumber: {
+      type: String,
+      trim: true
+    },
+    mobileNumber: {
+      type: String,
+      trim: true
+    },
+    email: {
+      type: String,
+      unique: true,
+      trim: true,
+      lowercase: true
+    },
+    password:{
+      type: String,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false
+    }
+  },
+  
   // Section 1: Personal Information
   personalInfo: {
     fullName: {
@@ -43,7 +71,8 @@ const scholarSchema = new mongoose.Schema({
     },
     category: {
       type: String,
-      enum: ['General', 'SC', 'ST', 'OBC', 'Other']
+      enum: ['General', 'SC', 'ST', 'OBC', 'Other'],
+      required: false
     },
     address: {
       type: String,
@@ -60,17 +89,13 @@ const scholarSchema = new mongoose.Schema({
     pinCode: {
       type: String,
       trim: true
-    },
-    mobileNumber: {
-      type: String,
-      trim: true
-    },
-    email: {
-      type: String,
-      unique: true,
-      trim: true,
-      lowercase: true
     }
+  },
+  
+  referenceNumber: {
+    type: String,
+    unique: true,
+    sparse: true
   },
 
   // Section 2: Aadhaar Details
@@ -98,8 +123,7 @@ const scholarSchema = new mongoose.Schema({
     nominee_name: String,
     nominee_relationship: String,
     alternative_phone_number: Number, 
-    authorization_token: { type: String, index: { expires: '10m' } },
-    expiry: { type: Date, default: Date.now, index: { expires: '10m' } }
+    authorization_token: { type: String, index: { expires: '10m' } }
   },
 
   // Section 3: Educational Details
@@ -114,7 +138,8 @@ const scholarSchema = new mongoose.Schema({
     },
     yearOfStudy: {
       type: String,
-      enum: ['1st', '2nd', '3rd', '4th', 'Other']
+      enum: ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Other'],
+      required: false
     },
     otherYearOfStudy: {
       type: String,
@@ -147,6 +172,7 @@ const scholarSchema = new mongoose.Schema({
     },
     incomeCertificateAttached: {
       type: Boolean,
+      default: false
     }
   },
 
@@ -154,6 +180,7 @@ const scholarSchema = new mongoose.Schema({
   scholarshipDetails: {
     receivedScholarshipBefore: {
       type: Boolean,
+      default: false
     },
     previousScholarshipName: {
       type: String,
@@ -168,16 +195,13 @@ const scholarSchema = new mongoose.Schema({
   // Section 6: Documents
   documents: {
     aadharCard: {
-      type: String, // Path to uploaded file
+      type: String,
     },
     marksheet: {
       type: String,
     },
     incomeCertificate: {
       type: String,
-      required: function() {
-        return this.familyDetails.incomeCertificateAttached;
-      }
     },
     bonafideCertificate: {
       type: String,
@@ -186,6 +210,12 @@ const scholarSchema = new mongoose.Schema({
       type: String,
     },
     photograph: {
+      type: String,
+    },
+    applicantSignature: {
+      type: String,
+    },
+    parentSignature: {
       type: String,
     }
   },
@@ -215,7 +245,8 @@ const scholarSchema = new mongoose.Schema({
       trim: true
     },
     paymentDate: {
-      type: Date,    },
+      type: Date,
+    },
     amountPaid: {
       type: Number,
     },
@@ -241,8 +272,13 @@ const scholarSchema = new mongoose.Schema({
   applicationStatus: {
     type: String,
     enum: ['Draft', 'Submitted', 'Under Review', 'Approved', 'Rejected', 'Payment Pending', 'Payment Completed'],
-    default: 'Draft'
+    default: "Draft"
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }
 });
 
 // Update the updatedAt field before saving

@@ -169,5 +169,13 @@ GeneralUtil.prototype.generateReceiptNumber = function() {
   return `${prefix}-${randomNum.toString().padStart(7, '0')}`;
 };
 
+GeneralUtil.prototype.generateReferenceNumber = () => {
+  const prefix = 'LNSAA';
+  const randomNum = Math.floor(Math.random() * 10000000);
+  return `${prefix}-${randomNum.toString().padStart(7, '0')}`;
+};
+
+
+
 
 module.exports = new GeneralUtil();

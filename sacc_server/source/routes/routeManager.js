@@ -15,6 +15,7 @@ const Admin = require('./route/AdminRoutes')
 const Users = require('./route/UserRoutes')
 const Employee = require('./route/employeeRoutes');
 const Scholar = require('./route/SchoolScholar')
+const Individual = require('./route/IndividualScholar') 
 
 
 // routes
@@ -23,6 +24,9 @@ const Scholar = require('./route/SchoolScholar')
  router.use('/api/user', Users);
 router.use('/api/employee',Employee);
 router.use('/api/scholar', Scholar);
+router.use('/api/scholar/individual', Individual);
+
+
 
 
 

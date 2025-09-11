@@ -1,3 +1,5 @@
+// upload.js
+
 const AWS = require('aws-sdk');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
@@ -47,6 +49,35 @@ const s3Storage = (folder) => {
       cb(null, filename);
     }
   });
+};
+
+const handleUpload = (uploadMiddleware) => {
+  return (req, res, next) => {
+    uploadMiddleware(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: 'File too large',
+            error: err.message
+          });
+        }
+        if (err.message.includes('multipart') || err.message.includes('boundary')) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid file upload format',
+            error: 'Please use proper form data with Content-Type: multipart/form-data'
+          });
+        }
+        return res.status(400).json({
+          success: false,
+          message: 'File upload error',
+          error: err.message
+        });
+      }
+      next();
+    });
+  };
 };
 
 // Common file filter for all uploads
@@ -118,6 +149,34 @@ const scholarshipApplicationUpload = multer({
   { name: 'applicantSignature', maxCount: 1 },
   { name: 'parentSignature', maxCount: 1 },
   { name: 'paymentReceipt', maxCount: 1 }
+]);
+
+const IndividualscholarApplicationUpload = multer({
+  storage: s3Storage('individual-scholarship-documents'),
+  fileFilter: (req, file, cb) => {
+    console.log('Processing file:', file.fieldname, file.originalname, file.mimetype);
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    
+    if (!allowedTypes.includes(file.mimetype)) {
+      console.log('Invalid file type:', file.mimetype);
+      return cb(new Error('Only JPG, PNG, or PDF files are allowed'), false);
+    }
+    
+    cb(null, true);
+  },
+  limits: { 
+    fileSize: 2 * 1024 * 1024,
+    files: 6 // Maximum number of files
+  }
+}).fields([
+  { name: 'aadharCard', maxCount: 1 },
+  { name: 'marksheet', maxCount: 1 },
+  { name: 'incomeCertificate', maxCount: 1 },
+  { name: 'bonafideCertificate', maxCount: 1 },
+  { name: 'bankPassbook', maxCount: 1 },
+  { name: 'photograph', maxCount: 1 },
+  { name: 'applicantSignature', maxCount: 1},
+  { name: 'parentSignature', maxCount: 1},
 ]);
 
 // Individual uploaders for specific use cases
@@ -206,9 +265,11 @@ const uploadAdminPhoto = multer({
 module.exports = {
   schoolLicenseUpload,
   scholarshipApplicationUpload,
+  IndividualscholarApplicationUpload: IndividualscholarApplicationUpload,
   uploadSignaturesOnly,
   uploadPhotoOnly,
   membershipDocumentUpload,
    uploadEmployeePhoto,
-   uploadAdminPhoto
+   uploadAdminPhoto,
+   handleUpload
 };
