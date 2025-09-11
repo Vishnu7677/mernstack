@@ -10,6 +10,59 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Success message styles */
+.scholar_signup_success_container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+}
+
+.scholar_signup_success_card {
+  background-color: white;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+.scholar_signup_success_title {
+  color: #2ecc71;
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.scholar_signup_success_message {
+  color: #34495e;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.scholar_signup_reference_number {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin: 1.5rem 0;
+  border: 2px dashed #bdc3c7;
+}
+
+.scholar_signup_success_instructions {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+}
+
+/* Input error state */
+.scholar_signup_input_error {
+  border-color: #e74c3c !important;
+  background-color: rgba(231, 76, 60, 0.05) !important;
+}
+
 /* Header styles with animation */
 .scholar_signup_header {
   width: 100%;
@@ -265,6 +318,29 @@
 .scholar_signup_file_input:hover {
   border-color: #3498db;
   background-color: rgba(52, 152, 219, 0.05);
+}
+
+.scholar_login_remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scholar_login_checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.scholar_login_remember_label {
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+}
+
+.scholar_login_checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* Animation keyframes */

@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import './scholar-login.css'; // We'll create this CSS file
-import scholarLoginImage from '../../../../images/Scholarship-logo.jpg'; 
+import { useNavigate } from 'react-router-dom';
+import './scholar-login.css';
+import scholarLoginImage from '../../../../images/Scholarship-logo.jpg';
+import { loginScholar } from '../../../../Services/api';
 
 const IndividualLogin = () => {
-  const [activeTab, setActiveTab] = useState('individual');
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+  const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -19,35 +21,65 @@ const IndividualLogin = () => {
       ...prev,
       [name]: value
     }));
+    
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+    if (apiError) {
+      setApiError('');
+    }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const handleRememberMeChange = (e) => {
+    setRememberMe(e.target.checked);
+  };
+
+  const validateForm = () => {
     const newErrors = {};
     
     if (!formData.email) newErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
+    
     if (!formData.password) newErrors.password = 'Password is required';
+    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
     
     setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setApiError('');
     
-    if (Object.keys(newErrors).length === 0) {
-      // Simulate API call
-      setTimeout(() => {
-        if (activeTab === 'individual') {
-          navigate('/individual/dashboard');
-        } else {
-          navigate('/school/dashboard');
-        }
-        setIsLoading(false);
-      }, 1500);
-    } else {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const loginData = {
+        email: formData.email,
+        password: formData.password
+      };
+
+      const response = await loginScholar(loginData, rememberMe);
+      
+      if (response.success) {
+        navigate('/scholar/apply/individualscholarship');
+      } else {
+        setApiError(response.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setApiError(error.message || 'An error occurred during login. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="scholar_login_container">
+    <div className="scholar_login_form_container">
       <div className="scholar_login_image_container">
         <img 
           src={scholarLoginImage} 
@@ -56,130 +88,88 @@ const IndividualLogin = () => {
         />
       </div>
 
-      <div className="scholar_login_card_container">
-        <div className="scholar_login_card">
-          <div className="scholar_login_header">
-            <h2 className="scholar_login_title">
-              Welcome Back
-            </h2>
-            <p className="scholar_login_subtitle">
-              Please login to continue to your account
-            </p>
-          </div>
-
-          <div className="scholar_login_tabs">
-            <button
-              className={`scholar_login_tab ${activeTab === 'individual' ? 'scholar_login_tab_active' : ''}`}
-              onClick={() => setActiveTab('individual')}
-            >
-              Individual Login
-            </button>
-            <button
-              className={`scholar_login_tab ${activeTab === 'school' ? 'scholar_login_tab_active' : ''}`}
-              onClick={() => setActiveTab('school')}
-            >
-              School/College Login
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="scholar_login_form">
-            <div className="scholar_login_form_group">
-              <label htmlFor="email" className="scholar_login_label">
-                {activeTab === 'individual' ? 'Email' : 'Institution Email'}
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="scholar_login_input"
-                placeholder={activeTab === 'individual' ? 'Enter your email' : 'Enter institution email'}
-              />
-              {errors.email && <p className="scholar_login_error">{errors.email}</p>}
-            </div>
-
-            {activeTab === 'school' && (
-              <div className="scholar_login_form_group">
-                <label htmlFor="licenceNumber" className="scholar_login_label">
-                  Licence Number
-                </label>
-                <input
-                  type="text"
-                  id="licenceNumber"
-                  name="licenceNumber"
-                  value={formData.licenceNumber || ''}
-                  onChange={handleChange}
-                  className="scholar_login_input"
-                  placeholder="Enter institution licence number"
-                />
-                {errors.licenceNumber && <p className="scholar_login_error">{errors.licenceNumber}</p>}
-              </div>
-            )}
-
-            <div className="scholar_login_form_group">
-              <label htmlFor="password" className="scholar_login_label">
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="scholar_login_input"
-                placeholder="Enter your password"
-              />
-              {errors.password && <p className="scholar_login_error">{errors.password}</p>}
-            </div>
-
-            <div className="scholar_login_helpers">
-              <div className="scholar_login_remember">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  className="scholar_login_checkbox"
-                />
-                <label htmlFor="remember" className="scholar_login_remember_label">
-                  Remember me
-                </label>
-              </div>
-              <Link 
-                to={activeTab === 'individual' ? '/forgot-password' : '/school/forgot-password'} 
-                className="scholar_login_forgot"
-              >
-                Forgot password?
-              </Link>
-            </div>
-
-            <button
-              type="submit"
-              className="scholar_login_button"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <span className="scholar_login_spinner"></span>
-                  Logging in...
-                </>
-              ) : (
-                'Login'
-              )}
-            </button>
-
-            <div className="scholar_login_auth_switch">
-              <span className="scholar_login_auth_text">
-                Don't have an account?
-              </span>
-              <Link
-                to="/scholar/apply"
-                className="scholar_login_auth_link"
-              >
-                Sign up
-              </Link>
-            </div>
-          </form>
+      <div className="scholar_login_form_content">
+        <div className="scholar_login_form_header">
+          <h5 className="scholar_login_form_subtitle">
+            Sign in to your individual account
+          </h5>
         </div>
+
+        {apiError && (
+          <div className="scholar_login_api_error">
+            {apiError}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="scholar_login_form">
+          <div className="scholar_login_form_group">
+            <label htmlFor="email" className="scholar_login_label">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className={`scholar_login_input ${errors.email ? 'scholar_login_input_error' : ''}`}
+              placeholder="Enter your email"
+              disabled={isLoading}
+            />
+            {errors.email && <p className="scholar_login_error">{errors.email}</p>}
+          </div>
+
+          <div className="scholar_login_form_group">
+            <label htmlFor="password" className="scholar_login_label">
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className={`scholar_login_input ${errors.password ? 'scholar_login_input_error' : ''}`}
+              placeholder="Enter your password"
+              disabled={isLoading}
+            />
+            {errors.password && <p className="scholar_login_error">{errors.password}</p>}
+          </div>
+
+          <div className="scholar_login_helpers">
+            <div className="scholar_login_remember">
+              <input
+                type="checkbox"
+                id="remember"
+                className="scholar_login_checkbox"
+                checked={rememberMe}
+                onChange={handleRememberMeChange}
+                disabled={isLoading}
+              />
+              <label htmlFor="remember" className="scholar_login_remember_label">
+                Remember me for 7 days
+              </label>
+            </div>
+            <a href="/forgot-password" className="scholar_login_forgot">
+              Forgot password?
+            </a>
+          </div>
+
+          <button
+            type="submit"
+            className="scholar_login_button"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <span className="scholar_login_spinner"></span>
+                Logging in...
+              </>
+            ) : (
+              'Login'
+            )}
+          </button>
+        </form>
       </div>
     </div>
   );

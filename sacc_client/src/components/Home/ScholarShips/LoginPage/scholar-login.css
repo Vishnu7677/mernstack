@@ -11,7 +11,7 @@
 
 /* Image container styles */
 .scholar_login_image_container {
-  width: 100%;
+  width: 50%;
   max-width: 400px;
   margin-bottom: 2rem;
   animation: fadeInDown 0.6s ease-out;
@@ -20,7 +20,7 @@
 .scholar_login_image {
   width: 100%;
   height: auto;
-  border-radius: 12px;
+  border-radius: 100px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 

@@ -4,6 +4,7 @@ import Cookies from "js-cookie";
 import { useLocation } from "react-router-dom";
 import AdminLogin from "../Admin/AdminLogin/AdminLogin";
 import Login from "../Login/login";
+import IndividualLogin from "../Home/ScholarShips/LoginPage/IndividualLoginPage"; // Import the scholar login component
 
 const AuthGuard = ({ children, userType }) => {
     const navigate = useNavigate();
@@ -11,30 +12,62 @@ const AuthGuard = ({ children, userType }) => {
     const [loading, setLoading] = useState(true);
     const location = useLocation();
 
-    const tokenKey = userType === "admin" ? "admin_token" : "employee_token";
-    const loginPath = userType === "admin" ? "/admin/login" : "/employee/login";
-    const dashboardPath = userType === "admin" ? "/admin/dashboard" : "/employee/dashboard";
+    // Define paths and tokens for different user types
+    const authConfig = {
+        admin: {
+            tokenKey: "admin_token",
+            loginPath: "/admin/login",
+            dashboardPath: "/admin/dashboard",
+            loginComponent: <AdminLogin />
+        },
+        employee: {
+            tokenKey: "employee_token",
+            loginPath: "/employee/login",
+            dashboardPath: "/employee/dashboard",
+            loginComponent: <Login />
+        },
+        scholar: {
+            tokenKey: "scholar_token",
+            loginPath: "/scholar/apply/self/login",
+            dashboardPath: "/scholar/apply/individualscholarship",
+            loginComponent: <IndividualLogin />
+        }
+    };
+
+    const config = authConfig[userType] || authConfig.scholar;
+    const { tokenKey, loginPath, dashboardPath, loginComponent } = config;
 
     useEffect(() => {
         const validateTokens = () => {
             const adminToken = Cookies.get("admin_token");
             const employeeToken = Cookies.get("employee_token");
+            const scholarToken = Cookies.get("scholar_token");
 
-            // Remove conflicting tokens
-            if (adminToken && employeeToken) {
+            // Remove conflicting tokens - ensure only one type of token exists
+            const tokens = { adminToken, employeeToken, scholarToken };
+            const activeTokens = Object.entries(tokens).filter(([_, value]) => value);
+            
+            if (activeTokens.length > 1) {
                 console.log("Conflicting tokens found. Clearing all tokens.");
                 Cookies.remove("admin_token");
                 Cookies.remove("employee_token");
+                Cookies.remove("scholar_token");
                 navigate(loginPath, { replace: true });
                 return false;
             }
 
             // Ensure valid token for path
-            if (userType === "admin" && employeeToken) {
+            if (userType === "admin" && (employeeToken || scholarToken)) {
                 Cookies.remove("employee_token");
+                Cookies.remove("scholar_token");
             }
-            if (userType === "employee" && adminToken) {
+            if (userType === "employee" && (adminToken || scholarToken)) {
                 Cookies.remove("admin_token");
+                Cookies.remove("scholar_token");
+            }
+            if (userType === "scholar" && (adminToken || employeeToken)) {
+                Cookies.remove("admin_token");
+                Cookies.remove("employee_token");
             }
 
             return true;
@@ -46,15 +79,20 @@ const AuthGuard = ({ children, userType }) => {
 
                 const token = Cookies.get(tokenKey);
 
-                // Enforce path restrictions
+                // Enforce path restrictions based on user type
                 if (userType === "admin" && !location.pathname.startsWith("/admin/")) {
                     Cookies.remove(tokenKey);
                     navigate("/admin/login", { replace: true });
                     return;
                 }
-                if (userType === "employee" && (!location.pathname.startsWith("/employee/"))) {
+                if (userType === "employee" && !location.pathname.startsWith("/employee/")) {
                     Cookies.remove(tokenKey);
                     navigate("/employee/login", { replace: true });
+                    return;
+                }
+                if (userType === "scholar" && !location.pathname.startsWith("/scholar/apply/")) {
+                    Cookies.remove(tokenKey);
+                    navigate("/scholar/apply/self/login", { replace: true });
                     return;
                 }
 
@@ -85,10 +123,10 @@ const AuthGuard = ({ children, userType }) => {
     }
 
     if (!isAuthenticated && location.pathname === loginPath) {
-        return userType === "admin" ? <AdminLogin /> : <Login />;
+        return loginComponent;
     }
 
-    return <div>{children}</div>;
+    return isAuthenticated ? <div>{children}</div> : null;
 };
 
 export default AuthGuard;

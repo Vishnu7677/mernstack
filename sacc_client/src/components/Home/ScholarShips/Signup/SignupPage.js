@@ -8,7 +8,6 @@ const SignupPage = () => {
   const [activeTab, setActiveTab] = useState('individual');
 
   return (
-    <>
     <div className="scholar_signup_container">
       <div className="scholar_signup_header">
         <h2 className="scholar_signup_title">
@@ -39,7 +38,6 @@ const SignupPage = () => {
         </div>
       </div>
     </div>
-    </>
   );
 };
 

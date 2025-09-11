@@ -25,23 +25,27 @@ import AccountOpeningForm from './components/User/AccountOpeningForm';
 import HomePage from './components/Home/Homepage/HomePage';
 import IndividualScholarshipForm from './components/Home/ScholarShips/ForIndividual/IndividualScholarship';
 import SignupPage from './components/Home/ScholarShips/Signup/SignupPage';
-import SchoolLoginPage from './components/Home/ScholarShips/LoginPage/SchoolLoginPage';
-import IndividualLogin from './components/Home/ScholarShips/LoginPage/IndividualLoginPage';
-
+// import  { AuthProvider } from './contexts/AuthContext';
+import LoginPage from './components/Home/ScholarShips/LoginPage/Loginpage'
 
 
 function App() {
   return (
     <div>
+        
       <Routes>
         <Route>
 
           {/* Home page  */}
           <Route path="/" element={<HomePage />} />
           <Route path="/scholar/apply" element={<SignupPage/>} />
-          <Route path= "/scholar/apply/self/login" element={<IndividualLogin />} />
-          <Route path= "/scholar/apply/school/login" element={<SchoolLoginPage />} />
-          <Route path="/individual/individualscholarship" element={<IndividualScholarshipForm />} />
+
+          <Route path= "/scholar/apply/self/login" element={<LoginPage />} />
+          <Route path="/scholar/apply/individualscholarship" element={
+            <AuthGuard userType="scholar">
+            <IndividualScholarshipForm />
+            </AuthGuard>
+            } />
           {/* Admin Routes */}
           <Route
             path='/admin/login'
@@ -123,6 +127,7 @@ function App() {
         </Route>
       </Routes>
     </div>
+
   );
 }
 
