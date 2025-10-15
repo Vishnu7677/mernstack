@@ -11,9 +11,18 @@ import {
   deleteDraftApplication,
   uploadDocuments
 } from '../../../../Services/api';
+import { usePayment } from '../../../../Services/usePayment';
+import PaymentModal from '../../../RazorPayPayment/PaymentModal';
 
 const IndividualScholarshipForm = () => {
   const navigate = useNavigate();
+  const {
+    initiatePayment,
+    retryPayment,
+    isProcessing,
+    paymentStatus,
+  } = usePayment();
+
   const [formData, setFormData] = useState({
     fullName: "",
     dob: "",
@@ -58,6 +67,9 @@ const IndividualScholarshipForm = () => {
   const [submissionStatus, setSubmissionStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [draftApplicationId, setDraftApplicationId] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [applicationFee] = useState(200); // ₹100 application fee
+
 
   // Load saved draft on component mount
   useEffect(() => {
@@ -218,7 +230,7 @@ const IndividualScholarshipForm = () => {
     try {
       setIsLoading(true);
       const result = await saveDraftApplication(formData, draftApplicationId);
-
+  
       if (result.success) {
         setDraftApplicationId(result.data._id);
         showToast('success', 'Application saved as draft successfully!');
@@ -232,59 +244,21 @@ const IndividualScholarshipForm = () => {
       setIsLoading(false);
     }
   };
-
+  
   const handleDeleteDraft = async () => {
     if (!draftApplicationId) {
       showToast('info', 'No draft application to delete');
       return;
     }
-
+  
     if (window.confirm('Are you sure you want to delete your draft application? This action cannot be undone.')) {
       try {
         setIsLoading(true);
         const result = await deleteDraftApplication(draftApplicationId);
-
+  
         if (result.success) {
           setDraftApplicationId(null);
-          setFormData({
-            fullName: "",
-            dob: "",
-            gender: "",
-            aadharNumber: "",
-            fatherName: "",
-            motherName: "",
-            category: "",
-            address: "",
-            city: "",
-            state: "",
-            pinCode: "",
-            mobileNumber: "",
-            email: "",
-            institution: "",
-            course: "",
-            yearOfStudy: "",
-            otherYearOfStudy: "",
-            percentage: "",
-            cgpa: "",
-            university: "",
-            fatherOccupation: "",
-            motherOccupation: "",
-            familyIncome: "",
-            incomeCertificate: false,
-            receivedScholarshipBefore: "",
-            previousScholarship: "",
-            scholarshipReason: "",
-            documents: {
-              aadhaarCard: null,
-              marksheet: null,
-              incomeCertificate: null,
-              bonafideCertificate: null,
-              bankPassbook: null,
-              photograph: null,
-              applicantSignature: null,
-              parentSignature: null,
-            },
-          });
+          // Reset form data...
           showToast('success', 'Draft application deleted successfully!');
         } else {
           showToast('error', 'Failed to delete draft. Please try again.');
@@ -297,44 +271,147 @@ const IndividualScholarshipForm = () => {
       }
     }
   };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  
+  // Payment success handler
+  const handlePaymentSuccess = async (paymentData) => {
     try {
       setIsLoading(true);
+      showToast('info', 'Submitting your application...');
 
-      if (!draftApplicationId) {
-        const draftResult = await saveDraftApplication(formData);
-        if (draftResult.success) {
-          setDraftApplicationId(draftResult.data._id);
-        }
-      }
-
-      const result = await submitApplication();
+      const result = await submitApplication(draftApplicationId);
 
       if (result.success) {
         setSubmissionStatus("success");
+        setShowPaymentModal(false);
+        showToast('success', 'Application submitted successfully!');
       } else {
         setSubmissionStatus("error");
-        showToast('error', 'Error submitting application. Please try again.');
+        showToast('error', 'Application submission failed after payment. Please contact support.');
       }
     } catch (error) {
-      if (error.response && error.response.status === 401) {
-        navigate('/scholar/apply/self/login');
-      } else {
-        setSubmissionStatus("error");
-        console.error("Error submitting form", error);
-        showToast('error', 'Error submitting application. Please try again.');
-      }
+      console.error("Error submitting application after payment:", error);
+      setSubmissionStatus("error");
+      showToast('error', 'Application submission failed after payment. Please contact support.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Payment failure handler
+  const handlePaymentFailure = async (errorMessage) => {
+    showToast('error', `Payment failed: ${errorMessage}`);
+    setShowPaymentModal(false);
+  };
+
+  // Handle final submission with payment
+  const handleSubmitWithPayment = async (e) => {
+    e.preventDefault();
+
+    // Validate all required fields
+    if (!validateForm()) {
+      showToast('error', 'Please fill all required fields before submitting.');
+      return;
+    }
+
+    // Ensure draft is saved
+    if (!draftApplicationId) {
+      try {
+        setIsLoading(true);
+        const draftResult = await saveDraftApplication(formData);
+        if (draftResult.success) {
+          setDraftApplicationId(draftResult.data._id);
+        } else {
+          showToast('error', 'Failed to save application draft.');
+          return;
+        }
+      } catch (error) {
+        showToast('error', 'Error saving application draft.');
+        return;
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    // Show payment modal
+    setShowPaymentModal(true);
+  };
+
+  // Start payment process
+  const startPaymentProcess = async () => {
+    await initiatePayment(
+      applicationFee,
+      {
+        draftApplicationId,
+        fullName: formData.fullName,
+        email: formData.email,
+        mobileNumber: formData.mobileNumber
+      },
+      handlePaymentSuccess,
+      handlePaymentFailure
+    );
+  };
+
+  // Retry payment
+  const handleRetryPayment = async () => {
+    await retryPayment(
+      applicationFee,
+      {
+        draftApplicationId,
+        fullName: formData.fullName,
+        email: formData.email,
+        mobileNumber: formData.mobileNumber
+      },
+      handlePaymentSuccess,
+      handlePaymentFailure
+    );
+  };
+
+  // Validate form before submission
+  const validateForm = () => {
+    const requiredFields = [
+      'fullName', 'dob', 'gender', 'aadharNumber', 'fatherName', 'motherName',
+      'address', 'city', 'state', 'pinCode', 'institution', 'fatherOccupation',
+      'motherOccupation', 'familyIncome', 'scholarshipReason'
+    ];
+
+    for (let field of requiredFields) {
+      if (!formData[field]) {
+        return false;
+      }
+    }
+
+    // Check if all required documents are uploaded
+    const requiredDocuments = [
+      'aadhaarCard', 'marksheet', 'bonafideCertificate', 'bankPassbook',
+      'photograph', 'applicantSignature', 'parentSignature'
+    ];
+
+    if (formData.incomeCertificate) {
+      requiredDocuments.push('incomeCertificate');
+    }
+
+    for (let doc of requiredDocuments) {
+      if (!formData.documents[doc]) {
+        return false;
+      }
+    }
+
+    return true;
+  };
   return (
     <div className="individual_scholarship_container">
-      <ToastContainer position="top-right" autoClose={5000} />
+       <ToastContainer position="top-right" autoClose={5000} />
+      
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onProceed={startPaymentProcess}
+        isProcessing={isProcessing}
+        paymentStatus={paymentStatus}
+        onRetry={handleRetryPayment}
+        applicationFee={applicationFee}
+      />
       <div className="individual_scholarship_card">
         <div className="individual_scholarship_header">
           <h2>Scholarship Application Form</h2>
@@ -399,7 +476,7 @@ const IndividualScholarshipForm = () => {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="animated-form">
+          <form onSubmit={handleSubmitWithPayment} className="animated-form">
             {/* Step 1: Personal Information */}
             {currentStep === 1 && (
               <div className="individual_scholarship_step step-animation">
@@ -989,7 +1066,13 @@ const IndividualScholarshipForm = () => {
               <div className="individual_scholarship_step step-animation">
                 <h3>Review Your Application</h3>
                 <p className="review-description">Please review all the information before submitting your application.</p>
-
+                <div className="payment-notice">
+                  <div className="payment-notice-icon">💳</div>
+                  <div className="payment-notice-content">
+                    <h4>Application Fee Payment Required</h4>
+                    <p>A nominal application fee of <strong>₹{applicationFee}</strong> is required to process your scholarship application. This fee helps us maintain the quality of our services.</p>
+                  </div>
+                </div>
                 <div className="review-section">
                   <h4>Personal Information</h4>
                   <div className="review-grid">
@@ -1158,10 +1241,10 @@ const IndividualScholarshipForm = () => {
                       {isLoading ? (
                         <>
                           <span className="spinner"></span>
-                          Submitting...
+                          Processing...
                         </>
                       ) : (
-                        "Submit Application"
+                        `Pay ₹${applicationFee} & Submit`
                       )}
                     </button>
                   </div>

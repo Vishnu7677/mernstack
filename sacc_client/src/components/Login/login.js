@@ -34,8 +34,23 @@ const Login = () => {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
+    // Add this function to your Login component
+const clearAllTokens = () => {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const domain = isProduction ? '.sacb.co.in' : 'localhost';
+    
+    Cookies.remove("employee_token", { domain });
+    Cookies.remove("token_type", { domain });
+    Cookies.remove("admin_token", { domain });
+    Cookies.remove("scholar_token", { domain });
+};
+
     const onSubmitForm = async (e) => {
         e.preventDefault();
+
+         // Clear any existing tokens before login
+    clearAllTokens();
+    
         const url = apiList.EmployeeLogin;
         const options = {
             method: 'POST',

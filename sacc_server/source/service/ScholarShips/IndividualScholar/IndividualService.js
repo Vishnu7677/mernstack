@@ -27,7 +27,8 @@ Service.prototype.createUser = async (userData) => {
         email: userData.email,
         password: userData.password
       },
-      userId: userId
+      userId: userId,
+      applications: [] // Initialize empty applications array
     };
 
     return await scholarRepository.createUser(userToCreate);
@@ -122,28 +123,67 @@ const mapFormDataToSchema = (formData) => {
   };
 };
 
-// Create or update application
-Service.prototype.createOrUpdateApplication = async (applicationData, userId) => {
+// Check if user can create more applications
+Service.prototype.canCreateMoreApplications = async (userId) => {
   try {
-    const existingApplication = await scholarRepository.findApplicationByUserId(userId);
+    const user = await scholarRepository.findUserById(userId);
+    if (!user) throw new Error('User not found');
+    
+    // Count submitted/under review/approved applications
+    const activeApplications = user.applications.filter(app => 
+      ['Submitted', 'Under Review', 'Approved'].includes(app.applicationStatus)
+    ).length;
+    
+    // If user has 2 or more active applications, they can't create more
+    if (activeApplications >= 2) {
+      return false;
+    }
+    
+    // Check total applications (max 5)
+    if (user.applications.length >= 5) {
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Create or update application
+Service.prototype.createOrUpdateApplication = async (applicationData, userId, applicationId = null) => {
+  try {
+    // Check if user can create more applications
+    if (!applicationId) {
+      const canCreate = await this.canCreateMoreApplications(userId);
+      if (!canCreate) {
+        throw new Error('You cannot create more applications. Maximum limit reached.');
+      }
+    }
+    
     const mappedData = mapFormDataToSchema(applicationData);
     
-    if (existingApplication) {
+    if (applicationId) {
+      // Update existing application
       return await scholarRepository.updateApplication(
-        { _id: userId },
+        userId,
+        applicationId,
         { $set: mappedData }
       );
     } else {
+      // Create new application
       const referenceNumber = await generateReferenceNumber();
-      const applicationDataWithRef = {
+      const newApplication = {
         ...mappedData,
         referenceNumber,
-        applicationStatus: 'Draft'
+        applicationStatus: 'Draft',
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
-      return await scholarRepository.updateApplication(
-        { _id: userId },
-        { $set: applicationDataWithRef }
+      return await scholarRepository.addApplication(
+        userId,
+        newApplication
       );
     }
   } catch (error) {
@@ -151,17 +191,34 @@ Service.prototype.createOrUpdateApplication = async (applicationData, userId) =>
   }
 };
 
-// Get application by user ID
-Service.prototype.getApplicationByUserId = async (userId) => {
+// Get draft applications (only drafts, not submitted/under review/approved)
+Service.prototype.getDraftApplications = async (userId) => {
   try {
-    return await scholarRepository.findApplicationByUserId(userId);
+    const user = await scholarRepository.findUserById(userId);
+    if (!user) throw new Error('User not found');
+    
+    return user.applications.filter(app => 
+      app.applicationStatus === 'Draft'
+    );
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get all applications (including submitted/under review/approved)
+Service.prototype.getAllApplications = async (userId) => {
+  try {
+    const user = await scholarRepository.findUserById(userId);
+    if (!user) throw new Error('User not found');
+    
+    return user.applications;
   } catch (error) {
     throw error;
   }
 };
 
 // Save draft application
-Service.prototype.saveDraftApplication = async (applicationData, userId) => {
+Service.prototype.saveDraftApplication = async (applicationData, userId, applicationId) => {
   try {
     const mappedData = mapFormDataToSchema(applicationData);
     const updateData = {
@@ -171,7 +228,8 @@ Service.prototype.saveDraftApplication = async (applicationData, userId) => {
     };
     
     return await scholarRepository.updateApplication(
-      { _id: userId },
+      userId,
+      applicationId,
       { $set: updateData }
     );
   } catch (error) {
@@ -180,7 +238,7 @@ Service.prototype.saveDraftApplication = async (applicationData, userId) => {
 };
 
 // Submit application
-Service.prototype.submitApplication = async (userId) => {
+Service.prototype.submitApplication = async (userId, applicationId) => {
   try {
     const updateData = {
       applicationStatus: 'Submitted', 
@@ -189,7 +247,8 @@ Service.prototype.submitApplication = async (userId) => {
     };
     
     return await scholarRepository.updateApplication(
-      { _id: userId },
+      userId,
+      applicationId,
       { $set: updateData }
     );
   } catch (error) {
@@ -198,16 +257,16 @@ Service.prototype.submitApplication = async (userId) => {
 };
 
 // Delete draft application
-Service.prototype.deleteDraftApplication = async (userId) => {
+Service.prototype.deleteDraftApplication = async (userId, applicationId) => {
   try {
-    return await scholarRepository.deleteApplication(userId);
+    return await scholarRepository.deleteApplication(userId, applicationId);
   } catch (error) {
     throw error;
   }
 };
 
 // Update application documents
-Service.prototype.updateApplicationDocuments = async (userId, documentUpdates) => {
+Service.prototype.updateApplicationDocuments = async (userId, applicationId, documentUpdates) => {
   try {
     const updateObj = {
       updatedAt: new Date()
@@ -218,7 +277,8 @@ Service.prototype.updateApplicationDocuments = async (userId, documentUpdates) =
     });
     
     return await scholarRepository.updateApplication(
-      { _id: userId },
+      userId,
+      applicationId,
       { $set: updateObj }      
     );
   } catch (error) {

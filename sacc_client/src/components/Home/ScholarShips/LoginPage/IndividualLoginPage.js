@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './scholar-login.css';
 import scholarLoginImage from '../../../../images/Scholarship-logo.jpg';
 import { loginScholar } from '../../../../Services/api';
+import Cookies from 'js-cookie';
 
 const IndividualLogin = () => {
   const [formData, setFormData] = useState({
@@ -54,19 +55,27 @@ const IndividualLogin = () => {
     if (!validateForm()) {
       return;
     }
-
+  
     setIsLoading(true);
-
+  
     try {
       const loginData = {
         email: formData.email,
         password: formData.password
       };
-
+  
+      console.log('Attempting login...');
       const response = await loginScholar(loginData, rememberMe);
       
       if (response.success) {
-        navigate('/scholar/apply/individualscholarship');
+        console.log('Login successful, checking token...');
+        const token = Cookies.get('scholar_token');
+        console.log('Token after login:', token ? 'Present' : 'Missing');
+        
+        // Small delay to ensure token is set
+        setTimeout(() => {
+          navigate('/scholar/apply/individualscholarship');
+        }, 100);
       } else {
         setApiError(response.message || 'Login failed');
       }

@@ -1,3 +1,32 @@
-# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+
+# Block all protected dashboard and application routes
+Disallow: /employee/dashboard
+Disallow: /admin/dashboard
+Disallow: /employee/loanapplication
+Disallow: /employee/allapprovedloan
+Disallow: /employee/pendingloan
+Disallow: /employee/rejectedloan
+Disallow: /employee/paidloan
+Disallow: /employee/runningloan
+Disallow: /employee/allDPS
+Disallow: /employee/MaturedDPS
+Disallow: /employee/RunningDPS
+Disallow: /employee/allFDR
+Disallow: /employee/RunningFDR
+Disallow: /employee/ClosedFDR
+Disallow: /employee/membershipopening
+Disallow: /employee/accountopening
+Disallow: /admin/userlist
+Disallow: /admin/membershiprequest
+Disallow: /admin/createemployee
+
+# Explicitly allow login pages and public sections
+Allow: /employee/login
+Allow: /admin/login
+Allow: /careers/
+Allow: /scholar/
+Allow: /sacinfotech
+
+Sitemap: https://sacb.co.in/sitemap.xml

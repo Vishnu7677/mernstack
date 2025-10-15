@@ -12,11 +12,13 @@ router.post('/login', ServiceManager.IndividualScholar.loginScholar);
 // Protected routes
 router.use(verifyIndividualJWT);
 router.get('/profile', ServiceManager.IndividualScholar.getProfile);
-router.post('/application', ServiceManager.IndividualScholar.createOrUpdateApplication);
-router.get('/application/draft', ServiceManager.IndividualScholar.getDraftApplication);
-router.put('/application/draft', ServiceManager.IndividualScholar.saveDraftApplication);
-router.delete('/application/draft', ServiceManager.IndividualScholar.deleteDraftApplication);
-router.put('/application/submit', ServiceManager.IndividualScholar.submitApplication);
+router.post('/applications', ServiceManager.IndividualScholar.createOrUpdateApplication);
+router.put('/applications/:applicationId', ServiceManager.IndividualScholar.createOrUpdateApplication);
+router.get('/applications/all',  ServiceManager.IndividualScholar.getAllApplications);
+router.get('/application/draft', ServiceManager.IndividualScholar.getDraftApplications);
+router.put('/applications/:applicationId/draft', ServiceManager.IndividualScholar.saveDraftApplication);
+router.delete('/applications/:applicationId', ServiceManager.IndividualScholar.deleteDraftApplication);
+router.put('/application/:applicationId/submit', ServiceManager.IndividualScholar.submitApplication);
 router.post('/application/:applicationId/upload', ServiceManager.IndividualScholar.uploadDocuments);
 
 module.exports = router;

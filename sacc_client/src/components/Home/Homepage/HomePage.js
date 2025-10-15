@@ -2,6 +2,7 @@ import React from "react";
 import "./HomePage.css";
 import HomeNavbar from "../Navbar/HomeNavbar";
 import { FaHandHoldingUsd, FaPiggyBank, FaHome, FaCar, FaGraduationCap, FaChartLine, FaShieldAlt, FaUsers, FaLightbulb, FaMobileAlt } from "react-icons/fa";
+import Footer from "../Tournaments/Footer";
 
 const HomePage = () => {
   return (
@@ -194,6 +195,7 @@ const HomePage = () => {
             </div>
           </div>
         </section>
+        <Footer/>
       </div>
     </>
   );

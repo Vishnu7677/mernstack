@@ -20,8 +20,18 @@ const EmployeeNavbar = () => {
 
     const handleLogout = (e) => {
         e.preventDefault();
-        Cookies.remove("employee_token");
-        navigate("/employee/login");
+        const isProduction = process.env.NODE_ENV === 'production';
+        const domain = isProduction ? '.sacb.co.in' : 'localhost';
+        
+        // Remove all tokens
+        Cookies.remove("employee_token", { domain });
+        Cookies.remove("token_type", { domain });
+        
+        // Also remove any potential conflicting tokens
+        Cookies.remove("admin_token", { domain });
+        Cookies.remove("scholar_token", { domain });
+        
+        navigate("/employee/login", { replace: true });
     };
 
     useEffect(() => {
@@ -121,7 +131,7 @@ const EmployeeNavbar = () => {
 
                 {/* Navbar Links */}
                 <ul className={isMobileOpen ? "employeeNav_linksMobile" : "employeeNav_links"}>
-                    <li><Link to="/" className="employeeNav_link" onClick={closeMobileMenu}>Home</Link></li>
+                    <li><Link to="/employee/dashboard" className="employeeNav_link" onClick={closeMobileMenu}>Home</Link></li>
                     <li><Link to="/employee/membershipopening" className="employeeNav_link" onClick={closeMobileMenu}>Membership</Link></li>
                     <li ref={loanRef}>
                         <div className="employeeNav_link" onClick={toggleLoanSubMenu}>Loan</div>

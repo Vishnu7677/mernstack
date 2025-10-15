@@ -8,7 +8,7 @@ function verifyIndividualJWT(req, res, next) {
     return res.status(401).json({ message: 'Authorization token is required' });
   }
 
-  const { status, data, message } = JWTService.verifyToken(token, 'scholar'); // Expecting the role to be 'admin'
+  const { status, data, message } = JWTService.verifyToken(token, 'IndividualLogin'); // Expecting the role to be 'admin'
 
   if (status === 200) {
     req.user = data; // Attach decoded token data to the request
