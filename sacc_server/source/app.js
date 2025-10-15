@@ -16,11 +16,7 @@ const app = express();
 // Cross-origin
 
 const allowedOrigins = [
-  'http://localhost:5000',
-  'http://localhost:3000',
-  'http://sacb.co.in',
   'https://sacb.co.in',
-  'http://www.sacb.co.in',
   'https://www.sacb.co.in',
   // Add other environments as needed
 ];
