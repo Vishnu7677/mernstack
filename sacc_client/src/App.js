@@ -27,6 +27,15 @@ import IndividualScholarshipForm from './components/Home/ScholarShips/ForIndivid
 import SignupPage from './components/Home/ScholarShips/Signup/SignupPage';
 // import  { AuthProvider } from './contexts/AuthContext';
 import LoginPage from './components/Home/ScholarShips/LoginPage/Loginpage'
+import UniversalPage from './components/UniversalPage';
+import CareersApplicationForm from './components/Home/Careers/CareersApplicationForm';
+import Careers from './components/Home/Careers/Careers';
+import JobDetail from './components/Home/Careers/JobDetail';
+import CareerSignup from './components/Home/Careers/CareerSignup';
+import CareerLogin from './components/Home/Careers/CareerLogin';
+import SacTechApp from './components/Home/Tournaments/SacTechApp';
+import TournamentRegistration from './components/Home/Tournaments/TournamentRegistration';
+
 
 
 function App() {
@@ -38,6 +47,17 @@ function App() {
 
           {/* Home page  */}
           <Route path="/" element={<HomePage />} />
+          <Route path="/sacinfotech" element={<SacTechApp />} />
+          <Route path="/tournamentsregistration" element={<TournamentRegistration />} />
+          
+
+          <Route path="/careers/home" element={<Careers />} />
+          <Route path="/careers/:id" element={<JobDetail />} />
+          <Route path="/careers/apply" element={<CareersApplicationForm />} />
+           <Route path="/career/careerlogin" element={<CareerLogin />} />
+          <Route path="/career/careersignup" element={<CareerSignup />} />
+
+
           <Route path="/scholar/apply" element={<SignupPage/>} />
 
           <Route path= "/scholar/apply/self/login" element={<LoginPage />} />
@@ -124,6 +144,8 @@ function App() {
           <Route path='/employee/RunningFDR' element={<RunningFDRLoan />} />
           <Route path='/employee/ClosedFDR' element={<ClosedFDRLoan />} />
 
+
+          <Route path="*" element={<UniversalPage />} />
         </Route>
       </Routes>
     </div>

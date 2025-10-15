@@ -1,0 +1,191 @@
+.universal_container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .universal_content {
+    text-align: center;
+    color: white;
+    position: relative;
+    z-index: 2;
+    max-width: 600px;
+  }
+  
+  .universal_animation {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 40px;
+  }
+  
+  .universal_orbit {
+    position: absolute;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    animation: universal_spin 10s linear infinite;
+  }
+  
+  .universal_orbit_1 {
+    width: 200px;
+    height: 200px;
+    top: 0;
+    left: 0;
+    animation-delay: 0s;
+  }
+  
+  .universal_orbit_2 {
+    width: 150px;
+    height: 150px;
+    top: 25px;
+    left: 25px;
+    animation-delay: -3.3s;
+  }
+  
+  .universal_orbit_3 {
+    width: 100px;
+    height: 100px;
+    top: 50px;
+    left: 50px;
+    animation-delay: -6.6s;
+  }
+  
+  .universal_center {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    position: absolute;
+    top: 75px;
+    left: 75px;
+    animation: universal_pulse 2s ease-in-out infinite alternate;
+  }
+  
+  .universal_title {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    font-weight: 700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .universal_message {
+    font-size: 1.2rem;
+    margin-bottom: 40px;
+    line-height: 1.6;
+    opacity: 0.9;
+  }
+  
+  .universal_button {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid white;
+    color: white;
+    padding: 15px 40px;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  .universal_button:hover {
+    background: white;
+    color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  }
+  
+  .universal_particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  
+  .universal_particle {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    animation: universal_float 15s infinite linear;
+  }
+  
+  .universal_particle:nth-child(odd) {
+    background: rgba(255, 255, 255, 0.4);
+  }
+  
+  .universal_particle:nth-child(1) { top: 10%; left: 20%; width: 3px; height: 3px; animation-delay: 0s; }
+  .universal_particle:nth-child(2) { top: 20%; left: 80%; width: 4px; height: 4px; animation-delay: 1s; }
+  .universal_particle:nth-child(3) { top: 30%; left: 40%; width: 2px; height: 2px; animation-delay: 2s; }
+  /* Add more particles as needed... */
+  
+  @keyframes universal_spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  @keyframes universal_pulse {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.1); opacity: 0.8; }
+  }
+  
+  @keyframes universal_float {
+    0% {
+      transform: translateY(0) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-100px) rotate(360deg);
+      opacity: 0;
+    }
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .universal_title {
+      font-size: 2rem;
+    }
+    
+    .universal_message {
+      font-size: 1rem;
+    }
+    
+    .universal_animation {
+      width: 150px;
+      height: 150px;
+    }
+    
+    .universal_orbit_1 {
+      width: 150px;
+      height: 150px;
+    }
+    
+    .universal_orbit_2 {
+      width: 100px;
+      height: 100px;
+      top: 25px;
+      left: 25px;
+    }
+    
+    .universal_orbit_3 {
+      width: 50px;
+      height: 50px;
+      top: 50px;
+      left: 50px;
+    }
+    
+    .universal_center {
+      width: 30px;
+      height: 30px;
+      top: 60px;
+      left: 60px;
+    }
+  }

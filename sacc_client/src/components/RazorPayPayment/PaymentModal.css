@@ -1,0 +1,270 @@
+.payment-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+  }
+  
+  .payment-modal {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+  }
+  
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-50px) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  .modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.3s;
+  }
+  
+  .modal-close:hover {
+    color: #333;
+  }
+  
+  .payment-header {
+    text-align: center;
+    margin-bottom: 25px;
+  }
+  
+  .payment-header h3 {
+    margin: 0 0 8px 0;
+    color: #333;
+    font-size: 1.5rem;
+  }
+  
+  .payment-header p {
+    margin: 0;
+    color: #666;
+    font-size: 0.95rem;
+  }
+  
+  .payment-details {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  
+  .fee-amount {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .fee-amount .amount {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .fee-amount .label {
+    font-size: 1rem;
+    opacity: 0.9;
+  }
+  
+  .payment-features {
+    text-align: left;
+  }
+  
+  .feature {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    color: #555;
+  }
+  
+  .feature .icon {
+    color: #28a745;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 1.1rem;
+  }
+  
+  .payment-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+  }
+  
+  .payment-button {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    min-width: 120px;
+  }
+  
+  .payment-button.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  
+  .payment-button.primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  }
+  
+  .payment-button.secondary {
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid #dee2e6;
+  }
+  
+  .payment-button.secondary:hover:not(:disabled) {
+    background: #e9ecef;
+  }
+  
+  .payment-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+  
+  /* Payment Status Styles */
+  .payment-status {
+    text-align: center;
+    padding: 20px 0;
+  }
+  
+  .status-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .status-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 1.8rem;
+    font-weight: bold;
+  }
+  
+  .payment-status.success .status-icon {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  .payment-status.failed .status-icon,
+  .payment-status.cancelled .status-icon {
+    background: #f8d7da;
+    color: #721c24;
+  }
+  
+  .payment-status h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+  }
+  
+  .payment-status p {
+    margin: 0 0 20px 0;
+    color: #666;
+  }
+  
+  .retry-button {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s;
+  }
+  
+  .retry-button:hover:not(:disabled) {
+    background: #5a6fd8;
+  }
+  
+  .retry-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Application Fee Badge */
+  .application-fee-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    display: inline-block;
+  }
+  
+  /* Payment Notice */
+  .payment-notice {
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .payment-notice-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+  
+  .payment-notice-content h4 {
+    margin: 0 0 8px 0;
+    color: #1565c0;
+  }
+  
+  .payment-notice-content p {
+    margin: 0;
+    color: #546e7a;
+    line-height: 1.5;
+  }
+
+  

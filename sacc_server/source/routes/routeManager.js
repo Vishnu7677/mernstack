@@ -15,7 +15,13 @@ const Admin = require('./route/AdminRoutes')
 const Users = require('./route/UserRoutes')
 const Employee = require('./route/employeeRoutes');
 const Scholar = require('./route/SchoolScholar')
-const Individual = require('./route/IndividualScholar') 
+const Individual = require('./route/IndividualScholar')
+const CareerLogin = require('./route/CareerLogin')
+const CareerJobs = require('./route/CareerJobs') 
+const PaymentGateWay = require('./route/RazorpayPay')
+const uploadRoutes = require('./route/uploadRoutes');
+
+
 
 
 // routes
@@ -25,7 +31,10 @@ const Individual = require('./route/IndividualScholar')
 router.use('/api/employee',Employee);
 router.use('/api/scholar', Scholar);
 router.use('/api/scholar/individual', Individual);
-
+router.use('/api/careerlogin',CareerLogin)
+router.use('/api/careerjobs',CareerJobs)
+router.use('/api/payments',PaymentGateWay)
+router.use('/api/upload', uploadRoutes);
 
 
 

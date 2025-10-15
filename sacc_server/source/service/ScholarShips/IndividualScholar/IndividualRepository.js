@@ -18,7 +18,6 @@ Repository.prototype.createUser = async (userData) => {
     const application = new ScholarApplication(userData);
     return await application.save();
   } catch (error) {
-
     throw error;
   }
 };
@@ -41,23 +40,12 @@ Repository.prototype.findUserById = async (userId) => {
   }
 };
 
-// Find application by user ID
-Repository.prototype.findApplicationByUserId = async (userId) => {
-  try {
-    return await ScholarApplication.findOne({ 
-      _id: userId,
-      applicationStatus: { $ne: 'Submitted' } // Only return non-submitted applications
-    });
-  } catch (error) {
-    throw error;
-  }
-};
-// Create application for user
-Repository.prototype.createApplication = async (userId, applicationData) => {
+// Add new application to user
+Repository.prototype.addApplication = async (userId, applicationData) => {
   try {
     return await ScholarApplication.findByIdAndUpdate(
       userId,
-      { ...applicationData },
+      { $push: { applications: applicationData } },
       { new: true, runValidators: true }
     );
   } catch (error) {
@@ -65,12 +53,25 @@ Repository.prototype.createApplication = async (userId, applicationData) => {
   }
 };
 
-// Update application for user
-Repository.prototype.updateApplication = async (query, updateData) => {
+// Update specific application for user
+Repository.prototype.updateApplication = async (userId, applicationId, updateData) => {
   try {
+    // Convert applicationId to ObjectId if it's a string
+    const appId = typeof applicationId === 'string' ? 
+      new mongoose.Types.ObjectId(applicationId) : applicationId;
+    
+    // Build the update object with positional operator
+    const setObj = {};
+    for (const key in updateData.$set) {
+      setObj[`applications.$.${key}`] = updateData.$set[key];
+    }
+    
     return await ScholarApplication.findOneAndUpdate(
-      query,
-      updateData,
+      { 
+        _id: userId, 
+        'applications._id': appId 
+      },
+      { $set: setObj },
       { new: true, runValidators: true }
     );
   } catch (error) {
@@ -78,29 +79,21 @@ Repository.prototype.updateApplication = async (query, updateData) => {
   }
 };
 
-// Delete application for user
-Repository.prototype.deleteApplication = async (userId) => {
+// Delete specific application for user
+Repository.prototype.deleteApplication = async (userId, applicationId) => {
   try {
+    // Convert applicationId to ObjectId if it's a string
+    const appId = typeof applicationId === 'string' ? 
+      new mongoose.Types.ObjectId(applicationId) : applicationId;
+    
     return await ScholarApplication.findByIdAndUpdate(
       userId,
-      {
-        $unset: {
-          personalInfo: 1,
-          educationDetails: 1,
-          familyDetails: 1,
-          scholarshipDetails: 1,
-          documents: 1,
-          referenceNumber: 1
-        },
-        applicationStatus: 'Draft'
-      },
+      { $pull: { applications: { _id: appId, applicationStatus: 'Draft' } } },
       { new: true }
     );
   } catch (error) {
     throw error;
   }
 };
-
-
 
 module.exports = new Repository();

@@ -1,45 +1,42 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getAuthToken, getScholarData, isRememberMeEnabled, logoutScholar } from '../Services/api';
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  return useContext(AuthContext);
 };
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = getAuthToken();
-    const userData = getScholarData();
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
     
     if (token && userData) {
-      setCurrentUser(userData);
+      setUser(JSON.parse(userData));
     }
     setLoading(false);
   }, []);
 
-  const login = (userData, token, rememberMe = false) => {
-    setCurrentUser(userData);
+  const login = (userData, token) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
   };
 
   const logout = () => {
-    logoutScholar();
-    setCurrentUser(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
   };
 
   const value = {
-    currentUser,
+    user,
     login,
     logout,
-    isAuthenticated: !!currentUser,
-    isRememberMe: isRememberMeEnabled()
+    loading
   };
 
   return (

@@ -1,7 +1,39 @@
+// Api.js
+
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
 const API_BASE_URL = 'http://localhost:5000/api';
+
+// Token types configuration
+const TOKEN_TYPES = {
+  SCHOLAR: 'scholar_token',
+  ADMIN: 'admin_token',
+  EMPLOYEE: 'employee_token',
+  CAREER: 'career_token'
+};
+
+const USER_DATA_KEYS = {
+  SCHOLAR: 'scholarData',
+  ADMIN: 'adminData',
+  EMPLOYEE: 'employeeData',
+  CAREER: 'careerData'
+};
+
+const REMEMBER_ME_KEYS = {
+  SCHOLAR: 'scholarRememberMe',
+  ADMIN: 'adminRememberMe',
+  EMPLOYEE: 'employeeRememberMe',
+  CAREER: 'careerRememberMe'
+};
+
+// Login redirect paths
+const LOGIN_PATHS = {
+  SCHOLAR: '/scholar/apply/self/login',
+  ADMIN: '/admin/login',
+  EMPLOYEE: '/employee/login',
+  CAREER: '/career/login'
+};
 
 // Create axios instance with default config
 const api = axios.create({
@@ -11,19 +43,35 @@ const api = axios.create({
   }
 });
 
-// Add request interceptor to include auth token
+// Add request interceptor to include appropriate auth token based on URL
 api.interceptors.request.use(
   (config) => {
-    const token = Cookies.get("scholar_token");
+    // Determine token type based on URL path
+    let tokenType = TOKEN_TYPES.SCHOLAR; // default
+    
+    if (config.url?.includes('/admin/')) {
+      tokenType = TOKEN_TYPES.ADMIN;
+    } else if (config.url?.includes('/employee/')) {
+      tokenType = TOKEN_TYPES.EMPLOYEE;
+    } else if (config.url?.includes('/career/')) {
+      tokenType = TOKEN_TYPES.CAREER;
+    } else if (config.url?.includes('/scholar/')) {
+      tokenType = TOKEN_TYPES.SCHOLAR;
+    }
+    
+    const token = Cookies.get(tokenType);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      // Add token type header for backend identification (optional)
+      config.headers['X-Token-Type'] = tokenType.replace('_token', '');
     }
+    
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Add response interceptor to handle 401 globally
+// Add response interceptor to handle 401 globally with proper redirects
 api.interceptors.response.use(
   (response) => {
     console.log("API Response:", response.data);
@@ -31,11 +79,24 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error("API Error:", error.response?.data);
+    
     if (error.response?.status === 401) {
-      // Auto logout on unauthorized
-      logoutScholar();
-      window.location.href = "/scholar/apply/self/login"; // redirect to login page
+      // Determine user type based on URL or request context
+      let userType = 'SCHOLAR'; // default
+      
+      if (error.config.url?.includes('/admin/')) {
+        userType = 'ADMIN';
+      } else if (error.config.url?.includes('/employee/')) {
+        userType = 'EMPLOYEE';
+      } else if (error.config.url?.includes('/career/')) {
+        userType = 'CAREER';
+      }
+      
+      // Logout the specific user type and redirect to appropriate login
+      logoutUser(userType);
+      window.location.href = LOGIN_PATHS[userType];
     }
+    
     return Promise.reject(error);
   }
 );
@@ -56,27 +117,114 @@ const removeAuthCookie = (name) => {
   Cookies.remove(name);
 };
 
-export const logoutScholar = () => {
-  removeAuthCookie('scholar_token');
-  removeAuthCookie('scholarData');
-  removeAuthCookie('rememberMe');
-  localStorage.removeItem('scholar_token');
-  localStorage.removeItem('scholarData');
+// Generic logout function for any user type
+export const logoutUser = (userType = 'SCHOLAR') => {
+  const tokenKey = TOKEN_TYPES[userType];
+  const dataKey = USER_DATA_KEYS[userType];
+  const rememberMeKey = REMEMBER_ME_KEYS[userType];
+  
+  removeAuthCookie(tokenKey);
+  removeAuthCookie(dataKey);
+  removeAuthCookie(rememberMeKey);
+  localStorage.removeItem(tokenKey);
+  localStorage.removeItem(dataKey);
 };
 
-export const getAuthToken = () => Cookies.get('scholar_token');
+// Specific logout functions for convenience
+export const logoutScholar = () => logoutUser('SCHOLAR');
+export const logoutAdmin = () => logoutUser('ADMIN');
+export const logoutEmployee = () => logoutUser('EMPLOYEE');
+export const logoutCareer = () => logoutUser('CAREER');
 
-export const getScholarData = () => {
-  const data = Cookies.get('scholarData');
+// Logout all users (useful for complete session cleanup)
+export const logoutAllUsers = () => {
+  Object.keys(TOKEN_TYPES).forEach(userType => logoutUser(userType));
+};
+
+// Get auth token for specific user type
+export const getAuthToken = (userType = 'SCHOLAR') => {
+  return Cookies.get(TOKEN_TYPES[userType]);
+};
+
+// Get user data for specific user type
+export const getUserData = (userType = 'SCHOLAR') => {
+  const dataKey = USER_DATA_KEYS[userType];
+  const data = Cookies.get(dataKey);
   return data ? JSON.parse(data) : null;
 };
 
-export const isRememberMeEnabled = () =>
-  Cookies.get('rememberMe') === 'true';
+// Check if remember me is enabled for specific user type
+export const isRememberMeEnabled = (userType = 'SCHOLAR') => {
+  return Cookies.get(REMEMBER_ME_KEYS[userType]) === 'true';
+};
+
+// Check if any user is currently logged in
+export const isAnyUserLoggedIn = () => {
+  return Object.values(TOKEN_TYPES).some(tokenType => Cookies.get(tokenType));
+};
+
+// Check if specific user type is logged in
+export const isUserLoggedIn = (userType = 'SCHOLAR') => {
+  return !!Cookies.get(TOKEN_TYPES[userType]);
+};
+
+// Get current logged in user type
+export const getCurrentUserType = () => {
+  for (const [userType, tokenKey] of Object.entries(TOKEN_TYPES)) {
+    if (Cookies.get(tokenKey)) {
+      return userType;
+    }
+  }
+  return null;
+};
+
+// Generic login function
+export const loginUser = async (userType, loginData, rememberMe = false, loginEndpoint) => {
+  const response = await api.post(loginEndpoint, loginData);
+  const data = response.data;
+
+  if (data.success && data.data) {
+    const tokenKey = TOKEN_TYPES[userType];
+    const dataKey = USER_DATA_KEYS[userType];
+    const rememberMeKey = REMEMBER_ME_KEYS[userType];
+    
+    setAuthCookie(tokenKey, data.data.token, rememberMe);
+    setAuthCookie(dataKey, JSON.stringify(data.data.user), rememberMe);
+    setAuthCookie(rememberMeKey, rememberMe.toString(), rememberMe);
+  }
+
+  return data;
+};
+
+// ---------------------------
+// Specific Login Functions
+// ---------------------------
+
+// Scholar Login (existing - maintained for backward compatibility)
+export const loginScholar = async (loginData, rememberMe = false) => {
+  return loginUser('SCHOLAR', loginData, rememberMe, '/scholar/individual/login');
+};
+
+// Admin Login
+export const loginAdmin = async (loginData, rememberMe = false) => {
+  return loginUser('ADMIN', loginData, rememberMe, '/admin/login');
+};
+
+// Employee Login
+export const loginEmployee = async (loginData, rememberMe = false) => {
+  return loginUser('EMPLOYEE', loginData, rememberMe, '/employee/login');
+};
+
+// Career Login
+export const loginCareer = async (loginData, rememberMe = false) => {
+  return loginUser('CAREER', loginData, rememberMe, '/career/login');
+};
 
 // ---------------------------
 // Public APIs (no token required)
 // ---------------------------
+
+// Scholar Signup (existing)
 export const SignupIndividual = async (data) => {
   const response = await api.post('/scholar/individual/signup', {
     fullName: data.fullName,
@@ -88,20 +236,7 @@ export const SignupIndividual = async (data) => {
   return response.data;
 };
 
-export const loginScholar = async (loginData, rememberMe = false) => {
-  const response = await api.post('/scholar/individual/login', loginData);
-  const data = response.data;
-
-  if (data.success && data.data) {
-    setAuthCookie('scholar_token', data.data.token, rememberMe);
-    setAuthCookie('scholarData', JSON.stringify(data.data.user), rememberMe);
-    setAuthCookie('rememberMe', rememberMe.toString(), rememberMe);
-  }
-
-  return data;
-};
-
-// Aadhar OTP APIs (if still needed)
+// Aadhar OTP APIs (existing)
 export const sendAadharOtp = async (data) => {
   const response = await api.post('/aadharOtp/aadharotpsending', data);
   return response.data;
@@ -112,7 +247,7 @@ export const verifyAadharOtp = async (data) => {
   return response.data;
 };
 
-// School APIs (if still needed)
+// School APIs (existing)
 export const schoolSignup = async (formData) => {
   const response = await api.post('/scholar/signup/school', formData);
   return response.data;
@@ -123,11 +258,39 @@ export const verifySchoolOtp = async (data) => {
   return response.data;
 };
 
+
+// -------------
+// Payment APIs
+// -------------
+
+// Create order (calls your backend)
+export const createPaymentOrder = async ({ amount, currency = 'INR', receipt, notes = {} }) => {
+  try {
+    const response = await api.post('/payment/order', { amount, currency, receipt, notes });
+    return response.data; // { success: true, order }
+  } catch (error) {
+    console.error('createPaymentOrder error', error.response?.data || error.message);
+    throw error.response?.data || { success: false, message: error.message };
+  }
+};
+
+// Verify payment (sends rzp ids + additionalData like team & members)
+export const verifyPayment = async ({ razorpay_order_id, razorpay_payment_id, razorpay_signature, additionalData = {} }) => {
+  try {
+    const response = await api.post('/payment/verify', { razorpay_order_id, razorpay_payment_id, razorpay_signature, additionalData });
+    return response.data;
+  } catch (error) {
+    console.error('verifyPayment error', error.response?.data || error.message);
+    throw error.response?.data || { success: false, message: error.message };
+  }
+};
+
+
 // ---------------------------
 // Protected APIs (token required)
 // ---------------------------
 
-// Profile APIs
+// Scholar Profile APIs (existing)
 export const getProfile = async () => {
   try {
     const response = await api.get('/scholar/individual/profile');
@@ -138,10 +301,16 @@ export const getProfile = async () => {
   }
 };
 
-// Scholarship Application API functions
-export const createOrUpdateApplication = async (formData) => {
+// Scholarship Application API functions (existing)
+export const createOrUpdateApplication = async (formData, applicationId = null) => {
   try {
-    const response = await api.post('/scholar/individual/application', formData);
+    const url = applicationId 
+      ? `/scholar/individual/applications/${applicationId}`
+      : '/scholar/individual/applications';
+    
+    const method = applicationId ? 'put' : 'post';
+    
+    const response = await api[method](url, formData);
     return response.data;
   } catch (error) {
     console.error('Error saving application:', error);
@@ -149,9 +318,13 @@ export const createOrUpdateApplication = async (formData) => {
   }
 };
 
-export const saveDraftApplication = async (formData) => {
+export const saveDraftApplication = async (formData, applicationId) => {
   try {
-    const response = await api.put('/scholar/individual/application/draft', formData);
+    if (!applicationId) {
+      throw new Error('Application ID is required for saving draft');
+    }
+    
+    const response = await api.put(`/scholar/individual/applications/${applicationId}/draft`, formData);
     return response.data;
   } catch (error) {
     console.error('Error saving draft:', error);
@@ -159,10 +332,13 @@ export const saveDraftApplication = async (formData) => {
   }
 };
 
-export const submitApplication = async () => {
+export const submitApplication = async (applicationId) => {
   try {
-    console.log("api response")
-    const response = await api.put('/scholar/individual/application/submit');
+    if (!applicationId) {
+      throw new Error('Application ID is required for submission');
+    }
+    
+    const response = await api.put(`/scholar/individual/application/${applicationId}/submit`);
     return response.data;
   } catch (error) {
     console.error('Error submitting application:', error);
@@ -180,9 +356,13 @@ export const getDraftApplication = async () => {
   }
 };
 
-export const deleteDraftApplication = async () => {
+export const deleteDraftApplication = async (applicationId) => {
   try {
-    const response = await api.delete('/scholar/individual/application/draft');
+    if (!applicationId) {
+      throw new Error('Application ID is required for deletion');
+    }
+    
+    const response = await api.delete(`/scholar/individual/applications/${applicationId}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting application:', error);
@@ -190,16 +370,18 @@ export const deleteDraftApplication = async () => {
   }
 };
 
-// In your API service file
 export const uploadDocuments = async (applicationId, formData) => {
   try {
+    if (!applicationId) {
+      throw new Error('Application ID is required for document upload');
+    }
+    
     const response = await api.post(
       `/scholar/individual/application/${applicationId}/upload`,
       formData,
       {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${Cookies.get('scholar_token')}`
+          'Content-Type': 'multipart/form-data'
         }
       }
     );
@@ -207,6 +389,55 @@ export const uploadDocuments = async (applicationId, formData) => {
   } catch (error) {
     console.error('Error uploading documents:', error);
     throw error.response?.data?.message || 'Failed to upload documents';
+  }
+};
+
+
+export const getUploadPresigned = async (filesMeta) => {
+  try {
+    const res = await api.post('/upload/presign', { files: filesMeta });
+    return res.data;
+  } catch (err) {
+    console.error('getUploadPresigned', err);
+    throw err.response?.data || err;
+  }
+};
+// ---------------------------
+// Admin APIs (example - add more as needed)
+// ---------------------------
+export const getAdminDashboard = async () => {
+  try {
+    const response = await api.get('/admin/dashboard');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin dashboard:', error);
+    throw error.response?.data?.message || 'Failed to fetch admin dashboard';
+  }
+};
+
+// ---------------------------
+// Employee APIs (example - add more as needed)
+// ---------------------------
+export const getEmployeeTasks = async () => {
+  try {
+    const response = await api.get('/employee/tasks');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching employee tasks:', error);
+    throw error.response?.data?.message || 'Failed to fetch employee tasks';
+  }
+};
+
+// ---------------------------
+// Career APIs (example - add more as needed)
+// ---------------------------
+export const getCareerOpportunities = async () => {
+  try {
+    const response = await api.get('/career/opportunities');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching career opportunities:', error);
+    throw error.response?.data?.message || 'Failed to fetch career opportunities';
   }
 };
 

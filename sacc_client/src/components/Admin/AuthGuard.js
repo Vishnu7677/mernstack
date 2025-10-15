@@ -4,15 +4,15 @@ import Cookies from "js-cookie";
 import { useLocation } from "react-router-dom";
 import AdminLogin from "../Admin/AdminLogin/AdminLogin";
 import Login from "../Login/login";
-import IndividualLogin from "../Home/ScholarShips/LoginPage/IndividualLoginPage"; // Import the scholar login component
+import IndividualLogin from "../Home/ScholarShips/LoginPage/IndividualLoginPage";
 
+// Updated AuthGuard component
 const AuthGuard = ({ children, userType }) => {
     const navigate = useNavigate();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
     const location = useLocation();
 
-    // Define paths and tokens for different user types
     const authConfig = {
         admin: {
             tokenKey: "admin_token",
@@ -34,99 +34,98 @@ const AuthGuard = ({ children, userType }) => {
         }
     };
 
-    const config = authConfig[userType] || authConfig.scholar;
-    const { tokenKey, loginPath, dashboardPath, loginComponent } = config;
+    // Simplified token validation
+    const validateToken = () => {
+        const config = authConfig[userType];
+        if (!config) return false;
 
-    useEffect(() => {
-        const validateTokens = () => {
-            const adminToken = Cookies.get("admin_token");
-            const employeeToken = Cookies.get("employee_token");
-            const scholarToken = Cookies.get("scholar_token");
+        const token = Cookies.get(config.tokenKey);
+        
+        // Basic token existence check
+        if (!token) {
+            console.log(`No ${userType} token found`);
+            return false;
+        }
 
-            // Remove conflicting tokens - ensure only one type of token exists
-            const tokens = { adminToken, employeeToken, scholarToken };
-            const activeTokens = Object.entries(tokens).filter(([_, value]) => value);
-            
-            if (activeTokens.length > 1) {
-                console.log("Conflicting tokens found. Clearing all tokens.");
-                Cookies.remove("admin_token");
-                Cookies.remove("employee_token");
-                Cookies.remove("scholar_token");
-                navigate(loginPath, { replace: true });
-                return false;
-            }
-
-            // Ensure valid token for path
-            if (userType === "admin" && (employeeToken || scholarToken)) {
-                Cookies.remove("employee_token");
-                Cookies.remove("scholar_token");
-            }
-            if (userType === "employee" && (adminToken || scholarToken)) {
-                Cookies.remove("admin_token");
-                Cookies.remove("scholar_token");
-            }
-            if (userType === "scholar" && (adminToken || employeeToken)) {
-                Cookies.remove("admin_token");
-                Cookies.remove("employee_token");
-            }
-
-            return true;
+        // Simple path validation
+        const validPaths = {
+            scholar: location.pathname.startsWith("/scholar/apply/"),
+            admin: location.pathname.startsWith("/admin/"),
+            employee: location.pathname.startsWith("/employee/")
         };
 
-        const checkToken = async () => {
+        if (!validPaths[userType]) {
+            console.log(`Invalid path for ${userType}: ${location.pathname}`);
+            Cookies.remove(config.tokenKey);
+            return false;
+        }
+
+        console.log(`Token validation successful for ${userType}`);
+        return true;
+    };
+
+    useEffect(() => {
+        const checkAuthentication = async () => {
             try {
-                if (!validateTokens()) return;
-
-                const token = Cookies.get(tokenKey);
-
-                // Enforce path restrictions based on user type
-                if (userType === "admin" && !location.pathname.startsWith("/admin/")) {
-                    Cookies.remove(tokenKey);
-                    navigate("/admin/login", { replace: true });
-                    return;
-                }
-                if (userType === "employee" && !location.pathname.startsWith("/employee/")) {
-                    Cookies.remove(tokenKey);
-                    navigate("/employee/login", { replace: true });
-                    return;
-                }
-                if (userType === "scholar" && !location.pathname.startsWith("/scholar/apply/")) {
-                    Cookies.remove(tokenKey);
-                    navigate("/scholar/apply/self/login", { replace: true });
+                const isValid = validateToken();
+                const config = authConfig[userType];
+                
+                if (!config) {
+                    navigate("/", { replace: true });
                     return;
                 }
 
-                // Handle authentication and redirection
-                if (token) {
+                if (isValid) {
                     setIsAuthenticated(true);
-                    if (location.pathname === loginPath) {
-                        navigate(dashboardPath, { replace: true });
+                    // Only redirect if on login page
+                    if (location.pathname === config.loginPath) {
+                        console.log(`Redirecting from login to dashboard: ${config.dashboardPath}`);
+                        navigate(config.dashboardPath, { replace: true });
                     }
                 } else {
                     setIsAuthenticated(false);
-                    if (location.pathname !== loginPath) {
-                        navigate(loginPath, { replace: true });
+                    // Only redirect to login if not already there
+                    if (location.pathname !== config.loginPath) {
+                        console.log(`Redirecting to login: ${config.loginPath}`);
+                        navigate(config.loginPath, { replace: true });
                     }
                 }
             } catch (error) {
-                console.error(error);
+                console.error("Authentication error:", error);
+                // Clear only the current user's token
+                const config = authConfig[userType];
+                if (config) {
+                    Cookies.remove(config.tokenKey);
+                }
+                navigate(config?.loginPath || "/", { replace: true });
             } finally {
                 setLoading(false);
             }
         };
 
-        checkToken();
-    }, [navigate, location.pathname, userType, tokenKey, loginPath, dashboardPath]);
+        checkAuthentication();
+    }, [navigate, location.pathname, userType]);
 
     if (loading) {
-        return <div>Loading...</div>;
+        return (
+            <div className="loading-container">
+                <div className="spinner">Loading...</div>
+            </div>
+        );
     }
 
-    if (!isAuthenticated && location.pathname === loginPath) {
-        return loginComponent;
+    // If authenticated, show children
+    if (isAuthenticated) {
+        return <>{children}</>;
     }
 
-    return isAuthenticated ? <div>{children}</div> : null;
+    // If on login page, show login component
+    if (location.pathname === authConfig[userType]?.loginPath) {
+        return authConfig[userType]?.loginComponent;
+    }
+
+    // Otherwise, show nothing (will redirect)
+    return null;
 };
 
 export default AuthGuard;

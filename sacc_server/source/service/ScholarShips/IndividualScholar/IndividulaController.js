@@ -96,8 +96,9 @@ Controller.prototype.createOrUpdateApplication = async (req, res) => {
   try {
     const userId = req.user.id;
     const applicationData = req.body;
+    const applicationId = req.params.applicationId; // For updating existing application
     
-    const application = await scholarService.createOrUpdateApplication(applicationData, userId);
+    const application = await scholarService.createOrUpdateApplication(applicationData, userId, applicationId);
     
     res.status(200).json({
       success: true,
@@ -113,28 +114,43 @@ Controller.prototype.createOrUpdateApplication = async (req, res) => {
   }
 };
 
-// Get draft application
-Controller.prototype.getDraftApplication = async (req, res) => {
+// Get draft applications (only drafts, not submitted/under review/approved)
+Controller.prototype.getDraftApplications = async (req, res) => {
   try {
     const userId = req.user.id;
     
-    const application = await scholarService.getApplicationByUserId(userId);
-    
-    if (!application) {
-      return res.status(404).json({
-        success: false,
-        message: 'No application found'
-      });
-    }
+    const applications = await scholarService.getDraftApplications(userId);
     
     res.status(200).json({
       success: true,
-      data: application
+      data: applications,
+      count: applications.length
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching application',
+      message: 'Error fetching applications',
+      error: error.message
+    });
+  }
+};
+
+// Get all applications (including submitted/under review/approved)
+Controller.prototype.getAllApplications = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const applications = await scholarService.getAllApplications(userId);
+    
+    res.status(200).json({
+      success: true,
+      data: applications,
+      count: applications.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching applications',
       error: error.message
     });
   }
@@ -145,8 +161,9 @@ Controller.prototype.saveDraftApplication = async (req, res) => {
   try {
     const userId = req.user.id;
     const applicationData = req.body;
+    const applicationId = req.params.applicationId;
     
-    const application = await scholarService.saveDraftApplication(applicationData, userId);
+    const application = await scholarService.saveDraftApplication(applicationData, userId, applicationId);
     
     res.status(200).json({
       success: true,
@@ -166,8 +183,9 @@ Controller.prototype.saveDraftApplication = async (req, res) => {
 Controller.prototype.submitApplication = async (req, res) => {
   try {
     const userId = req.user.id;
+    const applicationId = req.params.applicationId;
     
-    const application = await scholarService.submitApplication(userId);
+    const application = await scholarService.submitApplication(userId, applicationId);
     
     if (!application) {
       return res.status(404).json({
@@ -194,8 +212,9 @@ Controller.prototype.submitApplication = async (req, res) => {
 Controller.prototype.deleteDraftApplication = async (req, res) => {
   try {
     const userId = req.user.id;
+    const applicationId = req.params.applicationId;
     
-    await scholarService.deleteDraftApplication(userId);
+    await scholarService.deleteDraftApplication(userId, applicationId);
     
     res.status(200).json({
       success: true,
@@ -210,7 +229,7 @@ Controller.prototype.deleteDraftApplication = async (req, res) => {
   }
 };
 
-// Upload documents
+// Upload documents for a specific application
 Controller.prototype.uploadDocuments = async (req, res) => {
   try {
     handleUpload(IndividualscholarApplicationUpload)(req, res, async (err) => {
@@ -223,6 +242,7 @@ Controller.prototype.uploadDocuments = async (req, res) => {
       }
 
       const userId = req.user.id;
+      const applicationId = req.params.applicationId;
       
       if (!req.files || Object.keys(req.files).length === 0) {
         return res.status(400).json({
@@ -252,6 +272,7 @@ Controller.prototype.uploadDocuments = async (req, res) => {
 
       const updatedApplication = await scholarService.updateApplicationDocuments(
         userId, 
+        applicationId,
         documentUpdates
       );
 
