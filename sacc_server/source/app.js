@@ -19,7 +19,9 @@ const app = express();
 
 /* ------------------- CORS CONFIG ------------------- */
 const allowedOrigins = [
+  'http://sacb.co.in',
   'https://sacb.co.in',
+  'http://www.sacb.co.in',
   'https://www.sacb.co.in',
 ];
 app.use(cors({
@@ -33,6 +35,7 @@ app.use(cors({
   credentials: true,
   exposedHeaders: ['set-cookie']
 }));
+
 
 /* ------------------- RAZORPAY WEBHOOK (RAW BODY) ------------------- */
 // This MUST be before express.json()
