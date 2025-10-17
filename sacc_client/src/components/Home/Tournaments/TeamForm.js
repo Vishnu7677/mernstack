@@ -56,7 +56,7 @@ const TeamForm = ({ teamData, updateTeamData, members, onAddMember, onRemoveMemb
           />
         </div>
 
-        <div className="tournaments_form__group">
+        {/* <div className="tournaments_form__group">
           <label className="tournaments_form__label">Team Category:</label>
           <select
             className="tournaments_form__input"
@@ -67,7 +67,7 @@ const TeamForm = ({ teamData, updateTeamData, members, onAddMember, onRemoveMemb
             <option value="Women">Women</option>
             <option value="Mixed">Mixed</option>
           </select>
-        </div>
+        </div> */}
       </div>
 
       <button

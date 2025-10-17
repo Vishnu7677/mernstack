@@ -8,26 +8,66 @@ const Registration = require('../../commons/models/mongo/documents/Registration'
 const paise = (rupees) => Math.round(Number(rupees) * 100);
 function Controller() {}
 
+// Enhanced createOrder in controller
 Controller.prototype.createOrder = async (req, res) => {
   try {
-    // body: { amount: 500, currency: 'INR', receipt: 'rcptid_11', notes: {...} }
     const { amount, currency = 'INR', receipt = `rcpt_${Date.now()}`, notes = {} } = req.body;
-    if (!amount || isNaN(amount)) return res.status(400).json({ error: 'Invalid amount' });
+    
+    // Better validation
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Valid amount is required' 
+      });
+    }
+
+    // Validate currency
+    const allowedCurrencies = ['INR'];
+    if (!allowedCurrencies.includes(currency)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Only INR currency is supported' 
+      });
+    }
 
     const options = {
-      amount: paise(amount), // paise
+      amount: paise(amount),
       currency,
       receipt,
-      payment_capture: 1, // auto-capture
+      payment_capture: 1,
       notes
     };
 
     const order = await razorpay.orders.create(options);
+    
+    // Log successful order creation
+    console.log(`Order created: ${order.id} for amount: ${amount}`);
 
-    return res.json({ success: true, order });
+    return res.json({ 
+      success: true, 
+      order: {
+        id: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        receipt: order.receipt,
+        status: order.status
+      }
+    });
   } catch (err) {
-    console.error('createOrder', err);
-    return res.status(500).json({ success: false, error: err.message || err });
+    console.error('createOrder Error:', err);
+    
+    // More specific error responses
+    if (err.error && err.error.description) {
+      return res.status(400).json({ 
+        success: false, 
+        error: err.error.description 
+      });
+    }
+    
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to create payment order' 
+    });
   }
 };
 

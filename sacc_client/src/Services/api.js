@@ -266,11 +266,27 @@ export const verifySchoolOtp = async (data) => {
 // Create order (calls your backend)
 export const createPaymentOrder = async ({ amount, currency = 'INR', receipt, notes = {} }) => {
   try {
-    const response = await api.post('/payment/order', { amount, currency, receipt, notes });
-    return response.data; // { success: true, order }
+    const response = await api.post('/payment/order', { 
+      amount, 
+      currency, 
+      receipt, 
+      notes 
+    });
+    
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to create order');
+    }
+    
+    return response.data;
   } catch (error) {
-    console.error('createPaymentOrder error', error.response?.data || error.message);
-    throw error.response?.data || { success: false, message: error.message };
+    console.error('createPaymentOrder error:', error);
+    
+    // More specific error messages for users
+    if (error.response?.status === 429) {
+      throw new Error('Too many attempts. Please wait a few minutes.');
+    }
+    
+    throw new Error(error.response?.data?.error || 'Payment service unavailable');
   }
 };
 
