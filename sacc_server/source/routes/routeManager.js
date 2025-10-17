@@ -33,7 +33,7 @@ router.use('/api/scholar', Scholar);
 router.use('/api/scholar/individual', Individual);
 router.use('/api/careerlogin',CareerLogin)
 router.use('/api/careerjobs',CareerJobs)
-router.use('/api/payments',PaymentGateWay)
+router.use('/api/payment',PaymentGateWay)
 router.use('/api/upload', uploadRoutes);
 
 

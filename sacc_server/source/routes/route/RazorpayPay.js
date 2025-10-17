@@ -3,9 +3,31 @@ const express = require('express');
 const ServiceManager = require('../../service/ServiceManager');
 const router = express.Router();
 
+const rateLimit = require('express-rate-limit');
+
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: {
+    success: false,
+    error: 'Too many payment attempts, please try again later'
+  }
+});
+
+const paymentLogger = (req, res, next) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[PAYMENT ${timestamp}] ${req.method} ${req.path}`, {
+      body: req.body,
+      query: req.query,
+      params: req.params
+    });
+    next();
+  };
+
+  router.use(paymentLogger);
 
 // Create order
-router.post('/order', ServiceManager.paymentController.createOrder);
+router.post('/order',paymentLimiter, ServiceManager.paymentController.createOrder);
 
 // Verify payment (frontend posts razorpay_order_id, razorpay_payment_id, razorpay_signature)
 router.post('/verify', ServiceManager.paymentController.verifyAndSavePayment);

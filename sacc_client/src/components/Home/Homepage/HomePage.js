@@ -3,10 +3,23 @@ import "./HomePage.css";
 import HomeNavbar from "../Navbar/HomeNavbar";
 import { FaHandHoldingUsd, FaPiggyBank, FaHome, FaCar, FaGraduationCap, FaChartLine, FaShieldAlt, FaUsers, FaLightbulb, FaMobileAlt } from "react-icons/fa";
 import Footer from "../Tournaments/Footer";
+import { Helmet } from "react-helmet";
 
 const HomePage = () => {
   return (
     <>
+    <Helmet>
+        <title>SACCFBL - Financial Services in AP</title>
+        <meta name="description" content="Sandhya Aryavartha Credit Capital Finance Banking Limited offers personal loans, home loans, car loans, business loans, fixed deposits and savings accounts in Andhra Pradesh." />
+    <meta name="keywords" content="finance, banking, loans, fixed deposits, savings, credit, Andhra Pradesh, personal loans, home loans, business loans" />
+    
+    <meta property="og:title" content="Sandhya Aryavartha Credit Capital - Finance Banking Limited" />
+    <meta property="og:description" content="Empowering your financial journey with trusted, innovative solutions tailored for your growth and prosperity." />
+    <meta property="og:url" content="https://sacb.co.in/" />
+    <meta property="og:type" content="website" />
+    
+    <link rel="canonical" href="https://sacb.co.in/" />
+      </Helmet>
       <HomeNavbar />
       <div className="homepage_container mt-5">
         {/* Hero Section with animated gradient */}
