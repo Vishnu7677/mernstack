@@ -3,7 +3,11 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
+const API_BASE_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://www.sacb.co.in/api"   // ✅ Live backend
+    : "http://localhost:5000/api";   // ✅ Local backend
 
 // Token types configuration
 const TOKEN_TYPES = {
@@ -39,10 +43,10 @@ const LOGIN_PATHS = {
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    "Content-Type": "application/json",
+  },
+  withCredentials: true,  // ✅ IMPORTANT FIX
 });
-
 // Add request interceptor to include appropriate auth token based on URL
 api.interceptors.request.use(
   (config) => {
@@ -276,7 +280,7 @@ export const createPaymentOrder = async ({ amount, currency = 'INR', receipt, no
     if (!response.data.success) {
       throw new Error(response.data.error || 'Failed to create order');
     }
-    
+ console.log(response.data)
     return response.data;
   } catch (error) {
     console.error('createPaymentOrder error:', error);
