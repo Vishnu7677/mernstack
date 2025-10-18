@@ -47,10 +47,12 @@ console.log(order)
       success: true, 
       order: {
         id: order.id,
-        amount: order.amount,
+        amount: order.amount, // This is in paise
+        amount_in_rupees: amount, // Add this for clarity
         currency: order.currency,
         receipt: order.receipt,
-        status: order.status
+        status: order.status,
+        created_at: order.created_at
       }
     });
   } catch (err) {

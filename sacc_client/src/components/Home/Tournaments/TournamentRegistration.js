@@ -211,9 +211,20 @@ const TournamentRegistration = () => {
       // 2) Create backend order
       const receipt = `SAC_TOURN_${Date.now()}`;
       const notes = { teamName: teamData.teamName, teamEmail: teamData.teamEmail, captainName: teamData.captainName, tournamentName: 'SAC Premier League 2025' };
-      const orderResp = await createPaymentOrder({ amount: REGISTRATION_AMOUNT, currency: 'INR', receipt, notes });
-      if (!orderResp?.success || !orderResp.order) throw new Error(orderResp?.error || 'Failed to create order');
+      const orderResp = await createPaymentOrder({ 
+        amount: REGISTRATION_AMOUNT, 
+        currency: 'INR', 
+        receipt, 
+        notes 
+      });
+      
+      // Fix: Check for success and order properly
+      if (!orderResp?.success || !orderResp.order) {
+        throw new Error(orderResp?.error || 'Failed to create order');
+      }
+      
       const order = orderResp.order;
+      
 
       // 3) Load Razorpay
       if (!window.Razorpay) {

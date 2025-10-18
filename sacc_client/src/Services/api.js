@@ -3,7 +3,6 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-
 const API_BASE_URL =
   process.env.NODE_ENV === "production"
     ? "https://www.sacb.co.in/api"   // ✅ Live backend
@@ -277,11 +276,23 @@ export const createPaymentOrder = async ({ amount, currency = 'INR', receipt, no
       notes 
     });
     
-    if (!response.data.success) {
+    // Fix: Check if response.data has success property
+    if (response.data && response.data.success === false) {
       throw new Error(response.data.error || 'Failed to create order');
     }
- console.log(response.data)
-    return response.data;
+   // If successful, backend returns { success: true, order: {...} }
+    if (response.data.success && response.data.order) {
+      return response.data;
+    }
+    // If backend returns order directly (without success wrapper)
+    if (response.data.id && response.data.entity === 'order') {
+      return {
+        success: true,
+        order: response.data
+      };
+    }
+
+    throw new Error('Invalid response from payment service');
   } catch (error) {
     console.error('createPaymentOrder error:', error);
     
