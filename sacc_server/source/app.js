@@ -19,24 +19,32 @@ const app = express();
 
 /* ------------------- CORS CONFIG ------------------- */
 const allowedOrigins = [
-  'http://localhost:5000',
-  'http://localhost:3000',
-  'http://sacb.co.in',
-  'https://sacb.co.in',
-  'http://www.sacb.co.in',
-  'https://www.sacb.co.in',
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://www.sacb.co.in",
+  "https://sacb.co.in"
 ];
+
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like Postman, server-to-server)
     if (!origin) return callback(null, true);
-    if (!allowedOrigins.includes(origin)) {
-      return callback(new Error('CORS error: Origin not allowed'), false);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("❌ CORS blocked for:", origin);
+      callback(new Error("Not allowed by CORS"));
     }
-    return callback(null, true);
   },
   credentials: true,
-  exposedHeaders: ['set-cookie']
+  methods: "GET,POST,PUT,DELETE,OPTIONS",
+  allowedHeaders: "Content-Type,Authorization",
 }));
+
+// ✅ Allow Preflight (OPTIONS) request
+app.options("*", cors());
+
+
 
 /* ------------------- RAZORPAY WEBHOOK (RAW BODY) ------------------- */
 // This MUST be before express.json()
