@@ -2,13 +2,12 @@
 import axios from 'axios';
 import { PUBLIC_PATHS } from '../../../config/routes';
 
-// Force using localhost:5000 in production
-const getBaseURL = () => {
-  // Always use localhost:5000 for both development and production
-  return 'http://localhost:5000/api';
-};
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://www.sacb.co.in/api'   // production fallback
+    : 'http://localhost:5000/api');  // dev fallback
 
-const API_BASE_URL = getBaseURL();
 
 // Create axios instance
 export const api = axios.create({

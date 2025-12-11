@@ -15,8 +15,6 @@ const bodyParser = require('body-parser');
 const swaggerUI = require('swagger-ui-express');
 const swaggerDocs = require('./swagger.json');
 
-const bodyParser = require('body-parser');
-
 
 // Import routes and middleware
 const RouteManager = require('./routes/routeManager');
@@ -52,10 +50,6 @@ app.use('/api/', limiter);
 
 /* ------------------- CORS CONFIG ------------------- */
 const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:5000",
-  "http://localhost:5001",
-  "http://127.0.0.1:3000",
   "https://www.sacb.co.in",
   "https://sacb.co.in"
 ];
