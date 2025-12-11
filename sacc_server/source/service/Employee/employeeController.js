@@ -1,6 +1,5 @@
 const service  = require('./employeeService');
 const GeneralUtil = require('../../commons/util/general/utility');
-const { uploadEmployeePhoto } = require('../../commons/util/fileUpload/upload')
 
 
 function Controller() {}

@@ -1,0 +1,190 @@
+.twgold_login_container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+  padding: 20px;
+}
+
+.twgold_login_card {
+  width: 400px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.twgold_login_card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  transform: skewX(-15deg);
+  transition: 0.5s;
+  z-index: -1;
+}
+
+.twgold_login_card:hover::before {
+  left: 100%;
+}
+
+.twgold_login_header {
+  text-align: center;
+  margin-bottom: 40px;
+  color: white;
+}
+
+.twgold_login_title {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: white;
+}
+
+.twgold_login_form {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.twgold_input_group {
+  position: relative;
+}
+
+.twgold_input_field {
+  width: 100%;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  transition: 0.3s;
+}
+
+.twgold_input_field:focus {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.twgold_input_label {
+  position: absolute;
+  top: 15px;
+  left: 20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  pointer-events: none;
+  transition: 0.3s;
+}
+
+.twgold_input_field:focus + .twgold_input_label,
+.twgold_input_field:not(:placeholder-shown) + .twgold_input_label {
+  top: -10px;
+  left: 10px;
+  font-size: 0.8rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  padding: 0 5px;
+  color: white;
+  border-radius: 3px;
+}
+
+.twgold_login_highlight {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #667eea, #f093fb);
+  transition: 0.4s;
+}
+
+.twgold_input_field:focus ~ .twgold_login_highlight {
+  width: 100%;
+}
+
+.twgold_login_button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px;
+  background: linear-gradient(90deg, #667eea, #f093fb);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+  overflow: hidden;
+  position: relative;
+}
+
+.twgold_login_button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.twgold_login_button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.twgold_error_message {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 15px;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+}
+
+.twgold_loading_text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Update input placeholder color */
+.twgold_input_field::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 768px) {
+  .twgold_login_card {
+    width: 90%;
+    padding: 30px 20px;
+    margin: 10px;
+  }
+  
+  .twgold_login_title {
+    font-size: 1.8rem;
+  }
+}

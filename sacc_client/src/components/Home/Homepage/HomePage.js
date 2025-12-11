@@ -50,11 +50,11 @@ const HomePage = () => {
             <div className="homepage_stat-label">Happy Members</div>
           </div>
           <div className="homepage_stat-item">
-            <div className="homepage_stat-number">₹50Cr+</div>
+            <div className="homepage_stat-number">₹30Cr+</div>
             <div className="homepage_stat-label">Assets Managed</div>
           </div>
           <div className="homepage_stat-item">
-            <div className="homepage_stat-number">15+</div>
+            <div className="homepage_stat-number">2+</div>
             <div className="homepage_stat-label">Years of Service</div>
           </div>
         </section>

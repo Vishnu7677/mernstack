@@ -11,7 +11,11 @@ module.exports = {
 
     // payment links
     paymentController: require('./Razorpay/paymentsController'),
-    uploadController: require('./Razorpay/uploadController')
+    uploadController: require('./Razorpay/uploadController'),
+    
+
+    // TwGold links
+    TWgoldLogin: require('./Twgold/Twgoldlogin'),
 
 
 }

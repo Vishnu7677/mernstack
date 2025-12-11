@@ -1,7 +1,5 @@
 const dotenv = require('dotenv');
-const mongoose = require('mongoose'); // Add mongoose import
 const axios = require('axios');
-const fetch = require('node-fetch');
 
 // Debugging the import
 let ScholarApplication;
@@ -164,7 +162,6 @@ Controller.prototype.generatescholarOtp = async function (req, res) {
 Controller.prototype.verifyScholarOtp = async function (req, res) {
   const { aadhaarNumber, otp } = req.body;
 
-  // Input validation
   if (!aadhaarNumber || !otp) {
     return res.status(400).json({
       success: false,
@@ -173,7 +170,6 @@ Controller.prototype.verifyScholarOtp = async function (req, res) {
   }
 
   try {
-    // Find the application by aadhaar_number in aadhaarDetails
     const application = await ScholarApplication.findOne({ 
       'aadhaarDetails.aadhaar_number': aadhaarNumber 
     });
@@ -185,29 +181,28 @@ Controller.prototype.verifyScholarOtp = async function (req, res) {
       });
     }
 
-    const payload = JSON.stringify({
+    const payload = {
       '@entity': 'in.co.sandbox.kyc.aadhaar.okyc.request',
       reference_id: application.aadhaarDetails.reference_id,
       otp: otp
-    });
-
-    const options = {
-      method: 'POST',
-      headers: {
-        accept: 'application/json',
-        authorization: application.aadhaarDetails.authorization_token,
-        'x-api-key': process.env.API_KEY,
-        'x-api-version': '2.0',
-        'content-type': 'application/json'
-      },
-      body: payload
     };
 
-    const response = await fetch('https://api.sandbox.co.in/kyc/aadhaar/okyc/otp/verify', options);
-    const data = await response.json();
+    const headers = {
+      accept: 'application/json',
+      authorization: application.aadhaarDetails.authorization_token,
+      'x-api-key': process.env.API_KEY,
+      'x-api-version': '2.0',
+      'content-type': 'application/json'
+    };
+
+    // Replace fetch with axios
+    const { data } = await axios.post(
+      'https://api.sandbox.co.in/kyc/aadhaar/okyc/otp/verify',
+      payload,
+      { headers }
+    );
 
     if (data.data.status === "VALID") {
-      // Update the ScholarApplication with verified details
       const updatedApplication = await ScholarApplication.findOneAndUpdate(
         { 'aadhaarDetails.aadhaar_number': aadhaarNumber },
         {
@@ -237,7 +232,6 @@ Controller.prototype.verifyScholarOtp = async function (req, res) {
         application: updatedApplication
       });
     } else {
-      // Delete the application if OTP verification fails
       await ScholarApplication.deleteOne({ 'aadhaarDetails.aadhaar_number': aadhaarNumber });
       return res.status(400).json({ 
         success: false,

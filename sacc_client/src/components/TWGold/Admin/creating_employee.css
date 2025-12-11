@@ -1,0 +1,609 @@
+/* creating_employee.css */
+
+.creating-employee-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f8f9fa;
+    min-height: 100vh;
+  }
+  
+  .creating-employee-header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  
+  .creating-employee-header h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+    font-size: 2rem;
+  }
+  
+  .creating-employee-header p {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+  }
+  
+  /* Steps Progress */
+  .creating-employee-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    position: relative;
+  }
+  
+  .creating-employee-steps::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #e0e0e0;
+    z-index: 1;
+  }
+  
+  .creating-employee-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    flex: 1;
+  }
+  
+  .creating-employee-step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    border: 3px solid #e0e0e0;
+  }
+  
+  .creating-employee-step.active .creating-employee-step-circle {
+    background: #3498db;
+    border-color: #3498db;
+  }
+  
+  .creating-employee-step.completed .creating-employee-step-circle {
+    background: #27ae60;
+    border-color: #27ae60;
+  }
+  
+  .creating-employee-step-label {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    text-align: center;
+    font-weight: 500;
+  }
+  
+  .creating-employee-step.active .creating-employee-step-label {
+    color: #3498db;
+  }
+  
+  .creating-employee-step.completed .creating-employee-step-label {
+    color: #27ae60;
+  }
+  
+  /* Form Container */
+  .creating-employee-form-container {
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+  }
+  
+  .creating-employee-form-section {
+    margin-bottom: 25px;
+  }
+  
+  .creating-employee-form-section h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 8px;
+  }
+  
+  /* Form Groups */
+  .creating-employee-form-group {
+    margin-bottom: 20px;
+  }
+  
+  .creating-employee-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .creating-employee-form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+  
+  .creating-employee-form-input,
+  .creating-employee-form-select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+  }
+  
+  .creating-employee-form-input:focus,
+  .creating-employee-form-select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  }
+  
+  .creating-employee-form-input.error {
+    border-color: #e74c3c;
+  }
+  
+  .creating-employee-form-error {
+    color: #e74c3c;
+    font-size: 0.85rem;
+    margin-top: 5px;
+    display: block;
+  }
+  
+  /* OTP Section */
+  .creating-employee-otp-section {
+    text-align: center;
+    padding: 25px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    margin: 25px 0;
+    border: 2px solid #e0e0e0;
+  }
+  
+  .creating-employee-otp-section h4 {
+    color: #2c3e50;
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+  }
+  
+  .creating-employee-otp-section p {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+  }
+  
+  .creating-employee-otp-input-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  
+  .creating-employee-otp-input {
+    width: 50px;
+    height: 60px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border: 2px solid #3498db;
+    border-radius: 8px;
+    background: white;
+    transition: all 0.3s ease;
+  }
+  
+  .creating-employee-otp-input:focus {
+    border-color: #2980b9;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  .creating-employee-otp-input::placeholder {
+    color: #bdc3c7;
+    font-size: 1rem;
+  }
+  
+  .creating-employee-timer-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin: 15px 0;
+  }
+  
+  .creating-employee-timer {
+    color: #e74c3c;
+    font-weight: bold;
+    font-size: 1rem;
+    padding: 8px 16px;
+    background: rgba(231, 76, 60, 0.1);
+    border-radius: 6px;
+    display: inline-block;
+    min-width: 160px;
+  }
+  
+  .creating-employee-resend-otp {
+    background: none;
+    border: 2px solid #3498db;
+    color: #3498db;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    min-width: 120px;
+  }
+  
+  .creating-employee-resend-otp:hover:not(:disabled) {
+    background: #3498db;
+    color: white;
+    transform: translateY(-1px);
+  }
+  
+  .creating-employee-resend-otp:disabled {
+    border-color: #bdc3c7;
+    color: #bdc3c7;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  /* Aadhaar Details Display */
+  .creating-employee-aadhaar-details {
+    background: #e8f4fd;
+    border: 1px solid #3498db;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+  }
+  
+  .creating-employee-aadhaar-details h4 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .creating-employee-aadhaar-details h4::before {
+    content: '✓';
+    color: #27ae60;
+    font-weight: bold;
+  }
+  
+  .creating-employee-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+  }
+  
+  .creating-employee-detail-item {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .creating-employee-detail-label {
+    font-weight: 600;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+  
+  .creating-employee-detail-value {
+    color: #2c3e50;
+    font-weight: 500;
+  }
+  
+  /* Buttons */
+  .creating-employee-button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    gap: 15px;
+  }
+  
+  .creating-employee-button {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+  }
+  
+  .creating-employee-button-primary {
+    background: #3498db;
+    color: white;
+  }
+  
+  .creating-employee-button-primary:hover:not(:disabled) {
+    background: #2980b9;
+    transform: translateY(-1px);
+  }
+  
+  .creating-employee-button-secondary {
+    background: #95a5a6;
+    color: white;
+  }
+  
+  .creating-employee-button-secondary:hover:not(:disabled) {
+    background: #7f8c8d;
+  }
+  
+  .creating-employee-button-success {
+    background: #27ae60;
+    color: white;
+  }
+  
+  .creating-employee-button-success:hover:not(:disabled) {
+    background: #219a52;
+  }
+  
+  .creating-employee-button:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  /* Review Section */
+  .creating-employee-review-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 15px 0;
+  }
+  
+  .creating-employee-review-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .creating-employee-review-item:last-child {
+    border-bottom: none;
+  }
+  
+  .creating-employee-review-label {
+    font-weight: 600;
+    color: #7f8c8d;
+  }
+  
+  .creating-employee-review-value {
+    color: #2c3e50;
+    text-align: right;
+  }
+
+  .creating-employee-saved-applications {
+    background: #fff;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .creating-employee-continue-existing {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .creating-employee-applications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+  }
+  
+  .creating-employee-application-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .creating-employee-application-card:hover {
+    background: #e8f4fd;
+    border-color: #3498db;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.1);
+  }
+  
+  .creating-employee-application-info h4 {
+    color: #2c3e50;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+  }
+  
+  .creating-employee-application-info p {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+  
+  .creating-employee-application-actions {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .creating-employee-no-applications {
+    text-align: center;
+    padding: 30px;
+    color: #7f8c8d;
+  }
+  
+  .creating-employee-applications-footer {
+    margin-top: 20px;
+    text-align: center;
+  }
+  
+  
+  /* Loading States */
+  .creating-employee-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #3498db;
+  }
+  
+  .creating-employee-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: creating-employee-spin 1s linear infinite;
+    margin-right: 10px;
+  }
+  
+  @keyframes creating-employee-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Success Message */
+  .creating-employee-success {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  
+  .creating-employee-success-icon {
+    font-size: 4rem;
+    color: #27ae60;
+    margin-bottom: 20px;
+  }
+  
+  .creating-employee-success h2 {
+    color: #27ae60;
+    margin-bottom: 10px;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .creating-employee-container {
+      padding: 10px;
+    }
+    
+    .creating-employee-form-container {
+      padding: 20px;
+    }
+    
+    .creating-employee-form-row {
+      grid-template-columns: 1fr;
+    }
+    
+    .creating-employee-steps {
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .creating-employee-steps::before {
+      display: none;
+    }
+    
+    .creating-employee-step {
+      flex-direction: row;
+      gap: 15px;
+    }
+    
+    .creating-employee-button-group {
+      flex-direction: column;
+    }
+    
+    .creating-employee-button {
+      width: 100%;
+    }
+    .creating-employee-otp-input {
+      width: 45px;
+      height: 55px;
+      font-size: 1.3rem;
+    }
+    
+    .creating-employee-otp-input-container {
+      gap: 8px;
+    }
+    
+    .creating-employee-timer {
+      min-width: 140px;
+      font-size: 0.9rem;
+    }
+    
+    .creating-employee-resend-otp {
+      padding: 7px 16px;
+      font-size: 0.9rem;
+    }
+    .creating-employee-application-card {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 15px;
+    }
+    
+    .creating-employee-application-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+    
+    .creating-employee-button {
+      padding: 10px 20px;
+      font-size: 0.9rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .creating-employee-otp-input {
+      width: 40px;
+      height: 50px;
+      font-size: 1.2rem;
+    }
+    
+    .creating-employee-otp-input-container {
+      gap: 6px;
+    }
+    
+    .creating-employee-otp-section {
+      padding: 20px 15px;
+    }
+    .creating-employee-application-actions {
+      flex-direction: column;
+      width: 100%;
+    }
+    
+    .creating-employee-button {
+      width: 100%;
+    }
+  }
+  
+  /* Animation for step transitions */
+  .creating-employee-form-step {
+    animation: creating-employee-fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes creating-employee-fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }

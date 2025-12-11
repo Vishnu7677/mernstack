@@ -1,0 +1,166 @@
+.admin_gold_manage_branches {
+    padding: 20px;
+  }
+  
+  .admin_gold_page_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+  
+  .admin_gold_page_title {
+    font-size: 2rem;
+    color: #333;
+  }
+  
+  .admin_gold_add_btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.3s ease;
+  }
+  
+  .admin_gold_add_btn:hover {
+    background: #5a6fd8;
+  }
+  
+  .admin_gold_modal_overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .admin_gold_modal {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .admin_gold_modal_title {
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .admin_gold_form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .admin_gold_form_group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .admin_gold_form_label {
+    font-weight: 500;
+    color: #555;
+  }
+  
+  .admin_gold_form_input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+  }
+  
+  .admin_gold_form_input:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+  
+  .admin_gold_form_actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+  
+  .admin_gold_submit_btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .admin_gold_cancel_btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .admin_gold_branches_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  
+  .admin_gold_branch_card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+  
+  .admin_gold_branch_name {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .admin_gold_branch_code {
+    color: #666;
+    margin-bottom: 8px;
+  }
+  
+  .admin_gold_branch_address,
+  .admin_gold_branch_contact {
+    color: #777;
+    margin-bottom: 5px;
+  }
+  
+  .admin_gold_branch_actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+  }
+  
+  .admin_gold_edit_btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .admin_gold_delete_btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+  }

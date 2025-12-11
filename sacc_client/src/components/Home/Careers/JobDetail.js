@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../Services/api';
@@ -12,11 +12,8 @@ const JobDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchJob();
-  }, [id]);
-
-  const fetchJob = async () => {
+  // ✅ Wrap fetchJob in useCallback
+  const fetchJob = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get(`/jobs/${id}`);
@@ -28,7 +25,12 @@ const JobDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]); // fetchJob now only reruns when `id` changes
+
+  // ✅ Now include fetchJob as dependency
+  useEffect(() => {
+    fetchJob();
+  }, [fetchJob]);
 
   const handleApply = () => {
     if (!user) {
@@ -64,20 +66,14 @@ const JobDetail = () => {
           <Link to="/careers" className="careerpage_back-btn">
             ← Back to Jobs
           </Link>
-          
+
           <h1 className="careerpage_job-detail-title">{job.jobName}</h1>
           <h2 className="careerpage_job-detail-company">{job.company}</h2>
-          
+
           <div className="careerpage_job-detail-meta">
-            <span className="careerpage_job-meta-item">
-              📍 {job.locations.join(', ')}
-            </span>
-            <span className="careerpage_job-meta-item">
-              💰 {formatSalary(job.salaryRange)}
-            </span>
-            <span className="careerpage_job-meta-item">
-              ⏱️ {job.employmentType}
-            </span>
+            <span className="careerpage_job-meta-item">📍 {job.locations.join(', ')}</span>
+            <span className="careerpage_job-meta-item">💰 {formatSalary(job.salaryRange)}</span>
+            <span className="careerpage_job-meta-item">⏱️ {job.employmentType}</span>
             <span className="careerpage_job-meta-item">
               📅 Posted: {new Date(job.postedDate).toLocaleDateString()}
             </span>
@@ -90,7 +86,7 @@ const JobDetail = () => {
             <p>{job.description}</p>
           </div>
 
-          {job.requirements && job.requirements.length > 0 && (
+          {job.requirements?.length > 0 && (
             <div className="careerpage_job-section">
               <h3>Requirements</h3>
               <ul>
@@ -101,7 +97,7 @@ const JobDetail = () => {
             </div>
           )}
 
-          {job.benefits && job.benefits.length > 0 && (
+          {job.benefits?.length > 0 && (
             <div className="careerpage_job-section">
               <h3>Benefits</h3>
               <ul>

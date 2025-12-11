@@ -1,11 +1,15 @@
 // controllers/uploadController.js
-const AWS = require('aws-sdk');
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { v4: uuidv4 } = require('uuid');
 
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION
+// Initialize S3 client
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
 });
 
 const BUCKET = process.env.S3_BUCKET_NAME;
@@ -18,22 +22,22 @@ exports.generatePresignedUrls = async (req, res) => {
     }
 
     const results = await Promise.all(files.map(async (f) => {
-      // f should have name and type
       const ext = (f.name || '').split('.').pop();
       const key = `tournaments/${Date.now()}_${uuidv4()}.${ext || 'bin'}`;
 
-      const params = {
+      // Create the PutObject command
+      const command = new PutObjectCommand({
         Bucket: BUCKET,
         Key: key,
-        Expires: 60 * 5, // presigned url valid for 5 minutes
         ContentType: f.type || 'application/octet-stream',
-        ACL: 'public-read'
-      };
+        // Note: ACL is often not recommended in v3 - use bucket policies instead
+        // ACL: 'public-read'
+      });
 
-      const presignedUrl = s3.getSignedUrl('putObject', params);
+      // Generate presigned URL (valid for 5 minutes)
+      const presignedUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
 
-      // Build an accessible URL (depends on your bucket config)
-      // If your bucket policy allows public read and the standard S3 URL works:
+      // Public URL (make sure your bucket policy allows public read if needed)
       const publicUrl = process.env.S3_PUBLIC_BASE_URL
         ? `${process.env.S3_PUBLIC_BASE_URL}/${key}`
         : `https://${BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;

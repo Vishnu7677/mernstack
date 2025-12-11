@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 // import { Link } from 'react-router-dom';
 import api from '../../../Services/api';
 import JobCard from './JobCard';
@@ -21,13 +21,11 @@ const Careers = () => {
     totalRecords: 0
   });
 
-  useEffect(() => {
-    fetchJobs();
-  }, [filters, pagination.current]);
-
-  const fetchJobs = async () => {
+   // ✅ Wrap fetchJobs with useCallback
+  const fetchJobs = useCallback(async () => {
     try {
       setLoading(true);
+
       const params = {
         page: pagination.current,
         limit: 10,
@@ -35,10 +33,8 @@ const Careers = () => {
         ...(filters.employmentType && { employmentType: filters.employmentType })
       };
 
-      const response = searchTerm 
-        ? await api.get('/jobs/search', { 
-            params: { ...params, q: searchTerm } 
-          })
+      const response = searchTerm
+        ? await api.get('/jobs/search', { params: { ...params, q: searchTerm } })
         : await api.get('/jobs', { params });
 
       setJobs(response.data.data.jobs);
@@ -50,7 +46,12 @@ const Careers = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, pagination.current, searchTerm]); // 👈 Dependencies
+
+  // ✅ Now we can safely depend on fetchJobs
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
 
   const handleSearch = (term) => {
     setSearchTerm(term);

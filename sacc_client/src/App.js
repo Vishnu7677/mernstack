@@ -1,4 +1,5 @@
-import './App.css';
+// App.js
+import './index.css';
 import { Route, Routes } from 'react-router-dom';
 import Login from './components/Login/login';
 import LoanApplication from './components/Employee/LoanApplication/LoanApplication';
@@ -25,7 +26,6 @@ import AccountOpeningForm from './components/User/AccountOpeningForm';
 import HomePage from './components/Home/Homepage/HomePage';
 import IndividualScholarshipForm from './components/Home/ScholarShips/ForIndividual/IndividualScholarship';
 import SignupPage from './components/Home/ScholarShips/Signup/SignupPage';
-// import  { AuthProvider } from './contexts/AuthContext';
 import LoginPage from './components/Home/ScholarShips/LoginPage/Loginpage'
 import UniversalPage from './components/UniversalPage';
 import CareersApplicationForm from './components/Home/Careers/CareersApplicationForm';
@@ -36,16 +36,25 @@ import CareerLogin from './components/Home/Careers/CareerLogin';
 import SacTechApp from './components/Home/Tournaments/SacTechApp';
 import TournamentRegistration from './components/Home/Tournaments/TournamentRegistration';
 import TournamentSuccess from './components/Home/Tournaments/TournamentSuccess';
+import { TwgoldAuthProvider } from './components/TWGold/TWGLogin/TwgoldAuthContext';
+import TwgoldLogin from './components/TWGold/TWGLogin/TwgoldLogin';
+import { TwgoldProtectedRoute } from './components/TWGold/TWGLogin/TwgoldProtectedRoute';
+import TwgoldAdminDashboard from './components/TWGold/Admin/TwgoldAdminDashboard';
+import TwgoldManagerDashboard from './components/TWGold/Manager/TwgoldManagerDashboard';
+import TwgoldEmployeeDashboard from './components/TWGold/Employee/EmployeeDashboard';
+import TwgoldGrivirenceDashboard from './components/TWGold/Grivirence/TwgoldGrivirenceDashboard';
+import GoldRates from './components/TWGold/Admin/GoldRates';
+import CreatingEmployee from './components/TWGold/Admin/CreatingEmployee';
+import TWgoldBranchCreate from './components/TWGold/Admin/TWgoldBranchCreate';
+import TwgoldHome from './components/TWGold/Home/TwgoldHome';
 
 
 function App() {
   return (
-    <div>
-        
-      <Routes>
-        <Route>
-
-          {/* Home page  */}
+    <TwgoldAuthProvider>
+      <div>
+        <Routes>
+          {/* Home page and public routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/sacinfotech" element={<SacTechApp />} />
           <Route path="/tournamentsregistration" element={<TournamentRegistration />} />
@@ -54,102 +63,198 @@ function App() {
           <Route path="/careers/home" element={<Careers />} />
           <Route path="/careers/:id" element={<JobDetail />} />
           <Route path="/careers/apply" element={<CareersApplicationForm />} />
-           <Route path="/career/careerlogin" element={<CareerLogin />} />
+          <Route path="/career/careerlogin" element={<CareerLogin />} />
           <Route path="/career/careersignup" element={<CareerSignup />} />
 
-
           <Route path="/scholar/apply" element={<SignupPage/>} />
-
-          <Route path= "/scholar/apply/self/login" element={<LoginPage />} />
+          <Route path="/scholar/apply/self/login" element={<LoginPage />} />
+          
+          {/* Scholar Protected Route */}
           <Route path="/scholar/apply/individualscholarship" element={
             <AuthGuard userType="scholar">
-            <IndividualScholarshipForm />
+              <IndividualScholarshipForm />
             </AuthGuard>
-            } />
-          {/* Admin Routes */}
-          <Route
-            path='/admin/login'
-            element={
-              <AuthGuard userType="admin">
-                <AdminLogin />
-              </AuthGuard>
-            } />
-          <Route
-            path="/admin/dashboard"
-            element={
-              <AuthGuard userType="admin">
-                <AdminDashboard />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path='/admin/userlist'
-            element={
-              <AuthGuard userType="admin">
-                <AdminUserList />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path='/admin/membershiprequest'
-            element={
-              <AuthGuard userType="admin">
-                <MembershipRequest />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path='/admin/createemployee'
-            element={
-              <AuthGuard userType="admin">
-                <CreateEmployee />
-              </AuthGuard>
-            }
-          />
+          } />
 
+          {/* Admin Routes */}
+          <Route path='/admin/login' element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={
+            <AuthGuard userType="admin">
+              <AdminDashboard />
+            </AuthGuard>
+          } />
+          <Route path='/admin/userlist' element={
+            <AuthGuard userType="admin">
+              <AdminUserList />
+            </AuthGuard>
+          } />
+          <Route path='/admin/membershiprequest' element={
+            <AuthGuard userType="admin">
+              <MembershipRequest />
+            </AuthGuard>
+          } />
+          <Route path='/admin/createemployee' element={
+            <AuthGuard userType="admin">
+              <CreateEmployee />
+            </AuthGuard>
+          } />
 
           {/* Employee Routes */}
-          <Route path='/employee/login' element={
-            <AuthGuard userType="employee">
-          <Login />
-          </AuthGuard>
-          } />
+          <Route path='/employee/login' element={<Login />} />
           <Route path='/employee/dashboard' element={
-          <AuthGuard userType="employee">
-          <EmployeeHome />  
-          </AuthGuard>
-        } />
+            <AuthGuard userType="employee">
+              <EmployeeHome />  
+            </AuthGuard>
+          } />
           <Route path='/employee/membershipopening' element={
-           <AuthGuard userType="employee">
-          <MembershipOpeningForm />
-          </AuthGuard>
+            <AuthGuard userType="employee">
+              <MembershipOpeningForm />
+            </AuthGuard>
           } />
           <Route path='/employee/accountopening' element={
-           <AuthGuard userType="employee">
-          <AccountOpeningForm />
-          </AuthGuard>
+            <AuthGuard userType="employee">
+              <AccountOpeningForm />
+            </AuthGuard>
           } />
 
+          {/* Employee Loan Routes */}
+          <Route path='/employee/loanapplication' element={
+            <AuthGuard userType="employee">
+              <LoanApplication />
+            </AuthGuard>
+          } />
+          <Route path='/employee/allapprovedloan' element={
+            <AuthGuard userType="employee">
+              <EmployeeBankLoanTable />
+            </AuthGuard>
+          } />
+          <Route path='/employee/pendingloan' element={
+            <AuthGuard userType="employee">
+              <PendingLoanTable />
+            </AuthGuard>
+          } />
+          <Route path='/employee/rejectedloan' element={
+            <AuthGuard userType="employee">
+              <RejectedLoans />
+            </AuthGuard>
+          } />
+          <Route path='/employee/paidloan' element={
+            <AuthGuard userType="employee">
+              <PaidLoans />
+            </AuthGuard>
+          } />
+          <Route path='/employee/runningloan' element={
+            <AuthGuard userType="employee">
+              <RunningLoans />
+            </AuthGuard>
+          } />
+          <Route path='/employee/allDPS' element={
+            <AuthGuard userType="employee">
+              <AllDPSLoan />
+            </AuthGuard>
+          } />
+          <Route path='/employee/MaturedDPS' element={
+            <AuthGuard userType="employee">
+              <MaturedDPSLoan />
+            </AuthGuard>
+          } />
+          <Route path='/employee/RunningDPS' element={
+            <AuthGuard userType="employee">
+              <RunningDPSLoan />
+            </AuthGuard>
+          } />
+          <Route path='/employee/allFDR' element={
+            <AuthGuard userType="employee">
+              <AllFDRLoan />
+            </AuthGuard>
+          } />
+          <Route path='/employee/RunningFDR' element={
+            <AuthGuard userType="employee">
+              <RunningFDRLoan />
+            </AuthGuard>
+          } />
+          <Route path='/employee/ClosedFDR' element={
+            <AuthGuard userType="employee">
+              <ClosedFDRLoan />
+            </AuthGuard>
+          } />
 
-          <Route path='/employee/loanapplication' element={<LoanApplication />} />
-          <Route path='/employee/allapprovedloan' element={<EmployeeBankLoanTable />} />
-          <Route path='/employee/pendingloan' element={<PendingLoanTable />} />
-          <Route path='/employee/rejectedloan' element={<RejectedLoans />} />
-          <Route path='/employee/paidloan' element={<PaidLoans />} />
-          <Route path='/employee/runningloan' element={<RunningLoans />} />
-          <Route path='/employee/allDPS' element={<AllDPSLoan />} />
-          <Route path='/employee/MaturedDPS' element={<MaturedDPSLoan />} />
-          <Route path='/employee/RunningDPS' element={<RunningDPSLoan />} />
-          <Route path='/employee/allFDR' element={<AllFDRLoan />} />
-          <Route path='/employee/RunningFDR' element={<RunningFDRLoan />} />
-          <Route path='/employee/ClosedFDR' element={<ClosedFDRLoan />} />
+          {/* TWGold Public Routes - No protection needed */}
+          <Route path="/twgl&articles/home" element={<TwgoldHome />} />
+          <Route path="/twgl&articles/login" element={<TwgoldLogin />} />
+          
+          {/* TWGold Protected Routes - Only for authenticated users */}
+          <Route path="/twgl&articles/admin/dashboard" element={
+            <TwgoldProtectedRoute allowedRoles={['admin']}>
+              <TwgoldAdminDashboard />
+            </TwgoldProtectedRoute>
+          } />
+          
+          <Route path="/twgl&articles/admin/branches" element={
+            <TwgoldProtectedRoute allowedRoles={['admin']}>
+              <TWgoldBranchCreate />
+            </TwgoldProtectedRoute>
+          } />
+          
+          <Route path="/twgl&articles/admin/employees" element={
+            <TwgoldProtectedRoute allowedRoles={['admin']}>
+              <CreatingEmployee />
+            </TwgoldProtectedRoute>
+          } />
+          
+          <Route path="/twgl&articles/admin/gold-rates" element={
+            <TwgoldProtectedRoute allowedRoles={['admin']}>
+              <GoldRates />
+            </TwgoldProtectedRoute>
+          } />
+          
+          <Route path="/twgl&articles/admin/loans" element={
+            <TwgoldProtectedRoute allowedRoles={['admin']}>
+              <TwgoldAdminDashboard />
+            </TwgoldProtectedRoute>
+          } />
+          
+          <Route path="/twgl&articles/admin/settings" element={
+            <TwgoldProtectedRoute allowedRoles={['admin']}>
+              <TwgoldAdminDashboard />
+            </TwgoldProtectedRoute>
+          } />
+          
+          <Route path="/twgl&articles/admin/audit" element={
+            <TwgoldProtectedRoute allowedRoles={['admin']}>
+              <TwgoldAdminDashboard />
+            </TwgoldProtectedRoute>
+          } />
+          
+          <Route path="/twgl&articles/admin/compliance" element={
+            <TwgoldProtectedRoute allowedRoles={['admin']}>
+              <TwgoldAdminDashboard />
+            </TwgoldProtectedRoute>
+          } />
+          
+          <Route path="/twgl&articles/manager/dashboard" element={
+            <TwgoldProtectedRoute allowedRoles={['manager']}>
+              <TwgoldManagerDashboard />
+            </TwgoldProtectedRoute>
+          } />
+          
+          <Route path="/twgl&articles/employee/dashboard" element={
+            <TwgoldProtectedRoute allowedRoles={['employee']}>
+              <TwgoldEmployeeDashboard />
+            </TwgoldProtectedRoute>
+          } />
+          
+          <Route path="/twgl&articles/grivirence/dashboard" element={
+            <TwgoldProtectedRoute allowedRoles={['grivirence']}>
+              <TwgoldGrivirenceDashboard />
+            </TwgoldProtectedRoute>
+          } />
 
-
+          {/* Catch-all Route */}
           <Route path="*" element={<UniversalPage />} />
-        </Route>
-      </Routes>
-    </div>
-
+        </Routes>
+      </div>
+    </TwgoldAuthProvider>
   );
 }
 
