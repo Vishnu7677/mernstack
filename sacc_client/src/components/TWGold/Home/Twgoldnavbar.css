@@ -1,0 +1,195 @@
+.twgold_loan_home_header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #ffffff;
+  border-bottom: 1px solid #eeeeee;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.twgold_loan_home_nav {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.twgold_loan_home_logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  color: #b8860b;
+  font-size: 20px;
+  z-index: 101;
+}
+
+.twgold_loan_home_logo_img {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.twgold_loan_home_nav_links {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.twgold_loan_home_nav_links a {
+  text-decoration: none;
+  color: #333333;
+  padding: 6px 0;
+  position: relative;
+  transition: color 0.2s ease;
+  font-weight: 500;
+}
+
+.twgold_loan_home_nav_links a:hover {
+  color: #b8860b;
+}
+
+.twgold_loan_home_nav_links a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #b8860b;
+  transition: width 0.3s ease;
+}
+
+.twgold_loan_home_nav_links a:hover::after {
+  width: 100%;
+}
+
+.twgold_loan_home_mobile_menu_btn {
+  display: none;
+  background: none;
+  border: none;
+  width: 30px;
+  height: 30px;
+  position: relative;
+  z-index: 101;
+  cursor: pointer;
+}
+
+.twgold_loan_home_hamburger {
+  display: block;
+  width: 25px;
+  height: 3px;
+  background-color: #333333;
+  position: relative;
+  transition: background-color 0.3s ease;
+}
+
+.twgold_loan_home_hamburger::before,
+.twgold_loan_home_hamburger::after {
+  content: '';
+  position: absolute;
+  width: 25px;
+  height: 3px;
+  background-color: #333333;
+  left: 0;
+  transition: transform 0.3s ease;
+}
+
+.twgold_loan_home_hamburger::before {
+  top: -8px;
+}
+
+.twgold_loan_home_hamburger::after {
+  bottom: -8px;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .twgold_loan_home_mobile_menu_btn {
+    display: block;
+  }
+
+  .twgold_loan_home_nav_links {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    height: 100vh;
+    width: 70%;
+    max-width: 300px;
+    background: #ffffff;
+    flex-direction: column;
+    padding: 80px 20px 20px;
+    gap: 0;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+    transition: right 0.3s ease;
+  }
+
+  .twgold_loan_home_nav_links.twgold_loan_home_mobile_open {
+    right: 0;
+  }
+
+  .twgold_loan_home_nav_links a {
+    width: 100%;
+    padding: 15px;
+    border-bottom: 1px solid #eeeeee;
+    font-size: 16px;
+  }
+
+  .twgold_loan_home_nav_links a:last-child {
+    border-bottom: none;
+  }
+
+  /* Hamburger animation */
+  .twgold_loan_home_mobile_menu_btn.active .twgold_loan_home_hamburger {
+    background-color: transparent;
+  }
+
+  .twgold_loan_home_mobile_menu_btn.active .twgold_loan_home_hamburger::before {
+    transform: rotate(45deg);
+    top: 0;
+  }
+
+  .twgold_loan_home_mobile_menu_btn.active .twgold_loan_home_hamburger::after {
+    transform: rotate(-45deg);
+    bottom: 0;
+  }
+  
+  /* Fix for mobile menu button animation */
+  .twgold_loan_home_mobile_open + .twgold_loan_home_mobile_menu_btn .twgold_loan_home_hamburger {
+    background-color: transparent;
+  }
+
+  .twgold_loan_home_mobile_open + .twgold_loan_home_mobile_menu_btn .twgold_loan_home_hamburger::before {
+    transform: rotate(45deg);
+    top: 0;
+  }
+
+  .twgold_loan_home_mobile_open + .twgold_loan_home_mobile_menu_btn .twgold_loan_home_hamburger::after {
+    transform: rotate(-45deg);
+    bottom: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .twgold_loan_home_nav {
+    padding: 10px 12px;
+  }
+
+  .twgold_loan_home_logo {
+    font-size: 18px;
+    gap: 8px;
+  }
+
+  .twgold_loan_home_logo_img {
+    height: 32px;
+  }
+
+  .twgold_loan_home_nav_links {
+    width: 85%;
+  }
+}

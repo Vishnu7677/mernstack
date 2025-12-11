@@ -1,8 +1,8 @@
 // upload.js
 
-const AWS = require('aws-sdk');
+const { S3Client } = require('@aws-sdk/client-s3');
 const multer = require('multer');
-const multerS3 = require('multer-s3');
+const multerS3 = require('multer-s3-v2'); 
 const path = require('path');
 const dotenv = require('dotenv');
 
@@ -24,18 +24,21 @@ requiredEnvVars.forEach(varName => {
 });
 
 // Configure AWS S3
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
 });
 
 // Improved S3 Storage configuration with validation
+
 const s3Storage = (folder) => {
   if (!process.env.AWS_BUCKET_NAME) {
     throw new Error('AWS_BUCKET_NAME is not defined in environment variables');
   }
-
+  
   return multerS3({
     s3: s3,
     bucket: process.env.AWS_BUCKET_NAME,

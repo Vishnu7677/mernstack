@@ -20,6 +20,7 @@ const CareerLogin = require('./route/CareerLogin')
 const CareerJobs = require('./route/CareerJobs') 
 const PaymentGateWay = require('./route/RazorpayPay')
 const uploadRoutes = require('./route/uploadRoutes');
+const TwGoldLogin = require('./route/TwgoldRoutes')
 
 
 
@@ -35,6 +36,9 @@ router.use('/api/careerlogin',CareerLogin)
 router.use('/api/careerjobs',CareerJobs)
 router.use('/api/payment',PaymentGateWay)
 router.use('/api/upload', uploadRoutes);
+
+// TwGoldRoutes
+router.use('/api/twgoldlogin',TwGoldLogin)
 
 
 

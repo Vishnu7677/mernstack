@@ -1,0 +1,597 @@
+
+  
+  /* Main container */
+  .employee_dashboard_container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f8fafc;
+  }
+  
+  /* Sidebar */
+  .employee_dashboard_sidebar {
+    width: 280px;
+    background-color: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .employee_dashboard_sidebar_header {
+    padding: 24px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .employee_dashboard_company_name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  
+  .employee_dashboard_portal_name {
+    font-size: 14px;
+    color: #64748b;
+    margin-top: 4px;
+  }
+  
+  .employee_dashboard_nav {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .employee_dashboard_nav_item {
+    padding: 12px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  
+  .employee_dashboard_nav_item:hover {
+    background-color: #f1f5f9;
+    color: #334155;
+  }
+  
+  .employee_dashboard_nav_active {
+    background-color: #eff6ff;
+    color: #2563eb;
+  }
+  
+  /* Main content area */
+  .employee_dashboard_main {
+    flex: 1;
+    padding: 24px;
+    overflow-x: auto;
+  }
+  
+  /* Header */
+  .employee_dashboard_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  
+  .employee_dashboard_header_left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  
+  .employee_dashboard_title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+  
+  .employee_dashboard_subtitle {
+    font-size: 14px;
+    color: #64748b;
+  }
+  
+  .employee_dashboard_header_right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  
+  .employee_dashboard_search_container {
+    position: relative;
+  }
+  
+  .employee_dashboard_search_input {
+    padding: 10px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    width: 280px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+  }
+  
+  .employee_dashboard_search_input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .employee_dashboard_primary_btn {
+    padding: 10px 20px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .employee_dashboard_primary_btn:hover {
+    background-color: #1d4ed8;
+  }
+  
+  .employee_dashboard_user_profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .employee_dashboard_user_info {
+    text-align: right;
+  }
+  
+  .employee_dashboard_user_role {
+    font-size: 12px;
+    color: #64748b;
+  }
+  
+  .employee_dashboard_user_name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e293b;
+  }
+  
+  .employee_dashboard_user_avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  /* Content layout */
+  .employee_dashboard_content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+  }
+  
+  /* Loan section */
+  .employee_dashboard_loan_section {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .employee_dashboard_section_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  
+  .employee_dashboard_section_title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+  
+  .employee_dashboard_result_count {
+    font-size: 14px;
+    color: #64748b;
+  }
+  
+  /* Table styles */
+  .employee_dashboard_table_container {
+    overflow-x: auto;
+  }
+  
+  .employee_dashboard_table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  
+  .employee_dashboard_table_header {
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .employee_dashboard_table_header th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 500;
+    color: #64748b;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .employee_dashboard_table_row {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.2s ease;
+  }
+  
+  .employee_dashboard_table_row:hover {
+    background-color: #f8fafc;
+  }
+  
+  .employee_dashboard_table_row td {
+    padding: 16px;
+  }
+  
+  .employee_dashboard_loan_id {
+    font-weight: 500;
+    color: #1e293b;
+  }
+  
+  .employee_dashboard_customer_cell {
+    min-width: 160px;
+  }
+  
+  .employee_dashboard_customer_name {
+    font-weight: 500;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+  
+  .employee_dashboard_customer_mobile {
+    font-size: 12px;
+    color: #64748b;
+  }
+  
+  .employee_dashboard_valuation,
+  .employee_dashboard_requested {
+    font-weight: 500;
+    color: #059669;
+  }
+  
+  .employee_dashboard_ltv {
+    font-weight: 500;
+    color: #1e293b;
+  }
+  
+  .employee_dashboard_status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .employee_dashboard_status_pending {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+  
+  .employee_dashboard_status_appraised {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+  
+  .employee_dashboard_action_buttons {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .employee_dashboard_secondary_btn {
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: white;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .employee_dashboard_secondary_btn:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+  }
+  
+  .employee_dashboard_appraise_btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    background-color: #4f46e5;
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .employee_dashboard_appraise_btn:hover {
+    background-color: #4338ca;
+  }
+  
+  /* Customer panel */
+  .employee_dashboard_customer_panel {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    height: fit-content;
+  }
+  
+  .employee_dashboard_customer_header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  
+  .employee_dashboard_customer_avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .employee_dashboard_customer_panel_name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+  
+  .employee_dashboard_customer_panel_mobile {
+    font-size: 12px;
+    color: #64748b;
+  }
+  
+  .employee_dashboard_customer_details {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .employee_dashboard_detail_item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .employee_dashboard_detail_label {
+    font-size: 12px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .employee_dashboard_detail_value {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e293b;
+  }
+  
+  .employee_dashboard_panel_actions {
+    padding-top: 20px;
+    border-top: 1px solid #f1f5f9;
+  }
+  
+  .employee_dashboard_appraisal_btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #f59e0b;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .employee_dashboard_appraisal_btn:hover {
+    background-color: #d97706;
+  }
+  
+  .employee_dashboard_no_selection {
+    font-size: 14px;
+    color: #64748b;
+    text-align: center;
+    padding: 40px 20px;
+  }
+  
+  /* Modal styles */
+  .employee_dashboard_modal_overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  
+  .employee_dashboard_modal {
+    background-color: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .employee_dashboard_modal_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .employee_dashboard_modal_title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+  
+  .employee_dashboard_modal_close {
+    background: none;
+    border: none;
+    font-size: 16px;
+    color: #64748b;
+    cursor: pointer;
+    padding: 4px;
+  }
+  
+  .employee_dashboard_modal_close:hover {
+    color: #374151;
+  }
+  
+  .employee_dashboard_modal_content {
+    padding: 24px;
+  }
+  
+  .employee_dashboard_form_grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  
+  .employee_dashboard_form_group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .employee_dashboard_form_full {
+    grid-column: 1 / -1;
+  }
+  
+  .employee_dashboard_form_label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .employee_dashboard_form_input,
+  .employee_dashboard_form_select {
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+  }
+  
+  .employee_dashboard_form_input:focus,
+  .employee_dashboard_form_select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .employee_dashboard_modal_footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 24px;
+    border-top: 1px solid #e2e8f0;
+  }
+  
+  .employee_dashboard_cancel_btn {
+    padding: 10px 20px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background-color: white;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .employee_dashboard_cancel_btn:hover {
+    background-color: #f9fafb;
+  }
+  
+  .employee_dashboard_save_btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background-color: #059669;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .employee_dashboard_save_btn:hover {
+    background-color: #047857;
+  }
+  
+  /* Loading state */
+  .employee_dashboard_loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-size: 16px;
+    color: #64748b;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 1024px) {
+    .employee_dashboard_content {
+      grid-template-columns: 1fr;
+    }
+    
+    .employee_dashboard_sidebar {
+      display: none;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .employee_dashboard_main {
+      padding: 16px;
+    }
+    
+    .employee_dashboard_header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .employee_dashboard_header_left,
+    .employee_dashboard_header_right {
+      justify-content: space-between;
+    }
+    
+    .employee_dashboard_search_input {
+      width: 100%;
+    }
+    
+    .employee_dashboard_form_grid {
+      grid-template-columns: 1fr;
+    }
+  }

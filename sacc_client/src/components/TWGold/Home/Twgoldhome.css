@@ -1,0 +1,614 @@
+/* ============ THEME VARIABLES (scoped globally via :root) ============ */
+:root {
+  --twgold-bg: #ffffff;
+  --twgold-accent: #b8860b;
+  --twgold-text: #333333;
+  --twgold-muted: #777777;
+  --twgold-border: #eeeeee;
+  --twgold-shadow: rgba(0,0,0,0.06);
+  --twgold-radius: 10px;
+  --twgold-maxwidth: 1200px;
+}
+
+/* ============ LAYOUT CONTAINER ============ */
+.twgold_loan_home_container {
+  max-width: var(--twgold-maxwidth);
+  margin: 0 auto;
+  padding: 0 16px 48px;
+  box-sizing: border-box;
+  color: var(--twgold-text);
+  background: transparent;
+}
+
+/* ============ HEADER / NAVBAR ============ */
+.twgold_loan_home_header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--twgold-bg);
+  border-bottom: 1px solid var(--twgold-border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.twgold_loan_home_nav {
+  max-width: var(--twgold-maxwidth);
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.twgold_loan_home_logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  color: var(--twgold-accent);
+  font-size: 20px;
+  z-index: 101;
+  user-select: none;
+}
+
+.twgold_loan_home_logo_img {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* NAV LINKS */
+.twgold_loan_home_nav_links {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  font-size: 14px;
+  transition: all 0.28s ease;
+  z-index: 100;
+  box-sizing: border-box;
+}
+
+.twgold_loan_home_nav_links a {
+  text-decoration: none;
+  color: var(--twgold-text);
+  padding: 6px 0;
+  position: relative;
+  transition: color 0.18s ease;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.twgold_loan_home_nav_links a:hover,
+.twgold_loan_home_nav_links a:focus {
+  color: var(--twgold-accent);
+  outline: none;
+}
+
+.twgold_loan_home_nav_links a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--twgold-accent);
+  transition: width 0.28s ease;
+}
+
+.twgold_loan_home_nav_links a:hover::after,
+.twgold_loan_home_nav_links a:focus::after {
+  width: 100%;
+}
+
+/* MOBILE MENU BUTTON */
+.twgold_loan_home_mobile_menu_btn {
+  display: none; /* shown in mobile media query */
+  background: none;
+  border: none;
+  width: 36px;
+  height: 36px;
+  position: relative;
+  z-index: 101;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.twgold_loan_home_hamburger {
+  display: block;
+  width: 24px;
+  height: 3px;
+  background-color: var(--twgold-text);
+  position: relative;
+  transition: background-color 0.28s ease, transform 0.28s ease;
+  border-radius: 2px;
+}
+
+.twgold_loan_home_hamburger::before,
+.twgold_loan_home_hamburger::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 3px;
+  background-color: var(--twgold-text);
+  left: 0;
+  transition: transform 0.28s ease, top 0.28s ease, bottom 0.28s ease, opacity 0.28s ease;
+  border-radius: 2px;
+}
+
+.twgold_loan_home_hamburger::before {
+  top: -8px;
+}
+
+.twgold_loan_home_hamburger::after {
+  bottom: -8px;
+}
+
+/* Hamburger active state (toggles via .active on button) */
+.twgold_loan_home_mobile_menu_btn.active .twgold_loan_home_hamburger {
+  background-color: transparent;
+}
+
+.twgold_loan_home_mobile_menu_btn.active .twgold_loan_home_hamburger::before {
+  transform: rotate(45deg);
+  top: 0;
+}
+
+.twgold_loan_home_mobile_menu_btn.active .twgold_loan_home_hamburger::after {
+  transform: rotate(-45deg);
+  bottom: 0;
+}
+
+/* Mobile menu slide-in panel (hidden by default, open with .twgold_loan_home_mobile_open on nav) */
+.twgold_loan_home_nav_links.twgold_loan_home_mobile_open {
+  right: 0;
+}
+
+/* ============ HERO ============ */
+.twgold_loan_home_hero {
+  display: flex;
+  gap: 28px;
+  align-items: stretch;
+  justify-content: space-between;
+  padding: 40px 0 28px;
+  box-sizing: border-box;
+}
+
+.twgold_loan_home_hero_content {
+  flex: 1 1 620px;
+  min-width: 300px;
+}
+
+.twgold_loan_home_hero_tag {
+  display: inline-block;
+  background: rgba(184,134,11,0.08);
+  color: var(--twgold-accent);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.twgold_loan_home_hero_title {
+  font-size: 32px;
+  line-height: 1.08;
+  margin: 6px 0 12px;
+  color: var(--twgold-text);
+  font-weight: 800;
+}
+
+.twgold_loan_home_hero_description {
+  margin: 0 0 18px;
+  color: var(--twgold-muted);
+  font-size: 15px;
+  max-width: 58ch;
+}
+
+.twgold_loan_home_hero_actions {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+  align-items: center;
+}
+
+.twgold_loan_home_hero_meta {
+  display: flex;
+  gap: 18px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.twgold_loan_home_meta_item {
+  font-size: 13px;
+  color: var(--twgold-muted);
+  display: flex;
+  flex-direction: column;
+}
+
+.twgold_loan_home_meta_item span {
+  font-weight: 700;
+  color: var(--twgold-text);
+}
+
+/* ============ BUTTONS ============ */
+.twgold_loan_home_btn_primary {
+  display: inline-block;
+  padding: 10px 16px;
+  background: var(--twgold-accent);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 6px 14px rgba(184,134,11,0.12);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.twgold_loan_home_btn_primary:active,
+.twgold_loan_home_btn_primary:focus {
+  transform: translateY(1px);
+  outline: none;
+}
+
+.twgold_loan_home_btn_outline {
+  display: inline-block;
+  padding: 10px 16px;
+  background: transparent;
+  color: var(--twgold-text);
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid var(--twgold-border);
+}
+
+/* ============ ESTIMATOR (MOVED DOWN) ============ */
+/* Estimator panel (moved down) */
+.twgold_loan_home_estimator_section {
+  max-width: 1100px;
+  margin: 32px auto;
+  padding: 24px;
+  background: var(--twgold-bg);
+  border-radius: var(--twgold-radius);
+  box-shadow: 0 6px 18px var(--twgold-shadow);
+  box-sizing: border-box;
+}
+
+.twgold_loan_home_estimator_panel {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.twgold_loan_home_estimator_inputs {
+  flex: 1 1 320px;
+  min-width: 280px;
+  box-sizing: border-box;
+}
+
+/* Input styles (scoped) */
+.twgold_loan_home_form_label {
+  display: block;
+  margin: 8px 0 6px;
+  font-size: 13px;
+  color: var(--twgold-muted);
+  font-weight: 600;
+}
+
+.twgold_loan_home_form_input,
+.twgold_loan_home_form_select {
+  width: 100%;
+  display: inline-block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--twgold-border);
+  font-size: 14px;
+  box-sizing: border-box;
+  background: #fff;
+  color: var(--twgold-text);
+  margin-bottom: 10px;
+}
+
+.twgold_loan_home_form_input:focus,
+.twgold_loan_home_form_select:focus {
+  outline: none;
+  box-shadow: 0 4px 12px rgba(184,134,11,0.08);
+  border-color: rgba(184,134,11,0.18);
+}
+
+/* Range slider (simple styled) */
+.twgold_loan_home_estimator_inputs input[type="range"] {
+  width: 100%;
+  margin: 8px 0 14px;
+}
+
+/* Calculate button (reusing primary) */
+.twgold_loan_home_calculate_btn {
+  margin-top: 6px;
+}
+
+/* Result column */
+.twgold_loan_home_estimator_result {
+  flex: 1 1 300px;
+  min-width: 260px;
+  padding: 16px;
+  border-left: 1px dashed var(--twgold-border);
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(250,250,250,0.98), rgba(255,255,255,0.95));
+  border-radius: 6px;
+}
+
+.twgold_loan_home_estimator_result h4 {
+  margin-top: 0;
+  font-size: 16px;
+  color: var(--twgold-text);
+}
+
+.twgold_loan_home_amount {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--twgold-accent);
+  margin: 8px 0 12px;
+}
+
+.twgold_loan_home_breakdown p {
+  margin: 6px 0;
+  font-size: 14px;
+  color: var(--twgold-muted);
+}
+
+.twgold_loan_home_estimator_info {
+  margin-top: 16px;
+  color: var(--twgold-muted);
+  font-size: 14px;
+}
+
+/* Estimator hint */
+.twgold_loan_home_estimator_hint {
+  color: var(--twgold-muted);
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+/* CTA inside result */
+.twgold_loan_home_estimator_result .twgold_loan_home_btn_outline {
+  display: inline-block;
+  margin-top: 12px;
+}
+
+/* ============ SECTIONS & FEATURES ============ */
+.twgold_loan_home_section {
+  margin: 28px auto;
+  padding: 0 0 8px;
+  max-width: var(--twgold-maxwidth);
+  box-sizing: border-box;
+}
+
+.twgold_loan_home_section_title {
+  font-size: 20px;
+  margin: 6px 0 12px;
+  color: var(--twgold-text);
+  font-weight: 800;
+}
+
+.twgold_loan_home_section_description {
+  color: var(--twgold-muted);
+  margin-bottom: 18px;
+  max-width: 70ch;
+}
+
+/* Feature grid */
+.twgold_loan_home_features {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.twgold_loan_home_feature_card {
+  background: #fff;
+  border: 1px solid var(--twgold-border);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  min-height: 120px;
+  box-sizing: border-box;
+}
+
+.twgold_loan_home_feature_card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--twgold-text);
+}
+
+.twgold_loan_home_feature_card p {
+  margin: 0;
+  color: var(--twgold-muted);
+  font-size: 14px;
+}
+
+/* ============ CONTACT STRIP ============ */
+.twgold_loan_home_contact_strip {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(250,250,250,0.98), rgba(255,255,255,0.95));
+  border: 1px solid var(--twgold-border);
+  box-sizing: border-box;
+  flex-wrap: wrap;
+}
+
+.twgold_loan_home_contact_info {
+  font-size: 14px;
+  color: var(--twgold-text);
+  line-height: 1.4;
+}
+
+.twgold_loan_home_contact_info a {
+  color: var(--twgold-accent);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.twgold_loan_home_contact_action {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ============ FOOTER ============ */
+.twgold_loan_home_footer {
+  margin-top: 32px;
+  padding: 18px 12px;
+  border-top: 1px solid var(--twgold-border);
+  color: var(--twgold-muted);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.twgold_loan_home_footer_inner {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  max-width: var(--twgold-maxwidth);
+  margin: 0 auto;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+}
+
+.twgold_loan_home_footer_address {
+  text-align: right;
+}
+
+/* ============ RESPONSIVE ============ */
+/* Mobile: <= 768px */
+@media (max-width: 768px) {
+  .twgold_loan_home_nav {
+    padding: 10px 12px;
+  }
+
+  .twgold_loan_home_logo {
+    font-size: 18px;
+    gap: 8px;
+  }
+
+  .twgold_loan_home_logo_img {
+    height: 32px;
+  }
+
+  .twgold_loan_home_nav_links {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    height: 100vh;
+    width: 70%;
+    max-width: 320px;
+    background: var(--twgold-bg);
+    flex-direction: column;
+    padding: 80px 20px 20px;
+    gap: 0;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.08);
+    transition: right 0.28s ease;
+    z-index: 150;
+    overflow-y: auto;
+  }
+
+  .twgold_loan_home_nav_links a {
+    width: 100%;
+    padding: 15px;
+    border-bottom: 1px solid var(--twgold-border);
+    font-size: 16px;
+    display: block;
+  }
+
+  .twgold_loan_home_nav_links a:last-child {
+    border-bottom: none;
+  }
+
+  .twgold_loan_home_mobile_menu_btn {
+    display: flex;
+  }
+
+  .twgold_loan_home_hero {
+    flex-direction: column;
+    gap: 18px;
+    padding: 20px 0;
+  }
+
+  .twgold_loan_home_features {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .twgold_loan_home_estimator_panel {
+    flex-direction: column;
+  }
+
+  .twgold_loan_home_estimator_result {
+    border-left: none;
+    border-top: 1px dashed var(--twgold-border);
+    padding-top: 16px;
+  }
+
+  .twgold_loan_home_footer_inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+/* Small mobile: <= 480px */
+@media (max-width: 480px) {
+  .twgold_loan_home_container {
+    padding: 0 12px 30px;
+  }
+
+  .twgold_loan_home_features {
+    grid-template-columns: 1fr;
+  }
+
+  .twgold_loan_home_hero_title {
+    font-size: 22px;
+  }
+
+  .twgold_loan_home_estimator_section {
+    margin: 18px 10px;
+    padding: 16px;
+  }
+
+  .twgold_loan_home_estimator_inputs {
+    min-width: 100%;
+  }
+
+  .twgold_loan_home_estimator_result {
+    min-width: 100%;
+  }
+}
+
+/* ============ UTILITY (scoped) ============ */
+/* small text */
+.twgold_loan_home_small {
+  font-size: 12px;
+  color: var(--twgold-muted);
+}
+
+/* hidden on mobile */
+.twgold_loan_home_hide_on_mobile {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .twgold_loan_home_hide_on_mobile {
+    display: none;
+  }
+}

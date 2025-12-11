@@ -1,7 +1,6 @@
 const dotenv = require('dotenv');
 const { UserDetails } = require('../../commons/models/mongo/mongodb');
 const axios = require('axios');
-const fetch = require('node-fetch');
 const crypto = require('crypto');
 
 dotenv.config();
@@ -177,26 +176,28 @@ Controller.prototype.verifyOtp = async function (req, res) {
       });
     }
 
-    const payload = JSON.stringify({
+    const payload = {
       '@entity': 'in.co.sandbox.kyc.aadhaar.okyc.request',
       reference_id: otpRecord.reference_id,
       otp: otp
-    });
-
-    const options = {
-      method: 'POST',
-      headers: {
-        accept: 'application/json',
-        authorization: otpRecord.authorization_token,
-        'x-api-key': process.env.API_KEY,
-        'x-api-version': '2.0',
-        'content-type': 'application/json'
-      },
-      body: payload
     };
 
-    const response = await fetch('https://api.sandbox.co.in/kyc/aadhaar/okyc/otp/verify', options);
-    const data = await response.json();
+    const headers = {
+      accept: 'application/json',
+      authorization: otpRecord.authorization_token,
+      'x-api-key': process.env.API_KEY,
+      'x-api-version': '2.0',
+      'content-type': 'application/json'
+    };
+
+    // Replace fetch with axios
+    const response = await axios.post(
+      'https://api.sandbox.co.in/kyc/aadhaar/okyc/otp/verify', 
+      payload, 
+      { headers }
+    );
+    
+    const data = response.data;
 
     if (data.data.status === "VALID") {
       // Update the existing document (don't create new)

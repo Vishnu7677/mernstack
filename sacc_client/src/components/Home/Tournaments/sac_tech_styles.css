@@ -10,9 +10,6 @@
   overflow-x: hidden;
 }
 
-* {
-  box-sizing: border-box;
-}
 
 /* Header Styles */
 .sac_tech_header {
