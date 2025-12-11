@@ -35,7 +35,7 @@ import CareerSignup from './components/Home/Careers/CareerSignup';
 import CareerLogin from './components/Home/Careers/CareerLogin';
 import SacTechApp from './components/Home/Tournaments/SacTechApp';
 import TournamentRegistration from './components/Home/Tournaments/TournamentRegistration';
-
+import TournamentSuccess from './components/Home/Tournaments/TournamentSuccess';
 
 
 function App() {
@@ -49,7 +49,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/sacinfotech" element={<SacTechApp />} />
           <Route path="/tournamentsregistration" element={<TournamentRegistration />} />
-          
+          <Route path="/tournament/success" element={<TournamentSuccess />} />
 
           <Route path="/careers/home" element={<Careers />} />
           <Route path="/careers/:id" element={<JobDetail />} />
