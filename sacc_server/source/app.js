@@ -49,10 +49,6 @@ app.use('/api/', limiter);
 
 /* ------------------- CORS CONFIG ------------------- */
 const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:5000",
-  "http://localhost:5001",
-  "http://127.0.0.1:3000",
   "https://www.sacb.co.in",
   "https://sacb.co.in"
 ];
