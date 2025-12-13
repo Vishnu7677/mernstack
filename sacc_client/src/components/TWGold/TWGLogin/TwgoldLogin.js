@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTwgoldAuth } from './TwgoldAuthContext';
 import '../../../styles/TwgoldLogin.css';
@@ -8,38 +8,46 @@ const TwgoldLogin = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { twgold_login, user } = useTwgoldAuth();
+  const { twgold_login, user, isAuthenticated } = useTwgoldAuth();
   const navigate = useNavigate();
 
-  // Moved redirectToDashboard inside useCallback to make it stable
-  const redirectToDashboard = useCallback((role) => {
-    const routes = {
-      admin: '/twgl&articles/admin/dashboard',
-      manager: '/twgl&articles/manager/dashboard',
-      employee: '/twgl&articles/employee/dashboard',
-      grivirence: '/twgl&articles/grivirence/dashboard'
-    };
-    navigate(routes[role] || '/twgl&articles/login');
-  }, [navigate]); // Added navigate as dependency
-
+  // Redirect if already authenticated
   useEffect(() => {
-    if (user) {
-      redirectToDashboard(user.role);
+    if (isAuthenticated && user) {
+      const routes = {
+        admin: '/twgl&articles/admin/dashboard',
+        manager: '/twgl&articles/manager/dashboard',
+        employee: '/twgl&articles/employee/dashboard',
+        grivirence: '/twgl&articles/grivirence/dashboard',
+        default: '/twgl&articles/home'
+      };
+      
+      const redirectPath = routes[user.role] || routes.default;
+      navigate(redirectPath);
     }
-  }, [user, redirectToDashboard]); // Added redirectToDashboard to dependencies
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
+    // Basic validation
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      setLoading(false);
+      return;
+    }
+
     const result = await twgold_login(email, password);
     
     if (result.success) {
-      redirectToDashboard(result.user.role);
+
+      // Navigation will be handled by useEffect above
     } else {
-      setError(result.message);
+      setError(result.message || 'Login failed. Please try again.');
     }
+    
     setLoading(false);
   };
 
@@ -47,11 +55,15 @@ const TwgoldLogin = () => {
     <div className="twgold_login_container">
       <div className="twgold_login_card">
         <div className="twgold_login_header">
-          <h1 className="twgold_login_title">TW Gold Login </h1>
+          <h1 className="twgold_login_title">TW Gold Login</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="twgold_login_form">
-          {error && <div className="twgold_error_message">{error}</div>}
+          {error && (
+            <div className="twgold_error_message">
+              {error}
+            </div>
+          )}
           
           <div className="twgold_input_group">
             <input
@@ -60,12 +72,16 @@ const TwgoldLogin = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="twgold_input_field"
-              placeholder=" " // Important: use space for placeholder
+              placeholder=" "
               required
+              disabled={loading}
             />
-            <label htmlFor="email" className="twgold_input_label">Email Address</label>
+            <label htmlFor="email" className="twgold_input_label">
+              Email Address
+            </label>
             <span className="twgold_login_highlight"></span>
           </div>
+          
           <div className="twgold_input_group">
             <input
               type="password"
@@ -73,10 +89,13 @@ const TwgoldLogin = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="twgold_input_field"
-              placeholder=" " // Important: use space for placeholder
+              placeholder=" "
               required
+              disabled={loading}
             />
-            <label htmlFor="password" className="twgold_input_label">Password</label>
+            <label htmlFor="password" className="twgold_input_label">
+              Password
+            </label>
             <span className="twgold_login_highlight"></span>
           </div>
 
@@ -86,7 +105,10 @@ const TwgoldLogin = () => {
             disabled={loading}
           >
             {loading ? (
-              <span className="twgold_loading_text">Authenticating...</span>
+              <>
+                <span className="twgold_loading_spinner_small"></span>
+                Authenticating...
+              </>
             ) : (
               'Sign In'
             )}

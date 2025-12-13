@@ -1,25 +1,26 @@
 // utils/axiosConfig.js
 import axios from 'axios';
-import { PUBLIC_PATHS } from '../../../config/routes';
 
 const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL ||
   process.env.REACT_APP_API_URL ||
   (process.env.NODE_ENV === 'production'
-    ? 'https://www.sacb.co.in/api'   // production fallback
-    : 'http://localhost:5000/api');  // dev fallback
+    ? 'https://www.sacb.co.in/api'
+    : 'http://localhost:5000/api');
 
+const isSecureContext =
+  typeof window !== 'undefined' && window.location.protocol === 'https:';
 
 // Create axios instance
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Important for cookies
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-
-// Request interceptor to attach token from cookies
+// Request interceptor
 api.interceptors.request.use(
   (config) => {
     const token = getTokenFromCookies();
@@ -28,60 +29,49 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// utils/axiosConfig.js
-
+// Response interceptor (IMPROVED)
 api.interceptors.response.use(
   (response) => {
-    if (response.data && response.data.token) {
-      setTokenInCookies(response.data.token);
+    // Only handle token from response if it's a login/signup endpoint
+    const isAuthEndpoint =
+      response.config?.url?.includes('/login') ||
+      response.config?.url?.includes('/signup');
+
+    if (isAuthEndpoint) {
+      const token = response.data?.token ||
+        response.data?.data?.token ||
+        response.data?.accessToken;
+
+      if (token) {
+        // FIX: Remove hardcoded secure: false. Let the utility handle it.
+        setTokenInCookies(token, {
+          expiresInDays: 7,
+          sameSite: 'Lax',
+          // secure property is removed here
+        });
+      }
     }
     return response;
   },
   (error) => {
     const status = error.response?.status;
-    const requestUrl = error.config?.url || error.request?.responseURL || '';
+    const requestUrl = error.config?.url || '';
 
     if (status === 401) {
       clearAuthData();
 
-      const isBrowser = typeof window !== 'undefined';
-      const currentPath = isBrowser ? window.location.pathname : '';
-
-      // TWGold-only detection
-      const isTwgoldFrontendPath = isBrowser && currentPath.startsWith('/twgl&articles');
       const isTwgoldApiRequest =
-        requestUrl.includes('/twgoldlogin') ||
-        requestUrl.includes('/twgl&articles') ||
-        requestUrl.includes('/twgold');
+        requestUrl.includes('/twgold') ||
+        requestUrl.includes('/twgl');
 
-      // Treat certain frontend TWGold routes as public (do not redirect away from them)
-      const isCurrentPathPublic = PUBLIC_PATHS.includes(currentPath);
-
-      // -----------------------------
-      // CASE 1: TWGOLD AREA → redirect (unless current path is public)
-      // -----------------------------
-      if ((isTwgoldFrontendPath || isTwgoldApiRequest) && !isCurrentPathPublic) {
-        if (currentPath !== '/twgl&articles/login') {
+      if (isTwgoldApiRequest) {
+        const currentPath = window.location.pathname;
+        if (!currentPath.includes('/login')) {
           window.location.href = '/twgl&articles/login';
         }
-      }
-
-      // -------------------------------------------------------
-      // CASE 2: NON-TWGOLD AREAS → DO NOT REDIRECT IMMEDIATELY
-      // -------------------------------------------------------
-      else {
-        console.warn('401 (Non-TWGold or public TWGold path):', requestUrl, 'currentPath:', currentPath);
-
-        // No redirect here — AuthGuard/Auth providers will handle navigation.
-        // Optionally uncomment to auto-redirect module specific paths:
-        // if (currentPath.startsWith('/admin')) window.location.href = '/admin/login';
-        // if (currentPath.startsWith('/employee')) window.location.href = '/employee/login';
-        // if (currentPath.startsWith('/scholar')) window.location.href = '/scholar/apply/self/login';
       }
     }
 
@@ -89,27 +79,50 @@ api.interceptors.response.use(
   }
 );
 
-
-// Cookie management functions
+// Cookie management
 export const getTokenFromCookies = () => {
   if (typeof document === 'undefined') return null;
-  
+
   const cookies = document.cookie.split(';');
-  const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('token='));
-  return tokenCookie ? decodeURIComponent(tokenCookie.split('=')[1]) : null;
+  const tokenCookie = cookies.find(cookie =>
+    cookie.trim().startsWith('token=') ||
+    cookie.trim().startsWith('admin_token=') ||
+    cookie.trim().startsWith('employee_token=')
+  );
+
+  if (tokenCookie) {
+    return decodeURIComponent(tokenCookie.split('=')[1]);
+  }
+  return null;
 };
 
-export const setTokenInCookies = (token, expiresInDays = 7) => {
+export const setTokenInCookies = (token, options = {}) => {
+  if (typeof document === 'undefined') return;
+
+  const {
+    name = 'token',
+    expiresInDays = 7,
+    sameSite = 'Lax',
+    secure = isSecureContext,
+    domain
+  } = options;
+
   const expires = new Date();
   expires.setDate(expires.getDate() + expiresInDays);
-  
-  const cookieString = `token=${encodeURIComponent(token)}; expires=${expires.toUTCString()}; path=/; samesite=strict`;
-  
+
+  let cookieString = `${name}=${encodeURIComponent(token)}; expires=${expires.toUTCString()}; path=/; SameSite=${sameSite}`;
+  if (secure) cookieString += '; Secure';
+  if (domain) cookieString += `; domain=${domain}`;
+
   document.cookie = cookieString;
 };
 
 export const clearAuthData = () => {
-  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  // Clear all auth-related cookies
+  const cookies = ['token', 'admin_token', 'employee_token', 'scholar_token'];
+  cookies.forEach(cookieName => {
+    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  });
 };
 
 export default api;

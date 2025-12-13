@@ -50,27 +50,61 @@ app.use('/api/', limiter);
 /* ------------------- CORS CONFIG ------------------- */
 const allowedOrigins = [
   "https://www.sacb.co.in",
-  "https://sacb.co.in"
+  "https://sacb.co.in",
+  "http://localhost:3000",
+  "http://localhost:5000"
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like Postman, server-to-server)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log("❌ CORS blocked for:", origin);
-      callback(new Error("Not allowed by CORS"));
+    if (!origin) {
+      return callback(null, true);
     }
+    
+    // Allow all localhost origins for development
+    if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')) {
+      console.log("Allowing localhost origin:", origin);
+      return callback(null, true);
+    }
+    
+    // Check against allowed origins
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log("Allowing origin:", origin);
+      return callback(null, true);
+    }
+
+    try {
+      const url = new URL(origin);
+      const hostname = url.hostname;
+      
+      if (hostname === 'sacb.co.in' || 
+          hostname === 'www.sacb.co.in' ||
+          hostname.endsWith('.sacb.co.in')) {
+        return callback(null, true);
+      }
+    } catch (err) {
+      // Invalid URL format
+    }
+    
+    console.log("❌ CORS blocked for origin:", origin);
+    return callback(new Error('Not allowed by CORS'), false);
   },
   credentials: true,
-  methods: "GET,POST,PUT,DELETE,OPTIONS",
-  allowedHeaders: "Content-Type,Authorization",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: [
+    "Content-Type", 
+    "Authorization", 
+    "X-Requested-With", 
+    "Accept", 
+    "Origin",
+    "X-CSRF-Token"
+  ],
+  exposedHeaders: ["Set-Cookie", "Authorization"],
+  maxAge: 86400 // 24 hours
 }));
 
 // ✅ Allow Preflight (OPTIONS) request
-app.options("*", cors());
+app.options('*', cors());
 
 /* ------------------- RAZORPAY WEBHOOK (RAW BODY) ------------------- */
 // This MUST be before express.json() and other body parsers
