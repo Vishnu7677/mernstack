@@ -56,13 +56,29 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like Postman, server-to-server)
+    // Allow requests with no origin
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log("❌ CORS blocked for:", origin);
-      callback(new Error("Not allowed by CORS"));
+    
+    // Allow localhost for development
+    if (origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+    
+    // Check if origin is sacb.co.in or any subdomain
+    try {
+      const url = new URL(origin);
+      const isAllowed = url.hostname === 'sacb.co.in' || 
+                       url.hostname.endsWith('.sacb.co.in') || 
+                       url.hostname === 'www.sacb.co.in';
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.log("❌ CORS blocked for:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    } catch (err) {
+      callback(new Error("Invalid origin"));
     }
   },
   credentials: true,
@@ -155,6 +171,13 @@ app.use(cookieParser());
 app.use(mongoSanitize()); // Prevent NoSQL injection
 app.use(xss()); // Prevent XSS attacks
 app.use(hpp()); // Prevent parameter pollution
+
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`[CORS Debug] ${req.method} ${req.headers.origin} -> ${req.originalUrl}`);
+  console.log('Headers:', req.headers);
+  next();
+});
 
 /* ------------------- API DOCS ------------------- */
 app.use('/docs', swaggerUI.serve, swaggerUI.setup(swaggerDocs));

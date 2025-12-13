@@ -32,6 +32,7 @@ const TwgoldLogin = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+console.log(email,password)
 
     const result = await twgold_login(email, password);
     

@@ -3,12 +3,14 @@ import axios from 'axios';
 import { PUBLIC_PATHS } from '../../../config/routes';
 
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL ||
-  (process.env.NODE_ENV === 'production'
-    ? 'https://www.sacb.co.in/api'   // production fallback
-    : 'http://localhost:5000/api');  // dev fallback
+   process.env.REACT_APP_API_BASE_URL ||
+   process.env.REACT_APP_API_URL || // keep backwards compatibility
+   (process.env.NODE_ENV === 'production'
+     ? 'https://www.sacb.co.in/api'
+     : 'http://localhost:5000/api');
 
-
+console.log('[axiosConfig] API_BASE_URL =', API_BASE_URL);
+console.log('[axiosConfig] NODE_ENV =', process.env.NODE_ENV);
 // Create axios instance
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -18,10 +20,21 @@ export const api = axios.create({
   },
 });
 
+// convenience debug
+api.interceptors.request.use(config => {
+  console.debug('[axios request] ', config.method, config.baseURL + config.url, 'headers:', config.headers);
+  return config;
+}, err => Promise.reject(err));
+
+api.interceptors.response.use(resp => resp, error => {
+  console.error('[axios response error]', error?.response?.status, error?.config?.url, error?.message);
+  return Promise.reject(error);
+});
 
 // Request interceptor to attach token from cookies
 api.interceptors.request.use(
   (config) => {
+console.log('Making request to:', config.url);
     const token = getTokenFromCookies();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -37,6 +50,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
+ console.log('Response from:', response.config.url, response.status);
     if (response.data && response.data.token) {
       setTokenInCookies(response.data.token);
     }

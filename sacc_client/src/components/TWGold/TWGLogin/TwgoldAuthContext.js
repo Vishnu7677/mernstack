@@ -66,6 +66,7 @@ export const TwgoldAuthProvider = ({ children }) => {
 
   const twgold_login = async (email, password) => {
     try {
+	    console.log(api)
       const response = await api.post('/twgoldlogin/login', { email, password });
       const data = response.data;
 
