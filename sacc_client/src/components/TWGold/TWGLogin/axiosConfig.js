@@ -23,6 +23,7 @@ export const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+console.log('Making request to:', config.url);
     const token = getTokenFromCookies();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

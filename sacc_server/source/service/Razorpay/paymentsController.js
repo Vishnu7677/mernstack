@@ -42,7 +42,7 @@ Controller.prototype.createOrder = async (req, res) => {
     
     // Log successful order creation
     console.log(`Order created: ${order.id} for amount: ${amount}`);
-
+console.log(order)
     return res.json({ 
       success: true, 
       order: {

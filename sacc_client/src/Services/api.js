@@ -46,7 +46,6 @@ const api = axios.create({
   },
   withCredentials: true,  // ✅ IMPORTANT FIX
 });
-
 // Add request interceptor to include appropriate auth token based on URL
 api.interceptors.request.use(
   (config) => {
@@ -281,12 +280,10 @@ export const createPaymentOrder = async ({ amount, currency = 'INR', receipt, no
     if (response.data && response.data.success === false) {
       throw new Error(response.data.error || 'Failed to create order');
     }
-    
-    // If successful, backend returns { success: true, order: {...} }
+   // If successful, backend returns { success: true, order: {...} }
     if (response.data.success && response.data.order) {
       return response.data;
     }
-    
     // If backend returns order directly (without success wrapper)
     if (response.data.id && response.data.entity === 'order') {
       return {
@@ -294,9 +291,8 @@ export const createPaymentOrder = async ({ amount, currency = 'INR', receipt, no
         order: response.data
       };
     }
-    
+
     throw new Error('Invalid response from payment service');
-    
   } catch (error) {
     console.error('createPaymentOrder error:', error);
     
@@ -427,7 +423,6 @@ export const uploadDocuments = async (applicationId, formData) => {
   }
 };
 
-
 export const getUploadPresigned = async (filesMeta) => {
   try {
     const res = await api.post('/upload/presign', { files: filesMeta });
@@ -477,3 +472,4 @@ export const getCareerOpportunities = async () => {
 };
 
 export default api;
+

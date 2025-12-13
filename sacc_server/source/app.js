@@ -15,6 +15,7 @@ const bodyParser = require('body-parser');
 const swaggerUI = require('swagger-ui-express');
 const swaggerDocs = require('./swagger.json');
 
+
 // Import routes and middleware
 const RouteManager = require('./routes/routeManager');
 const Payment = require('./commons/models/mongo/documents/Payment');
@@ -57,37 +58,14 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) {
-      return callback(null, true);
+    // Allow requests with no origin (like Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("❌ CORS blocked for:", origin);
+      callback(new Error("Not allowed by CORS"));
     }
-    
-    // Allow all localhost origins for development
-    if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')) {
-      console.log("Allowing localhost origin:", origin);
-      return callback(null, true);
-    }
-    
-    // Check against allowed origins
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log("Allowing origin:", origin);
-      return callback(null, true);
-    }
-
-    try {
-      const url = new URL(origin);
-      const hostname = url.hostname;
-      
-      if (hostname === 'sacb.co.in' || 
-          hostname === 'www.sacb.co.in' ||
-          hostname.endsWith('.sacb.co.in')) {
-        return callback(null, true);
-      }
-    } catch (err) {
-      // Invalid URL format
-    }
-    
-    console.log("❌ CORS blocked for origin:", origin);
-    return callback(new Error('Not allowed by CORS'), false);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
@@ -188,6 +166,13 @@ app.use(cookieParser());
 app.use(mongoSanitize()); // Prevent NoSQL injection
 app.use(xss()); // Prevent XSS attacks
 app.use(hpp()); // Prevent parameter pollution
+
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`[CORS Debug] ${req.method} ${req.headers.origin} -> ${req.originalUrl}`);
+  console.log('Headers:', req.headers);
+  next();
+});
 
 /* ------------------- API DOCS ------------------- */
 app.use('/docs', swaggerUI.serve, swaggerUI.setup(swaggerDocs));
