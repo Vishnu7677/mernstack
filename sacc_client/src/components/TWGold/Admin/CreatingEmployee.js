@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { api } from '../TWGLogin/axiosConfig';
 import './creating_employee.css';
 import Navbar from './Navbar';
@@ -64,6 +64,11 @@ const CreatingEmployee = () => {
   const [showSavedApplications, setShowSavedApplications] = useState(false);
   const [applicationIdCounter, setApplicationIdCounter] = useState(1);
   const [selectedApplicationId, setSelectedApplicationId] = useState(null);
+  const [hasAadhaarData, setHasAadhaarData] = useState(false);
+
+  // Use refs for values that don't need to trigger re-renders
+  const savedApplicationsRef = useRef([]);
+  const selectedApplicationIdRef = useRef(null);
 
   // Time constants for 7-day storage
   const SEVEN_DAYS = useMemo(() => 7 * 24 * 60 * 60 * 1000, []);
@@ -81,47 +86,62 @@ const CreatingEmployee = () => {
     clearEncryptedData(STORAGE_KEYS.EMPLOYEE_DATA);
   }, [STORAGE_KEYS.VERIFICATION_SESSION, STORAGE_KEYS.EMPLOYEE_DATA]);
 
-   const resetForm = useCallback(() => {
-  setCurrentStep(1);
-  setAadhaarData({ aadhaar_number: '', phone_number: '', email_id: '' });
-  setOtp('');
-  setReferenceId('');
-  setOtpSent(false);
-  setTimer(0);
-  setAadhaarDetails(null);
-  setEmployeeData({
-    email: '',
-    password: '',
-    name: '',
-    employeeId: '',
-    position: '',
-    department: '',
-    manager: '',
-    salary: '',
-    joinDate: '',
-    skills: [],
-    responsibilities: [],
-    permissions: [],
-    assignedBranch: '',
-    contactNumber: '',
-    emergencyContact: {
+  const resetForm = useCallback(() => {
+    setCurrentStep(1);
+    setAadhaarData({ aadhaar_number: '', phone_number: '', email_id: '' });
+    setOtp('');
+    setReferenceId('');
+    setOtpSent(false);
+    setTimer(0);
+    setAadhaarDetails(null);
+    setEmployeeData({
+      email: '',
+      password: '',
       name: '',
-      relationship: '',
-      phone: ''
-    },
-    shiftTiming: {
-      start: '',
-      end: ''
-    },
-    certification: [],
-    maxLoanApprovalLimit: ''
-  });
-  setSelectedApplicationId(null);
-  clearStorage();
-  setError('');
-}, [clearStorage]);
+      employeeId: '',
+      position: '',
+      department: '',
+      manager: '',
+      salary: '',
+      joinDate: '',
+      skills: [],
+      responsibilities: [],
+      permissions: [],
+      assignedBranch: '',
+      contactNumber: '',
+      emergencyContact: {
+        name: '',
+        relationship: '',
+        phone: ''
+      },
+      shiftTiming: {
+        start: '',
+        end: ''
+      },
+      certification: [],
+      maxLoanApprovalLimit: ''
+    });
+    setSelectedApplicationId(null);
+    selectedApplicationIdRef.current = null;
+    setHasAadhaarData(false);
+    clearStorage();
+    setError('');
+  }, [clearStorage]);
 
-  // Load saved applications
+  // Check if we have Aadhaar data
+  const checkForAadhaarData = useCallback(() => {
+    const hasData = !!(
+      aadhaarData.aadhaar_number || 
+      referenceId || 
+      otpSent || 
+      aadhaarDetails
+    );
+    if (hasData !== hasAadhaarData) {
+      setHasAadhaarData(hasData);
+    }
+  }, [aadhaarData.aadhaar_number, referenceId, otpSent, aadhaarDetails, hasAadhaarData]);
+
+  // Load saved applications - memoized with empty dependencies
   const loadSavedApplications = useCallback(() => {
     try {
       const savedApps = localStorage.getItem(STORAGE_KEYS.SAVED_APPLICATIONS);
@@ -133,6 +153,7 @@ const CreatingEmployee = () => {
           return appAge < SEVEN_DAYS;
         });
         setSavedApplications(validApps);
+        savedApplicationsRef.current = validApps;
         
         // Save back filtered list
         if (validApps.length !== parsed.length) {
@@ -148,16 +169,23 @@ const CreatingEmployee = () => {
     } catch (error) {
       console.error('Error loading saved applications:', error);
       setSavedApplications([]);
+      savedApplicationsRef.current = [];
     }
   }, [STORAGE_KEYS.SAVED_APPLICATIONS, STORAGE_KEYS.APPLICATION_ID_COUNTER, SEVEN_DAYS]);
 
-  // Save current application
+  // Save current application - Only save after Aadhaar verification is complete
   const saveCurrentApplication = useCallback(() => {
+    // Only save applications that have Aadhaar details (step 2+)
+    if (!aadhaarDetails) {
+      console.log('Not saving application - no Aadhaar details yet');
+      return null;
+    }
+
     try {
-      const applicationId = selectedApplicationId || `app_${applicationIdCounter}`;
+      const applicationId = selectedApplicationIdRef.current || `app_${applicationIdCounter}`;
       const applicationData = {
         id: applicationId,
-        name: employeeData.name || 'Unnamed Application',
+        name: employeeData.name || aadhaarDetails.name || 'Unnamed Application',
         aadhaarNumber: aadhaarData.aadhaar_number,
         step: currentStep,
         aadhaarData,
@@ -169,14 +197,15 @@ const CreatingEmployee = () => {
       };
 
       // Update saved applications
-      const updatedApplications = savedApplications.filter(app => app.id !== applicationId);
+      const updatedApplications = savedApplicationsRef.current.filter(app => app.id !== applicationId);
       updatedApplications.push(applicationData);
       
       setSavedApplications(updatedApplications);
+      savedApplicationsRef.current = updatedApplications;
       localStorage.setItem(STORAGE_KEYS.SAVED_APPLICATIONS, JSON.stringify(updatedApplications));
 
       // Update counter if new application
-      if (!selectedApplicationId) {
+      if (!selectedApplicationIdRef.current) {
         const newCounter = applicationIdCounter + 1;
         setApplicationIdCounter(newCounter);
         localStorage.setItem(STORAGE_KEYS.APPLICATION_ID_COUNTER, newCounter.toString());
@@ -187,24 +216,27 @@ const CreatingEmployee = () => {
       console.error('Error saving application:', error);
       return null;
     }
-  }, [selectedApplicationId, applicationIdCounter, employeeData, aadhaarData, currentStep, referenceId, otpSent, aadhaarDetails, savedApplications, STORAGE_KEYS.SAVED_APPLICATIONS, STORAGE_KEYS.APPLICATION_ID_COUNTER]);
+  }, [aadhaarDetails, employeeData.name, aadhaarDetails?.name, aadhaarData.aadhaar_number, currentStep, aadhaarData, referenceId, otpSent, employeeData, applicationIdCounter]);
 
   // Load saved application
   const loadSavedApplication = useCallback((applicationId) => {
     try {
-      const application = savedApplications.find(app => app.id === applicationId);
+      const application = savedApplicationsRef.current.find(app => app.id === applicationId);
       if (application) {
         setAadhaarData(application.aadhaarData || {});
         if (application.referenceId) setReferenceId(application.referenceId);
         if (application.otpSent) setOtpSent(application.otpSent);
-        if (application.aadhaarDetails) setAadhaarDetails(application.aadhaarDetails);
+        if (application.aadhaarDetails) {
+          setAadhaarDetails(application.aadhaarDetails);
+        }
         if (application.employeeData) setEmployeeData(application.employeeData);
         if (application.step) setCurrentStep(application.step);
         setSelectedApplicationId(applicationId);
+        selectedApplicationIdRef.current = applicationId;
         
         // Start OTP timer if needed
-        if (application.otpSent) {
-          const elapsed = Math.floor((Date.now() - (application.timestamp || Date.now())) / 1000);
+        if (application.otpSent && application.timestamp) {
+          const elapsed = Math.floor((Date.now() - application.timestamp) / 1000);
           if (elapsed < 60) {
             setTimer(60 - elapsed);
           }
@@ -217,28 +249,37 @@ const CreatingEmployee = () => {
       console.error('Error loading application:', error);
       setError('Failed to load application');
     }
-  }, [savedApplications]);
+  }, []);
 
   // Delete saved application
   const deleteSavedApplication = useCallback((applicationId, e) => {
     e.stopPropagation(); // Prevent triggering load
     try {
-      const updatedApplications = savedApplications.filter(app => app.id !== applicationId);
+      const updatedApplications = savedApplicationsRef.current.filter(app => app.id !== applicationId);
       setSavedApplications(updatedApplications);
+      savedApplicationsRef.current = updatedApplications;
       localStorage.setItem(STORAGE_KEYS.SAVED_APPLICATIONS, JSON.stringify(updatedApplications));
       
       // If deleting currently selected app, reset form
-      if (selectedApplicationId === applicationId) {
+      if (selectedApplicationIdRef.current === applicationId) {
         resetForm();
       }
     } catch (error) {
       console.error('Error deleting application:', error);
       setError('Failed to delete application');
     }
-  }, [savedApplications, selectedApplicationId, STORAGE_KEYS.SAVED_APPLICATIONS, resetForm]);
+  }, [resetForm]);
 
+  // Update refs when state changes
+  useEffect(() => {
+    savedApplicationsRef.current = savedApplications;
+  }, [savedApplications]);
 
-  // Load saved data on component mount
+  useEffect(() => {
+    selectedApplicationIdRef.current = selectedApplicationId;
+  }, [selectedApplicationId]);
+
+  // Load saved data on component mount - only once
   useEffect(() => {
     const loadSavedData = () => {
       try {
@@ -248,9 +289,8 @@ const CreatingEmployee = () => {
         // Check if we have any saved data
         const hasSavedSession = localStorage.getItem(STORAGE_KEYS.VERIFICATION_SESSION);
         const hasSavedEmployeeData = localStorage.getItem(STORAGE_KEYS.EMPLOYEE_DATA);
-        const hasSavedApplications = localStorage.getItem(STORAGE_KEYS.SAVED_APPLICATIONS);
 
-        if (!hasSavedSession && !hasSavedEmployeeData && !hasSavedApplications) {
+        if (!hasSavedSession && !hasSavedEmployeeData) {
           // No saved data, ensure we're at step 1
           setCurrentStep(1);
           return;
@@ -267,7 +307,9 @@ const CreatingEmployee = () => {
               setAadhaarData(decryptedSession.aadhaarData || {});
               if (decryptedSession.referenceId) setReferenceId(decryptedSession.referenceId);
               if (decryptedSession.otpSent) setOtpSent(decryptedSession.otpSent);
-              if (decryptedSession.aadhaarDetails) setAadhaarDetails(decryptedSession.aadhaarDetails);
+              if (decryptedSession.aadhaarDetails) {
+                setAadhaarDetails(decryptedSession.aadhaarDetails);
+              }
               if (decryptedSession.currentStep && decryptedSession.currentStep > 1) {
                 setCurrentStep(decryptedSession.currentStep);
               }
@@ -309,7 +351,13 @@ const CreatingEmployee = () => {
     };
 
     loadSavedData();
-  }, [STORAGE_KEYS.VERIFICATION_SESSION, STORAGE_KEYS.EMPLOYEE_DATA, STORAGE_KEYS.SAVED_APPLICATIONS, SEVEN_DAYS, clearStorage, loadSavedApplications]);
+    // Run only once on mount
+  }, [SEVEN_DAYS, clearStorage, loadSavedApplications, STORAGE_KEYS.VERIFICATION_SESSION, STORAGE_KEYS.EMPLOYEE_DATA]);
+
+  // Check for Aadhaar data when relevant state changes
+  useEffect(() => {
+    checkForAadhaarData();
+  }, [checkForAadhaarData]);
 
   const saveVerificationSession = useCallback(() => {
     try {
@@ -348,17 +396,19 @@ const CreatingEmployee = () => {
     }
   }, [employeeData, STORAGE_KEYS.EMPLOYEE_DATA]);
 
+  // Save employee data when step >= 3 and employee has name
   useEffect(() => {
     if (currentStep >= 3 && employeeData.name) {
       saveEmployeeData();
     }
-  }, [currentStep, employeeData, saveEmployeeData]);
+  }, [currentStep, employeeData.name, saveEmployeeData]);
 
+  // Save verification session when relevant data changes
   useEffect(() => {
     if (currentStep > 1) {
       saveVerificationSession();
     }
-  }, [aadhaarData, referenceId, otpSent, aadhaarDetails, currentStep, timer, saveVerificationSession]);
+  }, [currentStep, aadhaarData, referenceId, otpSent, aadhaarDetails, timer, saveVerificationSession]);
 
   // Timer for OTP
   useEffect(() => {
@@ -371,7 +421,7 @@ const CreatingEmployee = () => {
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Fetch managers list
+  // Fetch managers list - only once
   useEffect(() => {
     fetchManagers();
   }, []);
@@ -434,8 +484,8 @@ const CreatingEmployee = () => {
         setOtpSent(true);
         setTimer(60);
         setError('');
-        // Save application when OTP is sent
-        saveCurrentApplication();
+        // Save verification session but NOT as application yet
+        saveVerificationSession();
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to generate OTP');
@@ -462,7 +512,7 @@ const CreatingEmployee = () => {
         setError('');
         
         saveVerificationSession();
-        // Update saved application
+        // Save as application ONLY after successful verification
         saveCurrentApplication();
       }
     } catch (error) {
@@ -488,11 +538,13 @@ const CreatingEmployee = () => {
         setCurrentStep(5);
         // Clear storage and remove saved application on success
         clearStorage();
-        if (selectedApplicationId) {
-          const updatedApplications = savedApplications.filter(app => app.id !== selectedApplicationId);
+        if (selectedApplicationIdRef.current) {
+          const updatedApplications = savedApplicationsRef.current.filter(app => app.id !== selectedApplicationIdRef.current);
           setSavedApplications(updatedApplications);
+          savedApplicationsRef.current = updatedApplications;
           localStorage.setItem(STORAGE_KEYS.SAVED_APPLICATIONS, JSON.stringify(updatedApplications));
           setSelectedApplicationId(null);
+          selectedApplicationIdRef.current = null;
         }
       }
     } catch (error) {
@@ -501,9 +553,6 @@ const CreatingEmployee = () => {
       setLoading(false);
     }
   };
-
-
-
 
   // Handle input changes
   const handleAadhaarInputChange = (field, value) => {
@@ -587,6 +636,7 @@ const CreatingEmployee = () => {
       }
     } else if (currentStep === 2) {
       setCurrentStep(3);
+      // Save application when moving to employee details
       saveCurrentApplication();
     } else if (currentStep === 3 && validateStep3()) {
       setCurrentStep(4);
@@ -599,7 +649,7 @@ const CreatingEmployee = () => {
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
-      saveCurrentApplication();
+      // Don't save when going back - only save on forward progression
     }
   };
 
@@ -623,9 +673,10 @@ const CreatingEmployee = () => {
   // New: Clear all data and move to step 1
   const clearAllAndStartNew = () => {
     // Remove from saved applications
-    if (selectedApplicationId) {
-      const updatedApplications = savedApplications.filter(app => app.id !== selectedApplicationId);
+    if (selectedApplicationIdRef.current) {
+      const updatedApplications = savedApplicationsRef.current.filter(app => app.id !== selectedApplicationIdRef.current);
       setSavedApplications(updatedApplications);
+      savedApplicationsRef.current = updatedApplications;
       localStorage.setItem(STORAGE_KEYS.SAVED_APPLICATIONS, JSON.stringify(updatedApplications));
     }
     
@@ -695,161 +746,166 @@ const CreatingEmployee = () => {
     </div>
   );
 
-  // Render steps (existing functions remain the same)
-  const renderStep1 = () => (
-    <div className="creating-employee-form-step">
-      {showSavedApplications ? (
-        renderSavedApplications()
-      ) : (
-        <>
-          <div className="creating-employee-form-section">
-            <h3>Aadhaar Verification</h3>
-            <p>Enter employee's Aadhaar details to verify identity</p>
+  // Render Step 1 - Fixed logic
+  const renderStep1 = () => {
+    // Only show saved applications if explicitly clicked AND we have some saved
+    if (showSavedApplications && savedApplications.length > 0) {
+      return renderSavedApplications();
+    }
 
-            {savedApplications.length > 0 && (
-              <div className="creating-employee-continue-existing">
+    return (
+      <div className="creating-employee-form-step">
+        <div className="creating-employee-form-section">
+          <h3>Aadhaar Verification</h3>
+          <p>Enter employee's Aadhaar details to verify identity</p>
+
+          {/* Only show "Continue Existing" button if we have saved applications */}
+          {savedApplications.length > 0 && !hasAadhaarData && !otpSent && (
+            <div className="creating-employee-continue-existing">
+              <button
+                className="creating-employee-button creating-employee-button-secondary"
+                onClick={() => setShowSavedApplications(true)}
+              >
+                Continue Existing Application ({savedApplications.length})
+              </button>
+            </div>
+          )}
+
+          {/* If OTP is sent, show OTP section */}
+          {otpSent ? (
+            <div className="creating-employee-otp-section">
+              <h4>Enter OTP</h4>
+              <p>OTP sent to registered mobile number ending with {aadhaarData.phone_number.slice(-2)}</p>
+
+              <div className="creating-employee-otp-input-container">
+                {Array.from({ length: 6 }, (_, index) => (
+                  <input
+                    key={index}
+                    type="text"
+                    className="creating-employee-otp-input"
+                    value={otp[index] || ''}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      if (value) {
+                        const otpArray = otp.split('');
+                        otpArray[index] = value;
+                        const newOtp = otpArray.join('').slice(0, 6);
+                        setOtp(newOtp);
+
+                        if (index < 5) {
+                          const nextInput = document.querySelectorAll('.creating-employee-otp-input')[index + 1];
+                          if (nextInput) nextInput.focus();
+                        }
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Backspace') {
+                        if (!otp[index] && index > 0) {
+                          const prevInput = document.querySelectorAll('.creating-employee-otp-input')[index - 1];
+                          if (prevInput) prevInput.focus();
+
+                          const otpArray = otp.split('');
+                          otpArray[index - 1] = '';
+                          setOtp(otpArray.join(''));
+                        } else if (otp[index]) {
+                          const otpArray = otp.split('');
+                          otpArray[index] = '';
+                          setOtp(otpArray.join(''));
+                        }
+                      }
+
+                      if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault();
+                        navigator.clipboard.readText().then((pastedText) => {
+                          const cleanText = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
+                          setOtp(cleanText);
+
+                          const inputs = document.querySelectorAll('.creating-employee-otp-input');
+                          if (cleanText.length === 6 && inputs[5]) {
+                            inputs[5].focus();
+                          }
+                        });
+                      }
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const pastedText = e.clipboardData.getData('text');
+                      const cleanText = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
+                      setOtp(cleanText);
+                    }}
+                    maxLength="1"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="one-time-code"
+                  />
+                ))}
+              </div>
+
+              <div className="creating-employee-timer-container">
+                {timer > 0 && (
+                  <div className="creating-employee-timer">
+                    Resend OTP in {timer} seconds
+                  </div>
+                )}
+
                 <button
-                  className="creating-employee-button creating-employee-button-secondary"
-                  onClick={() => setShowSavedApplications(true)}
+                  className="creating-employee-resend-otp"
+                  onClick={resendOtp}
+                  disabled={timer > 0}
                 >
-                  Continue Existing Application ({savedApplications.length})
+                  {timer > 0 ? 'Resend OTP' : 'Resend OTP Now'}
                 </button>
               </div>
-            )}
-
-            <div className="creating-employee-form-group">
-              <label className="creating-employee-form-label">Aadhaar Number *</label>
-              <input
-                type="text"
-                className={`creating-employee-form-input ${errors.aadhaar_number ? 'error' : ''}`}
-                value={aadhaarData.aadhaar_number}
-                onChange={(e) => handleAadhaarInputChange('aadhaar_number', e.target.value)}
-                placeholder="Enter 12-digit Aadhaar number"
-                maxLength="12"
-                disabled={otpSent}
-              />
-              {errors.aadhaar_number && <span className="creating-employee-form-error">{errors.aadhaar_number}</span>}
             </div>
-
-            {/* Rest of the Step 1 form remains the same */}
-            <div className="creating-employee-form-group">
-              <label className="creating-employee-form-label">Registered Mobile Number *</label>
-              <input
-                type="text"
-                className={`creating-employee-form-input ${errors.phone_number ? 'error' : ''}`}
-                value={aadhaarData.phone_number}
-                onChange={(e) => handleAadhaarInputChange('phone_number', e.target.value)}
-                placeholder="Enter registered mobile number"
-                maxLength="10"
-                disabled={otpSent}
-              />
-              {errors.phone_number && <span className="creating-employee-form-error">{errors.phone_number}</span>}
-            </div>
-
-            <div className="creating-employee-form-group">
-              <label className="creating-employee-form-label">Email ID</label>
-              <input
-                type="email"
-                className={`creating-employee-form-input ${errors.email_id ? 'error' : ''}`}
-                value={aadhaarData.email_id}
-                onChange={(e) => handleAadhaarInputChange('email_id', e.target.value)}
-                placeholder="Enter email address (optional)"
-                disabled={otpSent}
-              />
-              {errors.email_id && <span className="creating-employee-form-error">{errors.email_id}</span>}
-            </div>
-
-            {otpSent && (
-              <div className="creating-employee-otp-section">
-                <h4>Enter OTP</h4>
-                <p>OTP sent to registered mobile number ending with {aadhaarData.phone_number.slice(-2)}</p>
-
-                <div className="creating-employee-otp-input-container">
-                  {Array.from({ length: 6 }, (_, index) => (
-                    <input
-                      key={index}
-                      type="text"
-                      className="creating-employee-otp-input"
-                      value={otp[index] || ''}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9]/g, '');
-                        if (value) {
-                          const otpArray = otp.split('');
-                          otpArray[index] = value;
-                          const newOtp = otpArray.join('').slice(0, 6);
-                          setOtp(newOtp);
-
-                          if (index < 5) {
-                            const nextInput = document.querySelectorAll('.creating-employee-otp-input')[index + 1];
-                            if (nextInput) nextInput.focus();
-                          }
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Backspace') {
-                          if (!otp[index] && index > 0) {
-                            const prevInput = document.querySelectorAll('.creating-employee-otp-input')[index - 1];
-                            if (prevInput) prevInput.focus();
-
-                            const otpArray = otp.split('');
-                            otpArray[index - 1] = '';
-                            setOtp(otpArray.join(''));
-                          } else if (otp[index]) {
-                            const otpArray = otp.split('');
-                            otpArray[index] = '';
-                            setOtp(otpArray.join(''));
-                          }
-                        }
-
-                        if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
-                          e.preventDefault();
-                          navigator.clipboard.readText().then((pastedText) => {
-                            const cleanText = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
-                            setOtp(cleanText);
-
-                            const inputs = document.querySelectorAll('.creating-employee-otp-input');
-                            if (cleanText.length === 6 && inputs[5]) {
-                              inputs[5].focus();
-                            }
-                          });
-                        }
-                      }}
-                      onPaste={(e) => {
-                        e.preventDefault();
-                        const pastedText = e.clipboardData.getData('text');
-                        const cleanText = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
-                        setOtp(cleanText);
-                      }}
-                      maxLength="1"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      autoComplete="one-time-code"
-                    />
-                  ))}
-                </div>
-
-                <div className="creating-employee-timer-container">
-                  {timer > 0 && (
-                    <div className="creating-employee-timer">
-                      Resend OTP in {timer} seconds
-                    </div>
-                  )}
-
-                  <button
-                    className="creating-employee-resend-otp"
-                    onClick={resendOtp}
-                    disabled={timer > 0}
-                  >
-                    {timer > 0 ? 'Resend OTP' : 'Resend OTP Now'}
-                  </button>
-                </div>
+          ) : (
+            /* If OTP not sent, show Aadhaar form */
+            <>
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Aadhaar Number *</label>
+                <input
+                  type="text"
+                  className={`creating-employee-form-input ${errors.aadhaar_number ? 'error' : ''}`}
+                  value={aadhaarData.aadhaar_number}
+                  onChange={(e) => handleAadhaarInputChange('aadhaar_number', e.target.value)}
+                  placeholder="Enter 12-digit Aadhaar number"
+                  maxLength="12"
+                  disabled={otpSent}
+                />
+                {errors.aadhaar_number && <span className="creating-employee-form-error">{errors.aadhaar_number}</span>}
               </div>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
+
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Registered Mobile Number *</label>
+                <input
+                  type="text"
+                  className={`creating-employee-form-input ${errors.phone_number ? 'error' : ''}`}
+                  value={aadhaarData.phone_number}
+                  onChange={(e) => handleAadhaarInputChange('phone_number', e.target.value)}
+                  placeholder="Enter registered mobile number"
+                  maxLength="10"
+                  disabled={otpSent}
+                />
+                {errors.phone_number && <span className="creating-employee-form-error">{errors.phone_number}</span>}
+              </div>
+
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Email ID</label>
+                <input
+                  type="email"
+                  className={`creating-employee-form-input ${errors.email_id ? 'error' : ''}`}
+                  value={aadhaarData.email_id}
+                  onChange={(e) => handleAadhaarInputChange('email_id', e.target.value)}
+                  placeholder="Enter email address (optional)"
+                  disabled={otpSent}
+                />
+                {errors.email_id && <span className="creating-employee-form-error">{errors.email_id}</span>}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderStep2 = () => (
     <div className="creating-employee-form-step">
@@ -993,34 +1049,35 @@ const CreatingEmployee = () => {
         </div>
 
         <div className="creating-employee-form-group">
-  <label className="creating-employee-form-label">Manager *</label>
-  <select
-    className={`creating-employee-form-select ${errors.manager ? 'error' : ''}`}
-    value={employeeData.manager}
-    onChange={(e) => handleEmployeeInputChange('manager', e.target.value)}
-    disabled={managers.length === 0}
-  >
-    <option value="">Select Manager</option>
-    {managers.length > 0 ? (
-      managers.map(manager => (
-        <option key={manager._id} value={manager._id}>
-          {manager.name} - {manager.department}
-        </option>
-      ))
-    ) : (
-      <option value="" disabled>
-        {error ? 'Failed to load managers' : 'Loading managers...'}
-      </option>
-    )}
-  </select>
-  {errors.manager && <span className="creating-employee-form-error">{errors.manager}</span>}
-  {managers.length === 0 && !error && (
-    <span className="creating-employee-form-info">Loading managers...</span>
-  )}
-  {managers.length === 0 && error && (
-    <span className="creating-employee-form-error">Failed to load managers</span>
-  )}
-</div>
+          <label className="creating-employee-form-label">Manager *</label>
+          <select
+            className={`creating-employee-form-select ${errors.manager ? 'error' : ''}`}
+            value={employeeData.manager}
+            onChange={(e) => handleEmployeeInputChange('manager', e.target.value)}
+            disabled={managers.length === 0}
+          >
+            <option value="">Select Manager</option>
+            {managers.length > 0 ? (
+              managers.map(manager => (
+                <option key={manager._id} value={manager._id}>
+                  {manager.name} - {manager.department}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>
+                {error ? 'Failed to load managers' : 'Loading managers...'}
+              </option>
+            )}
+          </select>
+          {errors.manager && <span className="creating-employee-form-error">{errors.manager}</span>}
+          {managers.length === 0 && !error && (
+            <span className="creating-employee-form-info">Loading managers...</span>
+          )}
+          {managers.length === 0 && error && (
+            <span className="creating-employee-form-error">Failed to load managers</span>
+          )}
+        </div>
+
         <div className="creating-employee-form-row">
           <div className="creating-employee-form-group">
             <label className="creating-employee-form-label">Salary</label>

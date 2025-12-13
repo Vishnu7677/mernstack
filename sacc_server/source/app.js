@@ -167,12 +167,6 @@ app.use(mongoSanitize()); // Prevent NoSQL injection
 app.use(xss()); // Prevent XSS attacks
 app.use(hpp()); // Prevent parameter pollution
 
-// Debug middleware
-app.use((req, res, next) => {
-  console.log(`[CORS Debug] ${req.method} ${req.headers.origin} -> ${req.originalUrl}`);
-  console.log('Headers:', req.headers);
-  next();
-});
 
 /* ------------------- API DOCS ------------------- */
 app.use('/docs', swaggerUI.serve, swaggerUI.setup(swaggerDocs));

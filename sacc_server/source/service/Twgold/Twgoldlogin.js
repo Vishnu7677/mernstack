@@ -67,7 +67,6 @@ Controller.prototype.authenticate = async function () {
       throw new Error('Server misconfiguration: Sandbox API credentials not set');
     }
 
-    console.log('Authenticating with Sandbox API...');
 
     const { data } = await axios.post(
       'https://api.sandbox.co.in/authenticate',
@@ -83,7 +82,6 @@ Controller.prototype.authenticate = async function () {
       }
     );
 
-    console.log('Authentication successful');
     return data.access_token;
   } catch (err) {
     console.error('Authentication failed:', {
@@ -99,7 +97,6 @@ Controller.prototype.authenticate = async function () {
 // Authorize API
 Controller.prototype.authorizeApi = async function (token) {
   try {
-    console.log('Authorizing API token...');
     
     const url = `https://api.sandbox.co.in/authorize?request_token=${token}`;
     const headers = {
@@ -114,8 +111,6 @@ Controller.prototype.authorizeApi = async function (token) {
       timeout: 30000 
     });
     
-    // ✅ data.access_token here is what we use for Aadhaar OKYC calls
-    console.log('Authorization successful');
     return data.access_token;
   } catch (err) {
     console.error('Authorization failed:', {
@@ -136,13 +131,6 @@ Controller.prototype.generateEmployeeAadhaarOtp = async function(req, res) {
   try {
     const { aadhaar_number, phone_number, email_id } = req.body;
 
-    console.log('Aadhaar OTP Generation Request:', { 
-      aadhaar_number: aadhaar_number ? `${aadhaar_number.substring(0, 4)}XXXX${aadhaar_number.substring(8)}` : 'missing',
-      phone_number,
-      email_id 
-    });
-
-    // ✅ Only admin can create employees
     if (!req.user || req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -220,7 +208,6 @@ Controller.prototype.generateEmployeeAadhaarOtp = async function(req, res) {
       "content-type": "application/json",
     };
 
-    console.log('Sending OTP request to Aadhaar API...');
 
     // ❓ This delay is not mentioned in docs. Keep only if you have rate-limiting reasons.
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -237,11 +224,6 @@ Controller.prototype.generateEmployeeAadhaarOtp = async function(req, res) {
 
     const apiData = response?.data?.data;
 
-    console.log('OTP API Response:', {
-      reference_id: apiData?.reference_id,
-      status: apiData?.status,
-      message: apiData?.message
-    });
 
     // 🔒 Defensive checks on response structure
     if (!apiData || !apiData.reference_id) {
@@ -279,7 +261,6 @@ Controller.prototype.generateEmployeeAadhaarOtp = async function(req, res) {
 
     await AadhaarSession.create(aadhaarSession);
 
-    console.log('Aadhaar session stored successfully');
 
     return res.status(200).json({
       success: true,
@@ -333,11 +314,6 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
   try {
     const { aadhaar_number, otp, reference_id } = req.body;
 
-    console.log('Aadhaar OTP Verification Request:', {
-      aadhaar_number: aadhaar_number ? `${aadhaar_number.substring(0, 4)}XXXX${aadhaar_number.substring(8)}` : 'missing',
-      reference_id,
-      otp_length: otp ? otp.length : 0
-    });
 
     if (!aadhaar_number || !otp || !reference_id) {
       return res.status(400).json({
@@ -387,7 +363,7 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
       'content-type': 'application/json'
     };
 
-    console.log('Verifying OTP with Aadhaar API...');
+
 
     const response = await axios.post(
       'https://api.sandbox.co.in/kyc/aadhaar/okyc/otp/verify',
@@ -400,11 +376,6 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
 
     const apiData = response?.data?.data;
 
-    console.log('OTP Verification Response:', {
-      status: apiData?.status,
-      name: apiData?.name ? 'Received' : 'Missing',
-      message: apiData?.message
-    });
 
     // 🔒 Extra safety: ensure we have data and expected @entity
     if (!apiData) {
@@ -467,7 +438,6 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
         reference_id: reference_id 
       });
 
-      console.log('Aadhaar verified successfully for:', verifiedAadhaarData.name);
 
       return res.status(200).json({
         success: true,
@@ -488,7 +458,6 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
         reference_id: reference_id 
       });
 
-      console.log('Aadhaar OTP verification failed');
 
       return res.status(400).json({
         success: false,
@@ -570,13 +539,6 @@ Controller.prototype.createEmployeeWithAadhaar = async function(req, res) {
       maxLoanApprovalLimit
     } = req.body;
 
-    console.log('Employee Creation Request:', {
-      email,
-      employeeId,
-      position,
-      department,
-      aadhaar_number: aadhaar_number ? `${aadhaar_number.substring(0, 4)}XXXX${aadhaar_number.substring(8)}` : 'missing'
-    });
 
     // ✅ Only admin can create employees
     if (!req.user || req.user.role !== 'admin') {
@@ -685,7 +647,6 @@ Controller.prototype.createEmployeeWithAadhaar = async function(req, res) {
     });
 
     await user.save();
-    console.log('User created successfully:', user._id);
 
     // Create employee with Aadhaar verification data embedded
     const employee = new TWgoldEmployee({
@@ -717,15 +678,12 @@ Controller.prototype.createEmployeeWithAadhaar = async function(req, res) {
     });
 
     await employee.save();
-    console.log('Employee created successfully:', employee._id);
-
     // ✅ Clean up verified Aadhaar cached record
     await VerifiedAadhaar.deleteOne({ aadhaar_number: aadhaar_number });
 
     // Populate response data
     const managerUser = await TWgoldUser.findById(managerDoc.user);
 
-    console.log('Employee creation completed successfully');
 
     res.status(201).json({
       success: true,
@@ -771,7 +729,6 @@ Controller.prototype.createEmployeeWithAadhaar = async function(req, res) {
     if (user && user._id) {
       try {
         await TWgoldUser.findByIdAndDelete(user._id);
-        console.log('Cleaned up user due to employee creation failure:', user._id);
       } catch (cleanupError) {
         console.error('Error cleaning up user:', cleanupError);
       }
