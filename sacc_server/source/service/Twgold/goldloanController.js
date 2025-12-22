@@ -1,7 +1,7 @@
 const Loan = require('../../commons/models/mongo/documents/TWGoldItems');
 const Customer = require('../../commons/models/mongo/documents/TWGoldCustomer');
 const GoldRate = require('../../commons/models/mongo/documents/TWGoldRates');
-const ActivityLog = require('../../commons/models/mongo/documents/TWGoldActivityLog');
+const ActivityLog = require('../../commons/models/mongo/documents/TWGoldActivitylog');
 
 // Calculate LTV based interest rate
 const calculateInterestRate = (ltv) => {

@@ -1,5 +1,5 @@
 const Branch = require('../../commons/models/mongo/documents/TWGoldBranch');
-const ActivityLog = require('../../commons/models/mongo/documents/TWGoldActivityLog');
+const ActivityLog = require('../../commons/models/mongo/documents/TWGoldActivitylog');
 const User = require('../../commons/models/mongo/documents/TwGoldUser');
 
 function Controller() {}
