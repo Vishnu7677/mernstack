@@ -88,25 +88,23 @@ const Navbar = () => {
       </nav>
 
       {/* Mobile Menu */}
-      {isOpen && (
-        <div className="admin_gold_mobile_menu">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`admin_gold_mobile_nav_item ${isActive ? 'admin_gold_mobile_nav_item_active' : ''}`}
-                onClick={() => setIsOpen(false)}
-              >
-                <Icon size={20} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+<div className={`admin_gold_mobile_menu ${isOpen ? 'active' : ''}`}>
+  {navItems.map((item) => {
+    const Icon = item.icon;
+    const isActive = location.pathname === item.path;
+    return (
+      <Link
+        key={item.path}
+        to={item.path}
+        className={`admin_gold_mobile_nav_item ${isActive ? 'admin_gold_mobile_nav_item_active' : ''}`}
+        onClick={() => setIsOpen(false)}
+      >
+        <Icon size={20} />
+        <span>{item.label}</span>
+      </Link>
+    );
+  })}
+</div>
     </>
   );
 };

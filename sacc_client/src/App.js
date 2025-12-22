@@ -50,6 +50,7 @@ import TwgoldHome from './components/TWGold/Home/TwgoldHome';
 import Twgoldemployeeloan from './components/TWGold/Employee/Twgoldemployeeloan';
 import ManageBranches from './components/TWGold/Admin/ManageBranches';
 import EditBranch from './components/TWGold/Admin/EditBranch';
+import TWgoldAccountOpeningForm from './components/TWGold/Employee/TWgoldAccountOpeningForm'
 
 function App() {
   return (
@@ -252,6 +253,11 @@ function App() {
           <Route path="/twgl&articles/employee/dashboard" element={
             <TwgoldProtectedRoute allowedRoles={['employee']}>
               <TwgoldEmployeeDashboard />
+            </TwgoldProtectedRoute>
+          } />
+          <Route path="/twgl&articles/employee/customer/create" element={
+            <TwgoldProtectedRoute allowedRoles={['employee']}>
+              <TWgoldAccountOpeningForm />
             </TwgoldProtectedRoute>
           } />
           <Route path="/twgl&articles/employee/goldloan" element={

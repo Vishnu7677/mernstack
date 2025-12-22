@@ -1,0 +1,961 @@
+/* TWgoldAccountOpeningForm.css */
+.account-form-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.account-step-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+    position: relative;
+    gap: 40px;
+}
+
+.account-step-indicator::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 50px;
+    right: 50px;
+    height: 3px;
+    background-color: #e0e0e0;
+    z-index: 1;
+}
+
+.account-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.account-step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #e0e0e0;
+    color: #666;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    margin-bottom: 8px;
+    font-size: 14px;
+    border: 3px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.account-step-label {
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+    font-weight: 500;
+}
+
+.account-active .account-step-number {
+    background-color: #2c3e50;
+    color: white;
+    border-color: white;
+}
+
+.account-active .account-step-label {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.account-completed .account-step-number {
+    background-color: #27ae60;
+    color: white;
+    border-color: white;
+}
+
+.account-completed .account-step-label {
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.account-form-step {
+    padding: 20px 0;
+}
+
+.account-form-step h2 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.account-form-intro, .account-review-intro {
+    text-align: center;
+    color: #555;
+    margin-bottom: 30px;
+    font-size: 16px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.5;
+}
+
+/* Verification Step Styles */
+.aadhaar-verification-section,
+.otp-verification-section,
+.verification-success-section {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 30px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+}
+
+.aadhaar-verification-section h3,
+.otp-verification-section h3,
+.verification-success-section h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 22px;
+}
+
+.verification-info {
+    text-align: center;
+    color: #666;
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+.verification-success-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 25px;
+    background-color: #27ae60;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+.verification-success-icon svg {
+    width: 50px;
+    height: 50px;
+    fill: white;
+}
+
+.verification-details {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #dfe6e9;
+    margin: 25px 0;
+    line-height: 1.8;
+    text-align: center;
+    color: #2c3e50;
+    font-weight: 500;
+}
+/* KYC Verification Step Styles */
+.account-kyc-step {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.kyc-verification-container {
+    background: #fff;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.kyc-verification-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eaeaea;
+}
+
+.kyc-verification-section:last-child {
+    border-bottom: none;
+}
+
+.kyc-verification-section h3 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+}
+
+.kyc-verification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.kyc-verification-info h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 1rem;
+}
+
+.kyc-verification-info p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.kyc-checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.kyc-checkbox-label input {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+}
+
+.kyc-checkbox-custom {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin-right: 8px;
+    position: relative;
+}
+
+.kyc-checkbox-label input:checked + .kyc-checkbox-custom {
+    background-color: #4CAF50;
+    border-color: #4CAF50;
+}
+
+.kyc-checkbox-label input:checked + .kyc-checkbox-custom::after {
+    content: '✓';
+    position: absolute;
+    color: white;
+    font-size: 12px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.kyc-summary {
+    background: #f0f7ff;
+    padding: 20px;
+    border-radius: 6px;
+    margin-top: 30px;
+}
+
+.kyc-summary h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.kyc-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.kyc-summary-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: white;
+    border-radius: 4px;
+}
+
+.kyc-summary-label {
+    font-weight: 500;
+    color: #555;
+}
+
+.kyc-summary-value {
+    font-weight: 600;
+}
+
+.kyc-summary-value.kyc-verified {
+    color: #4CAF50;
+}
+
+.kyc-summary-value.kyc-pending {
+    color: #ff9800;
+}
+
+.kyc-warning {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 12px;
+    margin-top: 15px;
+    border-radius: 4px;
+}
+
+.kyc-warning p {
+    margin: 0;
+    color: #856404;
+}
+
+/* Review Step Updates */
+.account-review-value.account-verified {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.account-review-value.account-pending {
+    color: #ff9800;
+    font-weight: 600;
+}
+
+.account-review-value.account-active {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.account-document-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    display: inline-block;
+    margin: 2px 0;
+}
+
+.account-document-status.document-verified {
+    background: #d4edda;
+    color: #155724;
+}
+
+.account-document-status.document-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.kyc-success {
+    color: #4CAF50 !important;
+}
+
+.kyc-warning {
+    color: #ff9800 !important;
+}
+
+/* Form Styles */
+.account-form-group {
+    margin-bottom: 20px;
+}
+
+.account-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #444;
+    font-size: 14px;
+}
+
+.account-form-group input,
+.account-form-group select,
+.account-form-group textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 15px;
+    transition: all 0.3s;
+    background-color: #f9f9f9;
+}
+
+.account-form-group input:focus,
+.account-form-group select:focus,
+.account-form-group textarea:focus {
+    border-color: #3498db;
+    outline: none;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-hint {
+    display: block;
+    margin-top: 5px;
+    color: #666;
+    font-size: 12px;
+    font-style: italic;
+}
+
+.account-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: normal;
+    color: #444;
+}
+
+.account-checkbox-label input[type="checkbox"] {
+    margin: 0;
+    width: auto;
+    order: -1;
+}
+
+.account-checkbox-custom {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid #ddd;
+    position: relative;
+    transition: all 0.2s;
+    order: -1;
+    margin-right: 8px;
+}
+
+.account-checkbox-label input:checked ~ .account-checkbox-custom {
+    background-color: #3498db;
+    border-color: #3498db;
+}
+
+.account-checkbox-label input:checked ~ .account-checkbox-custom::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Button Styles */
+.account-button-group {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.account-primary-button {
+    background-color: #2c3e50;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.3);
+}
+
+.account-primary-button:hover {
+    background-color: #1a252f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(44, 62, 80, 0.4);
+}
+
+.account-secondary-button {
+    background-color: #f8f9fa;
+    color: #555;
+    border: 1px solid #ddd;
+    padding: 12px 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.account-secondary-button:hover {
+    background-color: #e9ecef;
+    border-color: #ccc;
+}
+
+.account-remove-button {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 6px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.account-remove-button:hover {
+    background-color: #c0392b;
+}
+
+/* Form Grid Layout */
+.account-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.account-full-width {
+    grid-column: 1 / -1;
+}
+
+.account-form-section-title {
+    grid-column: 1 / -1;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 30px 0 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.account-form-section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 80px;
+    height: 2px;
+    background-color: #3498db;
+}
+
+/* Reference Section */
+.account-reference-group {
+    grid-column: 1 / -1;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    margin-bottom: 20px;
+}
+
+.account-reference-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.account-reference-header h4 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 16px;
+}
+
+/* File Upload */
+.account-file-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.account-file-upload-button {
+    padding: 10px 20px;
+    background-color: #f0f4f8;
+    border: 1px solid #d0d7e0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 14px;
+    color: #3498db;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.account-file-upload-button:hover {
+    background-color: #e1e8f0;
+    border-color: #b8c2d0;
+}
+
+.account-file-upload-button span::before {
+    content: '📎';
+    margin-right: 5px;
+}
+
+.account-file-preview {
+    flex-grow: 1;
+    padding: 10px 15px;
+    border: 1px dashed #ccc;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f9f9f9;
+    font-size: 14px;
+}
+
+.account-file-hint {
+    flex-grow: 1;
+    padding: 10px 15px;
+    color: #888;
+    font-size: 14px;
+    font-style: italic;
+}
+
+.account-remove-file-button {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 5px;
+    margin-left: 10px;
+}
+
+.account-remove-file-button:hover {
+    color: #c0392b;
+}
+
+/* Error Message */
+.account-error-message {
+    color: #e74c3c;
+    background-color: #fde8e8;
+    padding: 12px 15px;
+    border-radius: 6px;
+    margin: 20px 0;
+    font-size: 14px;
+    grid-column: 1 / -1;
+}
+
+/* Review Step */
+.account-review-step {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.account-review-section {
+    margin-bottom: 30px;
+    padding: 25px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.account-review-section h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #ddd;
+    font-size: 20px;
+}
+
+.account-review-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.account-review-item {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+}
+
+.account-review-label {
+    font-weight: 500;
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 3px;
+}
+
+.account-review-value {
+    font-weight: 600;
+    color: #333;
+    word-break: break-word;
+    font-size: 15px;
+}
+
+.account-reference-review {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 6px;
+    border: 1px solid #eee;
+}
+
+.account-reference-review h4 {
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+    font-size: 16px;
+}
+
+/* Document Preview */
+.account-document-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.account-document-item {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eee;
+    transition: all 0.3s;
+}
+
+.account-document-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.account-document-preview {
+    width: 100%;
+    height: 120px;
+    background-color: #f5f5f5;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.account-document-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.account-document-icon {
+    font-size: 36px;
+    color: #666;
+}
+
+.account-document-info {
+    text-align: center;
+}
+
+.account-document-label {
+    font-weight: 500;
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 3px;
+}
+
+.account-document-name {
+    font-size: 12px;
+    color: #888;
+    word-break: break-all;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Declaration */
+.account-declaration {
+    margin: 40px 0;
+    padding: 25px;
+    background-color: #f5f9ff;
+    border-radius: 8px;
+    border: 1px solid #d6e4ff;
+}
+
+.account-declaration h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 20px;
+}
+
+.account-declaration p {
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-size: 15px;
+}
+
+.account-declaration-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.account-declaration-checkbox input {
+    width: auto;
+    margin: 0;
+}
+
+/* Success Step */
+.account-success-step {
+    text-align: center;
+    padding: 40px 20px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.account-success-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 25px;
+    background-color: #27ae60;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+.account-success-icon svg {
+    width: 50px;
+    height: 50px;
+    fill: white;
+}
+
+.account-success-step h2 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 28px;
+}
+
+.account-success-message {
+    margin-bottom: 30px;
+}
+
+.account-success-message p {
+    color: #555;
+    margin-bottom: 15px;
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+.account-success-details {
+    background-color: white;
+    padding: 25px;
+    border-radius: 10px;
+    border: 1px solid #dfe6e9;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.account-success-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.account-success-detail:last-child {
+    border-bottom: none;
+}
+
+.account-success-label {
+    font-weight: 500;
+    color: #666;
+}
+
+.account-success-value {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 16px;
+}
+
+/* Spinner */
+.account-spinner {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 2px solid white;
+    width: 16px;
+    height: 16px;
+    animation: account-spin 1s linear infinite;
+}
+
+@keyframes account-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Required Field Indicator */
+.required {
+    color: #e74c3c;
+    margin-left: 3px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .account-form-container {
+        padding: 20px;
+    }
+    
+    .account-step-indicator {
+        gap: 20px;
+    }
+    
+    .account-step-indicator::before {
+        left: 30px;
+        right: 30px;
+    }
+    
+    .account-form-grid, .account-review-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .account-document-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    
+    .account-button-group {
+        flex-direction: column;
+    }
+    
+    .account-primary-button, .account-secondary-button {
+        width: 100%;
+    }
+    
+    .aadhaar-verification-section,
+    .otp-verification-section,
+    .verification-success-section {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .account-form-container {
+        padding: 15px;
+    }
+    
+    .account-step-indicator {
+        gap: 10px;
+    }
+    
+    .account-step-label {
+        font-size: 12px;
+    }
+    
+    .account-form-step h2 {
+        font-size: 24px;
+    }
+    
+    .account-review-section {
+        padding: 15px;
+    }
+    
+    .account-success-details {
+        padding: 15px;
+    }
+    
+    .account-success-detail {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}

@@ -2,319 +2,272 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, Calendar } from 'lucide-react';
 import Navbar from './Navbar';
 import { api } from '../TWGLogin/axiosConfig';
-import './adminstyles.css'
+import './adminstyles.css';
 
 const GoldRates = () => {
   const [goldRates, setGoldRates] = useState({
-    '24k': 0,
-    '22k': 0,
-    '18k': 0,
-    '14k': 0,
+    '24K': 0,
+    '22K': 0,
+    '20K': 0,
+    '18K': 0,
     'other': 0
   });
-  
+
   const [history, setHistory] = useState([]);
+  const [page, setPage] = useState(1);
+
   const [loading, setLoading] = useState({
     current: true,
     history: true
   });
+
   const [updating, setUpdating] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState('');
 
-  // Fetch current gold rates
+  /* ================= CURRENT RATES ================= */
   const fetchCurrentRates = async () => {
     try {
-      setLoading(prev => ({ ...prev, current: true }));
-      const response = await api.get('/twgoldrate/gold-rates/current');
-      
-      if (response.data.success) {
+      setLoading(p => ({ ...p, current: true }));
+      const res = await api.get('/twgoldrate/gold-rates/current');
+
+      if (res.data.success && res.data.data) {
         setGoldRates(prev => ({
           ...prev,
-          ...response.data.data
+          ...res.data.data
         }));
       }
-    } catch (error) {
-      console.error('Error fetching current rates:', error);
+    } catch (err) {
       alert('Failed to fetch current gold rates');
     } finally {
-      setLoading(prev => ({ ...prev, current: false }));
+      setLoading(p => ({ ...p, current: false }));
     }
   };
 
-  // Fetch rate history
-  const fetchRateHistory = async () => {
+  /* ================= HISTORY (PAGINATED) ================= */
+  const fetchRateHistory = async (pageNo = 1) => {
     try {
-      setLoading(prev => ({ ...prev, history: true }));
-      const response = await api.get('/twgoldrate/gold-rates/history');
-      
-      if (response.data.success) {
-        setHistory(response.data.data);
+      setLoading(p => ({ ...p, history: true }));
+      const res = await api.get(`/twgoldrate/gold-rates/history?page=${pageNo}`);
+
+      if (res.data.success) {
+        setHistory(res.data.data);
       }
-    } catch (error) {
-      console.error('Error fetching rate history:', error);
+    } catch (err) {
       alert('Failed to fetch rate history');
     } finally {
-      setLoading(prev => ({ ...prev, history: false }));
+      setLoading(p => ({ ...p, history: false }));
     }
   };
 
-  // Update gold rates
+  /* ================= UPDATE RATES ================= */
   const updateRates = async () => {
-    // Validation
-    if (Object.values(goldRates).some(rate => rate <= 0)) {
-      alert('Please enter valid rates for all gold types (must be greater than 0)');
+    if (Object.values(goldRates).some(v => v <= 0)) {
+      alert('Please enter valid rates for all gold types');
       return;
     }
-  
-    if (!window.confirm('Are you sure you want to update gold rates?')) {
-      return;
-    }
-  
+
+    if (!window.confirm('Are you sure you want to update gold rates?')) return;
+
     setUpdating(true);
     try {
       const payload = {
-        rates: goldRates,
-        remarks: remarks.trim() || undefined,
+        rates: {
+          '24k': goldRates['24K'],
+          '22k': goldRates['22K'],
+          '20k': goldRates['20K'],
+          '18k': goldRates['18K'],
+          'other': goldRates['other']
+        },
+        remarks: remarks || undefined,
         effectiveFrom: effectiveFrom || undefined
       };
-  
-      const response = await api.post('/twgoldrate/gold-rates', payload);
-      
-      if (response.data.success) {
-        alert(response.data.message || 'Gold rates updated successfully!');
-        
-        // Update local state with returned data
-        if (response.data.data) {
-          setGoldRates(prev => ({
-            ...prev,
-            ...response.data.data
-          }));
-        }
-        
-        // Refresh history
-        await fetchRateHistory();
-        // Clear form fields
+
+      const res = await api.post('/twgoldrate/gold-rates', payload);
+
+      if (res.data.success) {
+        alert('Gold rates updated successfully');
+        fetchCurrentRates();
+        fetchRateHistory(page);
         setRemarks('');
         setEffectiveFrom('');
-      } else {
-        alert(response.data.error || 'Failed to update rates');
       }
-    } catch (error) {
-      console.error('Error updating rates:', error);
-      
-      let errorMessage = 'Failed to update gold rates';
-      if (error.response) {
-        // The error is from the server
-        errorMessage = error.response.data?.error || 
-                      error.response.data?.message || 
-                      errorMessage;
-      } else if (error.request) {
-        // The request was made but no response received
-        errorMessage = 'No response from server. Please check your connection.';
-      }
-      
-      alert(`Error: ${errorMessage}`);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to update gold rates');
     } finally {
       setUpdating(false);
     }
   };
 
-  const handleRateChange = (type, value) => {
-    const numValue = parseFloat(value) || 0;
-    setGoldRates(prev => ({
-      ...prev,
-      [type]: numValue
-    }));
-  };
-
-  // Fetch data on component mount
+  /* ================= EFFECT ================= */
   useEffect(() => {
     fetchCurrentRates();
-    fetchRateHistory();
-  }, []);
+    fetchRateHistory(page);
+  }, [page]);
 
-  // Calculate percentage change for display
-  const calculateChange = (currentRate, previousRate) => {
-    if (!previousRate || previousRate === 0) return '0.00';
-    const change = ((currentRate - previousRate) / previousRate) * 100;
-    return change.toFixed(2);
+  /* ================= HELPERS ================= */
+  const calculateChange = (today, yesterday) => {
+    if (!yesterday || yesterday === 0) return '0.00';
+    return (((today - yesterday) / yesterday) * 100).toFixed(2);
   };
 
-  // Get yesterday's rate for comparison
-  const getYesterdayRate = (type) => {
-    if (history.length > 0) {
-      const yesterday = history[0]?.rates.find(r => r.type === type)?.rate;
-      return yesterday || 0;
-    }
-    return 0;
-  };
+  const getYesterdayRate = (type) =>
+    history[1]?.rates?.[type] || goldRates[type];
 
-  // Gold type labels for display
   const goldTypeLabels = {
-    '24k': '24K Gold',
-    '22k': '22K Gold',
-    '18k': '18K Gold',
-    '14k': '14K Gold',
+    '24K': '24K Gold',
+    '22K': '22K Gold',
+    '20K': '20K Gold',
+    '18K': '18K Gold',
     'other': 'Other Gold'
   };
 
   return (
     <div>
       <Navbar />
+
       <div className="admin_gold_gold_rates">
         <div className="admin_gold_page_header">
           <h1>Gold Rate Management</h1>
-          <p>Update and manage current gold rates across all branches</p>
+          <p>Update and manage current gold rates</p>
         </div>
 
         <div className="admin_gold_rates_content">
-          {/* Current Rates Section */}
+
+          {/* CURRENT RATES */}
           <div className="admin_gold_current_rates">
             <div className="admin_gold_section_header">
               <h2>Current Gold Rates (per gram)</h2>
               {loading.current && <span className="admin_gold_loading">Loading...</span>}
             </div>
-            
+
             <div className="admin_gold_rates_grid">
-              {Object.keys(goldRates).map((type) => (
+              {Object.keys(goldRates).map(type => (
                 <div key={type} className="admin_gold_rate_card">
                   <div className="admin_gold_rate_header">
                     <TrendingUp size={20} />
                     <span>{goldTypeLabels[type]}</span>
                   </div>
+
                   <div className="admin_gold_rate_input">
                     <span>₹</span>
                     <input
                       type="number"
-                      value={goldRates[type] || ''}
-                      onChange={(e) => handleRateChange(type, e.target.value)}
+                      value={goldRates[type]}
+                      onChange={e =>
+                        setGoldRates(p => ({
+                          ...p,
+                          [type]: Number(e.target.value)
+                        }))
+                      }
                       className="admin_gold_rate_field"
-                      placeholder="Enter rate"
                       min="0"
                       step="0.01"
                       disabled={loading.current}
                     />
                   </div>
-                  <div className="admin_gold_rate_change">
-                    {!loading.current && (
-                      <>
-                        <span className={
-                          parseFloat(calculateChange(goldRates[type], getYesterdayRate(type))) >= 0 
-                            ? "admin_gold_positive" 
-                            : "admin_gold_negative"
-                        }>
-                          {calculateChange(goldRates[type], getYesterdayRate(type))}%
-                        </span> 
-                        from yesterday
-                      </>
-                    )}
-                  </div>
+
+                  {!loading.history && (
+                    <div className="admin_gold_rate_change">
+                      <span
+                        className={
+                          calculateChange(
+                            goldRates[type],
+                            getYesterdayRate(type)
+                          ) >= 0
+                            ? 'admin_gold_positive'
+                            : 'admin_gold_negative'
+                        }
+                      >
+                        {calculateChange(
+                          goldRates[type],
+                          getYesterdayRate(type)
+                        )}%
+                      </span>{' '}
+                      from yesterday
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
 
-            {/* Update Form Fields */}
+            {/* UPDATE FORM */}
             <div className="admin_gold_update_form">
               <div className="admin_gold_form_group">
-                <label htmlFor="effectiveFrom">Effective From (Optional):</label>
+                <label>Effective From (Optional)</label>
                 <input
                   type="datetime-local"
-                  id="effectiveFrom"
                   value={effectiveFrom}
-                  onChange={(e) => setEffectiveFrom(e.target.value)}
+                  onChange={e => setEffectiveFrom(e.target.value)}
                   className="admin_gold_form_input"
-                  disabled={updating}
-                />
-              </div>
-              
-              <div className="admin_gold_form_group">
-                <label htmlFor="remarks">Remarks (Optional):</label>
-                <input
-                  type="text"
-                  id="remarks"
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  className="admin_gold_form_input"
-                  placeholder="Add remarks for this update"
-                  disabled={updating}
                 />
               </div>
 
-              <button 
-                onClick={updateRates} 
+              <div className="admin_gold_form_group">
+                <label>Remarks (Optional)</label>
+                <input
+                  type="text"
+                  value={remarks}
+                  onChange={e => setRemarks(e.target.value)}
+                  className="admin_gold_form_input"
+                />
+              </div>
+
+              <button
+                onClick={updateRates}
                 className="admin_gold_update_btn"
-                disabled={updating || loading.current}
+                disabled={updating}
               >
                 {updating ? 'Updating...' : 'Update All Rates'}
               </button>
             </div>
           </div>
 
-          {/* Rate History Section */}
+          {/* HISTORY */}
           <div className="admin_gold_rate_history">
             <div className="admin_gold_section_header">
               <h2>Rate History</h2>
               {loading.history && <span className="admin_gold_loading">Loading...</span>}
             </div>
-            
+
             {!loading.history && history.length === 0 ? (
-              <div className="admin_gold_no_data">
-                No rate history available
-              </div>
+              <div className="admin_gold_no_data">No rate history available</div>
             ) : (
               <div className="admin_gold_history_table">
                 <table>
                   <thead>
                     <tr>
                       <th>Date</th>
-                      <th>24K (₹/g)</th>
-                      <th>22K (₹/g)</th>
-                      <th>18K (₹/g)</th>
-                      <th>14K (₹/g)</th>
+                      <th>24K</th>
+                      <th>22K</th>
+                      <th>20K</th>
+                      <th>18K</th>
                       <th>Change %</th>
-                      <th>Change</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {history.map((record, index) => {
-                      // Find rates for each type
-                      const rate24k = record.rates.find(r => r.type === '24k')?.rate || 0;
-                      const rate22k = record.rates.find(r => r.type === '22k')?.rate || 0;
-                      const rate18k = record.rates.find(r => r.type === '18k')?.rate || 0;
-                      const rate14k = record.rates.find(r => r.type === '14k')?.rate || 0;
-                      
-                      // Get previous day's rate for comparison
-                      const prevRate24k = history[index + 1]?.rates.find(r => r.type === '24k')?.rate || rate24k;
-                      const changeAmount = rate24k - prevRate24k;
-                      
+                    {history.map((row, i) => {
+                      const today = row.rates['24K'];
+                      const prev = history[i + 1]?.rates['24K'] || today;
+
                       return (
-                        <tr key={record.date}>
+                        <tr key={row.date}>
                           <td>
-                            <Calendar size={16} />
-                            {new Date(record.date).toLocaleDateString()}
+                            <Calendar size={16} />{' '}
+                            {new Date(row.date).toLocaleDateString()}
                           </td>
-                          <td>₹{rate24k.toFixed(2)}</td>
-                          <td>₹{rate22k.toFixed(2)}</td>
-                          <td>₹{rate18k.toFixed(2)}</td>
-                          <td>₹{rate14k.toFixed(2)}</td>
-                          <td>
-                            <span className={
-                              parseFloat(record.changePercent) >= 0 
-                                ? "admin_gold_positive" 
-                                : "admin_gold_negative"
-                            }>
-                              {record.changePercent}%
-                            </span>
-                          </td>
-                          <td>
-                            <span className={
-                              changeAmount >= 0 
-                                ? "admin_gold_positive" 
-                                : "admin_gold_negative"
-                            }>
-                              {changeAmount >= 0 ? '+' : ''}{changeAmount.toFixed(2)}
-                            </span>
+                          <td>₹{row.rates['24K']}</td>
+                          <td>₹{row.rates['22K']}</td>
+                          <td>₹{row.rates['20K']}</td>
+                          <td>₹{row.rates['18K']}</td>
+                          <td
+                            className={
+                              today - prev >= 0
+                                ? 'admin_gold_positive'
+                                : 'admin_gold_negative'
+                            }
+                          >
+                            {calculateChange(today, prev)}%
                           </td>
                         </tr>
                       );
@@ -323,6 +276,16 @@ const GoldRates = () => {
                 </table>
               </div>
             )}
+
+            {/* PAGINATION */}
+            <div className="admin_gold_pagination">
+              <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                Prev
+              </button>
+              <span>Page {page}</span>
+              <button onClick={() => setPage(p => p + 1)}>Next</button>
+            </div>
+
           </div>
         </div>
       </div>

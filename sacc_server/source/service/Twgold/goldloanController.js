@@ -1,18 +1,26 @@
 const Loan = require('../../commons/models/mongo/documents/TWGoldItems');
 const Customer = require('../../commons/models/mongo/documents/TWGoldCustomer');
-const GoldRate = require('../../commons/models/mongo/documents/TWGoldRates');
+const DailyGoldRate = require('../../commons/models/mongo/documents/TWGoldRates');
 const ActivityLog = require('../../commons/models/mongo/documents/TWGoldActivitylog');
 
-// Calculate LTV based interest rate
+// Calculate LTV based interest rate// Calculate LTV based interest rate
 const calculateInterestRate = (ltv) => {
+  let rate;
+
   if (ltv <= 55) {
-    return (ltv / 55) * 8.3;
+    rate = (ltv / 55) * 8.3;
   } else if (ltv <= 85) {
-    return 8.4 + ((ltv - 56) / 29) * (24 - 8.4);
+    rate = 8.4 + ((ltv - 56) / 29) * (24 - 8.4);
   } else {
-    return 24;
+    rate = 24;
   }
+
+  // ✅ Enforce minimum interest rate
+  return Math.max(rate, 8.3);
 };
+
+
+const normalizeCarat = (carat) => carat.toUpperCase();
 
 function Controller() {}
 
@@ -26,34 +34,46 @@ Controller.prototype.createLoan = async function (req, res) {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
 
-    const rates = await GoldRate.find({
-      branch: req.user.branch,
-      isActive: true
-    });
+    // 🔥 Fetch today’s gold rate
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dailyRate = await DailyGoldRate.findOne({ date: today });
+    if (!dailyRate) {
+      return res.status(404).json({
+        success: false,
+        message: 'Today gold rate not available'
+      });
+    }
 
     let totalGoldValue = 0;
 
     const processedItems = goldItems.map(item => {
-      const goldType = item.carat.toLowerCase(); // "22K" → "22k"
-    
-      const rate = rates.find(r => r.type === goldType);
-      if (!rate) throw new Error(`Gold rate missing for ${goldType}`);
-    
-      const value = item.weight * rate.rate;
+      const caratKey = normalizeCarat(item.carat); // "22k" → "22K"
+      const ratePerGram = dailyRate.rates[caratKey];
+
+      if (!ratePerGram) {
+        throw new Error(`Gold rate missing for ${caratKey}`);
+      }
+
+      const value = item.weight * ratePerGram;
       totalGoldValue += value;
-    
+
       return {
         ...item,
         approvedValue: value,
         estimatedValue: value
       };
     });
-    
 
     const ltv = (requestedAmount / totalGoldValue) * 100;
+
     if (ltv > 85) {
-      return res.status(400).json({ success: false, message: 'LTV exceeds 85%' });
-    }
+      return res.status(400).json({
+        success: false,
+        message: 'Loan cannot be created. LTV exceeds maximum allowed limit of 85%'
+      });
+    }    
 
     const loan = new Loan({
       customer: customerId,
@@ -106,24 +126,37 @@ Controller.prototype.calculateLoan = async function (req, res) {
       return res.status(400).json({ success: false, message: 'Invalid input' });
     }
 
-    // 🔥 Normalize "22K" → "22k"
-    const goldType = carat.toLowerCase();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const goldRate = await GoldRate.findOne({
-      type: goldType,
-      branch: req.user.branch,
-      isActive: true
-    });
-
-    if (!goldRate) {
+    const dailyRate = await DailyGoldRate.findOne({ date: today });
+    if (!dailyRate) {
       return res.status(404).json({
         success: false,
-        message: `Gold rate not found for ${goldType}`
+        message: 'Today gold rate not available'
       });
     }
 
-    const goldValue = weight * goldRate.rate;
+    const caratKey = normalizeCarat(carat);
+    const ratePerGram = dailyRate.rates[caratKey];
+
+    if (!ratePerGram) {
+      return res.status(404).json({
+        success: false,
+        message: `Gold rate not found for ${caratKey}`
+      });
+    }
+
+    const goldValue = weight * ratePerGram;
     const ltv = (requestedAmount / goldValue) * 100;
+
+// ✅ Block invalid LTV in preview itself
+if (ltv > 85) {
+  return res.status(400).json({
+    success: false,
+    message: 'Requested amount exceeds maximum permissible LTV of 85%'
+  });
+}
     const interestRate = calculateInterestRate(ltv);
 
     const monthlyRate = interestRate / 12 / 100;

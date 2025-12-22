@@ -15,7 +15,7 @@ const TwgoldEmployeeNav = () => {
   const navItems = [
     { path: '/twgl&articles/employee/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/twgl&articles/employee/goldloan', label: 'Gold Loan', icon: '💰' },
-    { path: '/twgl&articles/employee/valuation', label: 'Valuation', icon: '⚖️' },
+    { path: '/twgl&articles/employee/customer/create', label: 'Customer', icon: '⚖️' },
     { path: '/twgl&articles/employee/vault', label: 'Vault', icon: '🔒' },
     { path: '/twgl&articles/employee/reports', label: 'Reports', icon: '📈' },
     { path: '/twgl&articles/employee/settings', label: 'Settings', icon: '⚙️' },
