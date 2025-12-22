@@ -5,22 +5,13 @@ import { PUBLIC_PATHS, DASHBOARD_PATHS } from '../../../config/routes';
 
 
 export const TwgoldProtectedRoute = ({ children, allowedRoles = [] }) => {
-
   const { user, loading, isInitialized } = useTwgoldAuth(); 
   const location = useLocation();
 
-  // -------------------------------
-  // Memoized public path checker
-  // -------------------------------
   const isPublicPath = useMemo(() => {
     return PUBLIC_PATHS.includes(location.pathname);
   }, [location.pathname]);
 
-
-
-  // -------------------------------
-  // LOADING STATE
-  // -------------------------------
   if (loading || !isInitialized) {
     return (
       <div className="twgold_loading">
@@ -28,10 +19,8 @@ export const TwgoldProtectedRoute = ({ children, allowedRoles = [] }) => {
       </div>
     );
   }
-
-  // -------------------------------
-  // PUBLIC PATH HANDLING
-  // -------------------------------
+  
+  // 2. Handle Public Paths (like Login)
   if (isPublicPath) {
     if (location.pathname === '/twgl&articles/login' && user) {
       const redirectPath = DASHBOARD_PATHS[user.role] || DASHBOARD_PATHS.default;
@@ -39,17 +28,14 @@ export const TwgoldProtectedRoute = ({ children, allowedRoles = [] }) => {
     }
     return children;
   }
-  // -------------------------------
-  // AUTH CONTEXT CHECK (Private Route)
-  // -------------------------------
-  // If we are here, it's a private path. Check for user.
+
+  // 3. AUTH CHECK (Now safe to check because isInitialized is true)
   if (!user) {
+    // We use 'replace' so they can't go back to the protected page via browser back button
     return <Navigate to={'/twgl&articles/login'} state={{ from: location }} replace />;
   }
 
-  // -------------------------------
-  // ROLE GUARD
-  // -------------------------------
+  // 4. ROLE GUARD
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
     const redirectPath = DASHBOARD_PATHS[user.role] || DASHBOARD_PATHS.default;
     return <Navigate to={redirectPath} replace />;
@@ -58,4 +44,3 @@ export const TwgoldProtectedRoute = ({ children, allowedRoles = [] }) => {
   return children;
 };
 
-export default TwgoldProtectedRoute;

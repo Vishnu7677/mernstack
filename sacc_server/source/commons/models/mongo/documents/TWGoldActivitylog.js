@@ -26,39 +26,36 @@ const activityLogSchema = new mongoose.Schema({
     ref: 'TWgoldUser',
     required: [true, 'User reference is required']
   },
-  userRole: {
-    type: String,
-    required: true,
-    enum: ['admin', 'manager', 'employee', 'grivirence']
+  roleAtThatTime: {
+    type: String
   },
   branch: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'TWgoldBranch',
+    ref: 'TWGoldBranch',
     required: [true, 'Branch reference is required']
   },
+  // Dynamic Reference using refPath
   targetEntity: {
-    entityType: {
-      type: String,
-      enum: ['branch', 'employee', 'manager', 'grivirence', 'loan', 'customer', 'gold_rate']
+    entityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: 'targetEntity.modelName' // Allows dynamic linking
     },
-    entityId: mongoose.Schema.Types.ObjectId
+    modelName: {
+      type: String,
+      required: true,
+      enum: ['TWGoldBranch', 'TWgoldUser', 'TWGoldLoan', 'TWGoldCustomer', 'TWGoldRate']
+    }
   },
-  details: {
-    type: mongoose.Schema.Types.Mixed,
-    default: {}
-  },
-  ipAddress: String,
-  userAgent: String,
-  timestamp: {
-    type: Date,
-    default: Date.now
-  },
+  
+  details: { type: mongoose.Schema.Types.Mixed },
   status: {
     type: String,
     enum: ['success', 'failure', 'pending'],
     default: 'success'
   },
-  errorMessage: String
+  errorMessage: String,
+  ipAddress: String,
+  userAgent: String,
 }, {
   timestamps: true
 });
@@ -68,7 +65,7 @@ activityLogSchema.index({ user: 1 });
 activityLogSchema.index({ branch: 1 });
 activityLogSchema.index({ module: 1 });
 activityLogSchema.index({ timestamp: -1 });
-activityLogSchema.index({ userRole: 1 });
+activityLogSchema.index({ roleAtThatTime: 1 });
 activityLogSchema.index({ 'targetEntity.entityType': 1 });
 activityLogSchema.index({ action: 1 });
 

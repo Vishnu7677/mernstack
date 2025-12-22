@@ -59,21 +59,9 @@ api.interceptors.response.use(
   },
   (error) => {
     const status = error.response?.status;
-    const requestUrl = error.config?.url || '';
 
     if (status === 401) {
       clearAuthData();
-
-      const isTwgoldApiRequest =
-        requestUrl.includes('/twgold') ||
-        requestUrl.includes('/twgl');
-
-      if (isTwgoldApiRequest) {
-        const currentPath = window.location.pathname;
-        if (!currentPath.includes('/login')) {
-          window.location.href = '/twgl&articles/login';
-        }
-      }
     }
 
     return Promise.reject(error);
@@ -125,5 +113,27 @@ export const clearAuthData = () => {
     document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
   });
 };
+
+// Update these endpoints:
+export const createUserWithAadhaar = (data) => 
+  api.post('/twgoldlogin/user/create-with-aadhaar', data);
+
+export const generateUserAadhaarOtp = (data) => 
+  api.post('/twgoldlogin/user/aadhaar/generate-otp', data);
+
+export const verifyUserAadhaarOtp = (data) => 
+  api.post('/twgoldlogin/user/aadhaar/verify-otp', data);
+
+export const getUsers = () => 
+  api.get('/twgoldlogin/users');
+
+export const getUsersByRole = (role) => 
+  api.get(`/twgoldlogin/users/role/${role}`);
+
+export const getUsersByBranch = (branch) => 
+  api.get(`/twgoldlogin/branch/${branch}/users`);
+
+export const getUsersByDepartment = (department) => 
+  api.get(`/twgoldlogin/department/${department}/users`);
 
 export default api;

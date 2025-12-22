@@ -35,26 +35,30 @@ export const TwgoldAuthProvider = ({ children }) => {
 
   // Check auth status on mount
   const checkAuthStatus = useCallback(async () => {
-    const token = getTokenFromCookies();    
+    const token = getTokenFromCookies();
     if (!token) {
       setUser(null);
       return { success: false, reason: 'NO_TOKEN' };
     }
-
+  
     try {
       const profileResult = await fetchUserProfile();
       if (profileResult.success) {
-        return { success: true, user: profileResult.user };
+        setUser(profileResult.user);
+        return { success: true };
       }
-      
-      // If profile fetch fails, clear token
+  
+      // ⛔ profile failed → invalidate session
       clearAuthData();
+      setUser(null);
       return { success: false, reason: 'INVALID_TOKEN' };
+  
     } catch (error) {
-      console.error("%c[AUTH CHECK ERROR]", "color: red", error);
+      console.error('[AUTH CHECK ERROR]', error);
       return { success: false, reason: 'NETWORK_ERROR' };
     }
   }, [fetchUserProfile]);
+  
 
   // Initialize on mount
   useEffect(() => {

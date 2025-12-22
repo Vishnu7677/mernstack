@@ -5,7 +5,7 @@ import CryptoJS from 'crypto-js';
 const getEncryptionKey = () => {
   const key = process.env.REACT_APP_ENCRYPTION_KEY;
   
-  if (!key || key === 'AHdvhbHBESJNDDsdUvVUz28311431997') {
+  if (!key || key === 'AHdvhbHBESJNDDsdUvVUz28311431987') {
     console.warn('⚠️ Using default encryption key. For production, set REACT_APP_ENCRYPTION_KEY in .env file.');
     return 'fallback-dev-key-change-in-production';
   }

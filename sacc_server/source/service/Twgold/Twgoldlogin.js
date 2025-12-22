@@ -5,12 +5,9 @@ const axios = require('axios');
 const crypto = require('crypto');
 const TWgoldUser = require('../../commons/models/mongo/documents/TwGoldUser');
 const TWgoldAdmin = require('../../commons/models/mongo/documents/TWGoldAdmin');
-const TWgoldManager = require('../../commons/models/mongo/documents/TWGoldManger');
-const TWgoldEmployee = require('../../commons/models/mongo/documents/TwGoldEmployee');
-const TWgoldGrivirence = require('../../commons/models/mongo/documents/TWGoldGrivirence');
-
-// ⚠️ NOTE: Sandbox Aadhaar OKYC OTP API is deprecated in docs.
-// Consider planning a DigiLocker-based replacement in future.
+const EmploymentProfile = require('../../commons/models/mongo/documents/TWGoldEmploymentProfile');
+const { generateToken, generateRefreshToken } = require('../../middleware/TwGold/jwtConfig');
+const { mapEmployeePayload } = require('../../commons/util/PayloadManager/employeePayloadMapper');
 
 
 // Temporary Session Schemas
@@ -20,38 +17,63 @@ const AadhaarSessionSchema = new mongoose.Schema({
   authorization_token: { type: String, required: true },
   phone_number: { type: String, required: true },
   email_id: String,
+
+  role: {
+    type: String,
+    required: true,
+    enum: [
+      'manager', 'asst_manager', 'cashier', 'accountant',
+      'recovery_agent', 'grivirence', 'auditor', 'hr',
+      'administration', 'sales_marketing', 'rm', 'zm', 'employee'
+    ]
+  },
+
   admin_id: { type: mongoose.Schema.Types.ObjectId, required: true },
-  // ⏱ TTL of 10 mins. Make sure it is >= provider OTP validity window.
-  timestamp: { type: Date, default: Date.now, expires: 600 } // 10 minutes
+  timestamp: { type: Date, default: Date.now, expires: 600 }
 });
+
 
 const VerifiedAadhaarSchema = new mongoose.Schema({
   aadhaar_number: { type: String, required: true, unique: true, index: true },
+  role: {
+    type: String,
+    required: true,
+    enum: [
+      'manager', 'asst_manager', 'cashier', 'accountant',
+      'recovery_agent', 'grivirence', 'auditor', 'hr',
+      'administration', 'sales_marketing', 'rm', 'zm', 'employee'
+    ]
+  },
   data: { type: Object, required: true },
-  // ⏱ TTL of 30 mins. After that, Aadhaar must be re-verified
-  timestamp: { type: Date, default: Date.now, expires: '7d' }  // 1 day
+  timestamp: { type: Date, default: Date.now, expires: '7d' }
 });
 
-// Create models
 const AadhaarSession = mongoose.model('AadhaarSession', AadhaarSessionSchema);
 const VerifiedAadhaar = mongoose.model('VerifiedAadhaar', VerifiedAadhaarSchema);
 
-
 function Controller() {
-  // Bind all methods to the instance
-  this.generateToken = this.generateToken.bind(this);
+  // Bind all methods
   this.sendTokenResponse = this.sendTokenResponse.bind(this);
   this.registerAdmin = this.registerAdmin.bind(this);
   this.login = this.login.bind(this);
   this.logout = this.logout.bind(this);
+  this.refreshToken = this.refreshToken.bind(this);
   this.getProfile = this.getProfile.bind(this);
   this.updateProfile = this.updateProfile.bind(this);
-
+  this.changePassword = this.changePassword.bind(this);
   this.authenticate = this.authenticate.bind(this);
   this.authorizeApi = this.authorizeApi.bind(this);
-  this.generateEmployeeAadhaarOtp = this.generateEmployeeAadhaarOtp.bind(this);
-  this.verifyEmployeeAadhaarOtp = this.verifyEmployeeAadhaarOtp.bind(this);
-  this.createEmployeeWithAadhaar = this.createEmployeeWithAadhaar.bind(this);
+  this.generateUserAadhaarOtp = this.generateUserAadhaarOtp.bind(this);
+  this.verifyUserAadhaarOtp = this.verifyUserAadhaarOtp.bind(this);
+  this.createUserWithAadhaar = this.createUserWithAadhaar.bind(this);
+  this.createUser = this.createUser.bind(this);
+  this.getAllAdmins = this.getAllAdmins.bind(this);
+  this.getAllUsers = this.getAllUsers.bind(this);
+  this.getUsersByRole = this.getUsersByRole.bind(this);
+  this.getUsersByBranch = this.getUsersByBranch.bind(this);
+  this.getUsersByDepartment = this.getUsersByDepartment.bind(this);
+  this.updateUserStatus = this.updateUserStatus.bind(this);
+  this.updateUserPermissions = this.updateUserPermissions.bind(this);
 }
 
 
@@ -121,29 +143,435 @@ Controller.prototype.authorizeApi = async function (token) {
     throw new Error(`API Authorization failed: ${err.response?.data?.message || err.message}`);
   }
 };
+// Send token response with refresh token
+Controller.prototype.sendTokenResponse = function(user, statusCode, res) {
+  const token = generateToken(user._id, user.role, user.department, user.branch);
+  const refreshToken = generateRefreshToken(user._id);
 
+  // Cookie options
+  const cookieOptions = {
+    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/'
+  };
 
-// ==========================
-// Generate Aadhaar OTP (Emp)
-// ==========================
+  // Set cookies
+  res.cookie('token', token, cookieOptions);
+  res.cookie('refreshToken', refreshToken, { ...cookieOptions, path: '/auth/refresh' });
 
-Controller.prototype.generateEmployeeAadhaarOtp = async function(req, res) {
+  res.status(statusCode).json({
+    success: true,
+    message: 'Authentication successful',
+    token,
+    refreshToken,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      branch: user.branch,
+      designation: user.designation,
+      employeeId: user.employeeId
+    }
+  });
+};
+
+// Refresh Token
+Controller.prototype.refreshToken = async function(req, res) {
   try {
-    const { aadhaar_number, phone_number, email_id } = req.body;
+    const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+    
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh token required',
+        code: 'NO_REFRESH_TOKEN'
+      });
+    }
 
-    if (!req.user || req.user.role !== 'admin') {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'fehfwedneod');
+    
+    if (decoded.type !== 'refresh') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token type',
+        code: 'INVALID_TOKEN_TYPE'
+      });
+    }
+
+    const user = await TWgoldUser.findById(decoded.id);
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found or inactive',
+        code: 'USER_INACTIVE'
+      });
+    }
+
+    // Generate new tokens
+    const newToken = generateToken(user._id, user.role, user.department, user.branch);
+    const newRefreshToken = generateRefreshToken(user._id);
+
+    // Update cookies
+    const cookieOptions = {
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/'
+    };
+
+    res.cookie('token', newToken, cookieOptions);
+    res.cookie('refreshToken', newRefreshToken, { ...cookieOptions, path: '/auth/refresh' });
+
+    res.json({
+      success: true,
+      message: 'Token refreshed successfully',
+      token: newToken,
+      refreshToken: newRefreshToken
+    });
+
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid or expired refresh token',
+      code: 'INVALID_REFRESH_TOKEN'
+    });
+  }
+};
+
+// Register Admin (public route, only for initial admin)
+
+Controller.prototype.registerAdmin = async function (req, res) {
+  try {
+    const {
+      email,
+      password,
+      name,
+      department,
+      contactNumber,
+      branch,
+      designation,
+      adminLevel = 'normal'
+    } = req.body;
+
+    if (!email || !password || !name || !department) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide all required fields',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    // Check existing user
+    const existingUser = await TWgoldUser.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: 'User already exists',
+        code: 'ADMIN_EXISTS'
+      });
+    }
+
+    // Limit admins
+    const adminCount = await TWgoldUser.countDocuments({ role: 'admin' });
+    if (adminCount >= 5) {
       return res.status(403).json({
         success: false,
-        message: 'Only admin users can create employees',
-        code: 'ADMIN_ACCESS_REQUIRED'
+        message: 'Admin registration is closed',
+        code: 'ADMIN_REGISTRATION_CLOSED'
+      });
+    }
+
+    // Create base user
+    const user = new TWgoldUser({
+      email,
+      password,
+      name,
+      role: 'admin',
+      department,
+      branch: branch || 'Head Office',
+      designation: designation || 'Administrator'
+    });
+    
+
+    await user.save(); // 🔥 employeeId auto-generated here
+
+    // 🔥 Create Admin Profile (NOT EmploymentProfile)
+    const adminProfile = new TWgoldAdmin({
+      user: user._id,
+      department,
+      adminLevel,
+      contactNumber,
+      permissions: ['manage_users', 'write', 'delete']
+    });
+
+    await adminProfile.save();
+
+    this.sendTokenResponse(user, 201, res);
+
+  } catch (error) {
+    console.error('Admin registration error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Registration failed',
+      code: 'REGISTRATION_FAILED'
+    });
+  }
+};
+
+
+
+// Login
+Controller.prototype.login = async function(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password required',
+        code: 'MISSING_CREDENTIALS'
+      });
+    }
+
+    const user = await TWgoldUser.findOne({ email }).select('+password');
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials',
+        code: 'INVALID_CREDENTIALS'
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account deactivated',
+        code: 'ACCOUNT_DEACTIVATED'
+      });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials',
+        code: 'INVALID_CREDENTIALS'
+      });
+    }
+
+    await user.updateLastLogin();
+    this.sendTokenResponse(user, 200, res);
+
+  } catch (error) {
+    console.error('Login error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Login failed',
+      code: 'LOGIN_FAILED'
+    });
+  }
+};
+
+// Logout
+Controller.prototype.logout = async function(req, res) {
+  try {
+    res.clearCookie('token');
+    res.clearCookie('refreshToken');
+    
+    res.status(200).json({
+      success: true,
+      message: 'Logout successful',
+      code: 'LOGOUT_SUCCESS'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Logout failed',
+      code: 'LOGOUT_FAILED'
+    });
+  }
+};
+
+// Get Profile
+Controller.prototype.getProfile = async function(req, res) {
+  try {
+    const user = req.user;
+    
+    // Get employment profile
+    const employmentProfile = await EmploymentProfile.findOne({ user: user._id })
+      .populate('user', 'name email role department branch designation employeeId');
+
+    const response = {
+      success: true,
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          department: user.department,
+          branch: user.branch,
+          designation: user.designation,
+          employeeId: user.employeeId,
+          profileImage: user.profileImage,
+          isActive: user.isActive,
+          lastLogin: user.lastLogin,
+          permissions: user.permissions
+        }
+      }
+    };
+
+    if (employmentProfile) {
+      response.data.employmentProfile = employmentProfile;
+    }
+
+    res.status(200).json(response);
+
+  } catch (error) {
+    console.error('Get profile error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch profile',
+      code: 'PROFILE_FETCH_FAILED'
+    });
+  }
+};
+
+// Update Profile
+Controller.prototype.updateProfile = async function(req, res) {
+  try {
+    const user = req.user;
+    const { name, department, branch, designation, profileImage } = req.body;
+
+    // Update user fields
+    if (name) user.name = name;
+    if (department) user.department = department;
+    if (branch) user.branch = branch;
+    if (designation) user.designation = designation;
+    if (profileImage) user.profileImage = profileImage;
+
+    await user.save();
+
+    // Update employment profile if provided
+    if (req.body.employmentProfile) {
+      await EmploymentProfile.findOneAndUpdate(
+        { user: user._id },
+        req.body.employmentProfile,
+        { new: true, runValidators: true }
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          department: user.department,
+          branch: user.branch,
+          designation: user.designation
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Profile update failed',
+      code: 'PROFILE_UPDATE_FAILED'
+    });
+  }
+};
+
+// Change Password
+Controller.prototype.changePassword = async function(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = req.user;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current and new password required',
+        code: 'MISSING_PASSWORDS'
+      });
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect',
+        code: 'INCORRECT_CURRENT_PASSWORD'
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully',
+      code: 'PASSWORD_CHANGED'
+    });
+
+  } catch (error) {
+    console.error('Change password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Password change failed',
+      code: 'PASSWORD_CHANGE_FAILED'
+    });
+  }
+};
+
+// ========================
+// Aadhaar OTP Generation (for all roles except admin)
+// ========================
+Controller.prototype.generateUserAadhaarOtp = async function(req, res) {
+  try {
+    const { aadhaar_number, phone_number, email_id, role } = req.body;
+
+    // Validate role - admin cannot be created through this route
+    if (role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin users cannot be created through this route. Use admin registration endpoint.',
+        code: 'INVALID_ROLE_FOR_AADHAAR'
+      });
+    }
+
+    // Validate role exists in enum
+    const validRoles = [
+      'manager', 'asst_manager', 'cashier', 'accountant', 
+      'recovery_agent', 'grivirence', 'auditor', 'hr', 
+      'administration', 'sales_marketing', 'rm', 'zm', 'employee','go_auditor'
+    ];
+    
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Must be one of: ${validRoles.join(', ')}`,
+        code: 'INVALID_ROLE'
       });
     }
 
     // Basic validation
-    if (!aadhaar_number || !phone_number) {
+    if (!aadhaar_number || !phone_number || !role) {
       return res.status(400).json({
         success: false,
-        message: "Aadhaar number and phone number are required",
+        message: "Aadhaar number, phone number, and role are required",
         code: 'MISSING_AADHAAR_DETAILS'
       });
     }
@@ -168,15 +596,15 @@ Controller.prototype.generateEmployeeAadhaarOtp = async function(req, res) {
       });
     }
 
-    // ✅ Prevent duplicate employees with same Aadhaar
-    const existingEmployee = await TWgoldEmployee.findOne({ 
-      'aadhaarVerification.aadhaar_number': aadhaar_number 
+    // Check if user already exists with this Aadhaar
+    const existingProfile = await EmploymentProfile.findOne({ 
+      'aadhaarDetails.aadhaar_number': aadhaar_number 
     });
 
-    if (existingEmployee) {
+    if (existingProfile) {
       return res.status(409).json({
         success: false,
-        message: "An employee with this Aadhaar number already exists",
+        message: "A user with this Aadhaar number already exists",
         code: 'DUPLICATE_AADHAAR'
       });
     }
@@ -192,24 +620,23 @@ Controller.prototype.generateEmployeeAadhaarOtp = async function(req, res) {
       throw new Error("Failed to authorize with API");
     }
 
-    // ✅ Payload per v2.0 spec
+    // Payload per v2.0 spec
     const payload = {
       "@entity": "in.co.sandbox.kyc.aadhaar.okyc.otp.request",
       aadhaar_number: aadhaar_number,
-      consent: "y", // docs allow "Y" or "y"
+      consent: "Y",
       reason: "Employee KYC Verification for Gold Loan Business",
     };
 
     const headers = {
       accept: "application/json",
-      Authorization: authorizedToken, // use capital A like above for consistency
+      Authorization: authorizedToken,
       "x-api-key": process.env.API_KEY,
       "x-api-version": "2.0",
       "content-type": "application/json",
     };
 
-
-    // ❓ This delay is not mentioned in docs. Keep only if you have rate-limiting reasons.
+    // Optional delay for rate limiting
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     await delay(8000 + Math.random() * 4000);
 
@@ -224,35 +651,25 @@ Controller.prototype.generateEmployeeAadhaarOtp = async function(req, res) {
 
     const apiData = response?.data?.data;
 
-
-    // 🔒 Defensive checks on response structure
-    if (!apiData || !apiData.reference_id) {
-      return res.status(502).json({
-        success: false,
-        message: "Invalid response from Aadhaar API",
-        code: 'AADHAAR_INVALID_RESPONSE'
+    if (!apiData?.reference_id) {
+      return res.status(200).json({
+        success: true,
+        sandbox: true,
+        message: 'Sandbox OTP simulated',
+        reference_id: crypto.randomUUID(),
+        aadhaar_number: aadhaar_number.slice(0,4) + 'XXXX' + aadhaar_number.slice(8),
+        role,
+        code: 'SANDBOX_OTP_SIMULATED'
       });
     }
+    
 
-    // ✅ Optional: validate @entity to ensure we got expected response
-    if (apiData['@entity'] && apiData['@entity'] !== 'in.co.sandbox.kyc.aadhaar.okyc.otp.response') {
-      console.warn('Unexpected @entity in OTP response:', apiData['@entity']);
-    }
-
-    // 🚦 Handle cooldown / "OTP already generated" scenarios explicitly
-    if (typeof apiData.message === 'string' && apiData.message.toLowerCase().includes('try after')) {
-      return res.status(429).json({
-        success: false,
-        message: apiData.message || 'OTP already generated. Please try again after some time.',
-        code: 'OTP_RATE_LIMITED'
-      });
-    }
-
-    // Store the Aadhaar verification session
+    // Store the Aadhaar verification session with role
     const aadhaarSession = {
       aadhaar_number: aadhaar_number,
       phone_number: phone_number,
       email_id: email_id,
+      role: role, // Store role for later use
       reference_id: apiData.reference_id,
       authorization_token: authorizedToken,
       admin_id: req.user._id,
@@ -261,25 +678,26 @@ Controller.prototype.generateEmployeeAadhaarOtp = async function(req, res) {
 
     await AadhaarSession.create(aadhaarSession);
 
-
     return res.status(200).json({
       success: true,
       message: apiData.message || "OTP sent successfully to registered mobile number!",
       reference_id: apiData.reference_id,
       aadhaar_number: aadhaar_number.substring(0, 4) + 'XXXX' + aadhaar_number.substring(8),
+      role: role,
       code: 'OTP_SENT_SUCCESS'
     });
 
   } catch (err) {
-    console.error("Error generating Aadhaar OTP for employee:", {
+    console.log(err)
+    console.error("Error generating Aadhaar OTP:", {
       message: err.message,
       response: err.response?.data,
       stack: err.stack
     });
     
-    // Prefer returning the exact Aadhaar API message when available
     if (err.response?.data) {
       const apiError = err.response.data;
+      console.log(apiError)
       return res.status(err.response.status || 400).json({
         success: false,
         message: apiError.message || "Aadhaar OTP generation failed",
@@ -295,7 +713,6 @@ Controller.prototype.generateEmployeeAadhaarOtp = async function(req, res) {
         code: 'AADHAAR_SERVICE_TIMEOUT'
       });
     }
-
     return res.status(500).json({
       success: false,
       message: "Failed to generate Aadhaar OTP",
@@ -305,21 +722,27 @@ Controller.prototype.generateEmployeeAadhaarOtp = async function(req, res) {
   }
 };
 
-
 // ========================
-// Verify Aadhaar OTP (Emp)
+// Verify Aadhaar OTP (for all roles except admin)
 // ========================
-
-Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
+Controller.prototype.verifyUserAadhaarOtp = async function(req, res) {
   try {
-    const { aadhaar_number, otp, reference_id } = req.body;
+    const { aadhaar_number, otp, reference_id, role } = req.body;
 
-
-    if (!aadhaar_number || !otp || !reference_id) {
+    if (!aadhaar_number || !otp || !reference_id || !role) {
       return res.status(400).json({
         success: false,
-        message: "Aadhaar number, OTP and reference ID are required",
+        message: "Aadhaar number, OTP, reference ID, and role are required",
         code: 'MISSING_VERIFICATION_DETAILS'
+      });
+    }
+
+    // Validate role - admin cannot be created through this route
+    if (role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin users cannot be created through this route',
+        code: 'INVALID_ROLE_FOR_AADHAAR'
       });
     }
 
@@ -333,10 +756,11 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
       });
     }
 
-    // Retrieve stored session (guard against mismatch)
+    // Retrieve stored session
     const aadhaarSession = await AadhaarSession.findOne({ 
       aadhaar_number: aadhaar_number, 
-      reference_id: String(reference_id)
+      reference_id: String(reference_id),
+      role: role // Ensure role matches
     });
 
     if (!aadhaarSession) {
@@ -356,14 +780,11 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
 
     const headers = {
       accept: 'application/json',
-      // 🔁 Keep header key consistent with generate call
       Authorization: aadhaarSession.authorization_token,
       'x-api-key': process.env.API_KEY,
       'x-api-version': '2.0',
       'content-type': 'application/json'
     };
-
-
 
     const response = await axios.post(
       'https://api.sandbox.co.in/kyc/aadhaar/okyc/otp/verify',
@@ -376,20 +797,13 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
 
     const apiData = response?.data?.data;
 
-
-    // 🔒 Extra safety: ensure we have data and expected @entity
     if (!apiData) {
-      // Clean up session on invalid response
       await AadhaarSession.deleteOne({ aadhaar_number, reference_id });
       return res.status(502).json({
         success: false,
         message: 'Invalid Aadhaar verification response',
         code: 'AADHAAR_INVALID_RESPONSE'
       });
-    }
-
-    if (apiData['@entity'] && apiData['@entity'] !== 'in.co.sandbox.kyc.aadhaar.okyc') {
-      console.warn('Unexpected @entity in Verify OTP response:', apiData['@entity']);
     }
 
     if (apiData.status === "VALID") {
@@ -399,7 +813,7 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
         .update(aadhaar_number + process.env.AADHAAR_HASH_SALT)
         .digest('hex');
 
-      // Prepare verified Aadhaar data (tolerant to missing non-critical fields)
+      // Prepare verified Aadhaar data with role
       const verifiedAadhaarData = {
         aadhaar_number: aadhaar_number,
         aadhaar_hash: aadhaar_hash,
@@ -412,14 +826,15 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
         gender: apiData.gender || '',
         phone_number: aadhaarSession.phone_number,
         email_id: aadhaarSession.email_id || '',
-        photo: apiData.photo || null,               // base64 JPEG
+        photo: apiData.photo || null,
         is_otp_verified: true,
-        permanent_address: apiData.address || null, // structured object
+        permanent_address: apiData.address || null,
         year_of_birth: apiData.year_of_birth || null,
         status: apiData.status,
         message: apiData.message || '',
         timestamp: response.data.timestamp,
-        isDeleted: false
+        isDeleted: false,
+        role: aadhaarSession.role // Store role with Aadhaar data
       };
 
       // Store verified data temporarily
@@ -432,12 +847,11 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
         { upsert: true, new: true }
       );
 
-      // Clean up the OTP session (used successfully)
+      // Clean up the OTP session
       await AadhaarSession.deleteOne({ 
         aadhaar_number: aadhaar_number, 
         reference_id: reference_id 
       });
-
 
       return res.status(200).json({
         success: true,
@@ -449,15 +863,15 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
           gender: apiData.gender,
           full_address: apiData.full_address
         },
+        role: aadhaarSession.role,
         code: 'AADHAAR_VERIFIED'
       });
     } else {
-      // ❌ Wrong OTP / INVALID status -> cleanup
+      // Wrong OTP / INVALID status -> cleanup
       await AadhaarSession.deleteOne({ 
         aadhaar_number: aadhaar_number, 
         reference_id: reference_id 
       });
-
 
       return res.status(400).json({
         success: false,
@@ -466,14 +880,12 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
       });
     }
   } catch (err) {
-    console.error('Error verifying Aadhaar OTP for employee:', {
+    console.error('Error verifying Aadhaar OTP:', {
       message: err.message,
       response: err.response?.data,
       stack: err.stack
     });
 
-    // ⚠️ On unexpected error we cleanup session,
-    // but be aware this forces user to restart flow.
     if (req.body.aadhaar_number && req.body.reference_id) {
       await AadhaarSession.deleteOne({ 
         aadhaar_number: req.body.aadhaar_number, 
@@ -508,12 +920,10 @@ Controller.prototype.verifyEmployeeAadhaarOtp = async function(req, res) {
   }
 };
 
-
 // ===============================
-// Create Employee with Aadhaar ✔️
+// Create User with Aadhaar (for all roles except admin)
 // ===============================
-
-Controller.prototype.createEmployeeWithAadhaar = async function(req, res) {
+Controller.prototype.createUserWithAadhaar = async function(req, res) {
   let user = null;
   
   try {
@@ -521,222 +931,182 @@ Controller.prototype.createEmployeeWithAadhaar = async function(req, res) {
       email, 
       password, 
       name, 
-      employeeId,
-      position,
+      role,
       department,
-      manager,
-      salary,
-      joinDate,
-      skills,
-      responsibilities,
-      permissions,
-      assignedBranch,
-      contactNumber,
-      emergencyContact,
-      shiftTiming,
+      branch,
+      designation,
+      reportsTo,
       aadhaar_number,
-      certification,
-      maxLoanApprovalLimit
+      permissions 
     } = req.body;
 
+    const mappedProfileData = mapEmployeePayload(req.body);
 
-    // ✅ Only admin can create employees
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only admin users can create employees',
-        code: 'ADMIN_ACCESS_REQUIRED'
-      });
-    }
 
-    // Validation of all required fields
-    const requiredFields = [
-      'email', 'password', 'name', 'employeeId', 
-      'position', 'department', 'manager', 'aadhaar_number',
-      'assignedBranch', 'contactNumber', 'emergencyContact', 'shiftTiming'
-    ];
-
+    // Validate required fields
+    const requiredFields = ['email', 'password', 'name', 'role', 'aadhaar_number'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
     if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
         message: `Missing required fields: ${missingFields.join(', ')}`,
-        code: 'MISSING_REQUIRED_FIELDS',
-        missingFields
+        code: 'MISSING_REQUIRED_FIELDS'
       });
     }
 
-    // Validate emergency contact structure
-    if (!emergencyContact.name || !emergencyContact.relationship || !emergencyContact.phone) {
+    // Validate role - admin cannot be created through this route
+    if (role === 'admin') {
       return res.status(400).json({
         success: false,
-        message: 'Emergency contact must include name, relationship, and phone',
-        code: 'INVALID_EMERGENCY_CONTACT'
+        message: 'Admin users cannot be created through this route. Use admin registration endpoint.',
+        code: 'INVALID_ROLE_FOR_AADHAAR'
       });
     }
 
-    // Validate shift timing structure
-    if (!shiftTiming.start || !shiftTiming.end) {
+    // Validate role exists in enum
+    const validRoles = [
+      'manager', 'asst_manager', 'cashier', 'accountant', 
+      'recovery_agent', 'grivirence', 'auditor', 'hr', 
+      'administration', 'sales_marketing', 'rm', 'zm', 'employee','go_auditor'
+    ];
+    
+    if (!validRoles.includes(role)) {
       return res.status(400).json({
         success: false,
-        message: 'Shift timing must include start and end times',
-        code: 'INVALID_SHIFT_TIMING'
+        message: `Invalid role. Must be one of: ${validRoles.join(', ')}`,
+        code: 'INVALID_ROLE'
       });
     }
 
-    // ✅ Aadhaar must be verified recently (from VerifiedAadhaar)
-    const verifiedAadhaarDoc = await VerifiedAadhaar.findOne({ aadhaar_number: aadhaar_number });
+    // Check Aadhaar verification
+    const verifiedAadhaarDoc = await VerifiedAadhaar.findOne({
+      'data.aadhaar_number': aadhaar_number
+    });
+    
     if (!verifiedAadhaarDoc || !verifiedAadhaarDoc.data.is_otp_verified) {
       return res.status(400).json({
         success: false,
-        message: 'Aadhaar must be verified before creating employee',
+        message: 'Aadhaar must be verified before creating user',
         code: 'AADHAAR_NOT_VERIFIED'
       });
     }
 
-    // Optional: extra safety to prevent using very old verification
-    // if (Date.now() - new Date(verifiedAadhaarDoc.timestamp).getTime() > 30 * 60 * 1000) { ... }
+    // Ensure role matches the one used during Aadhaar verification
+    if (verifiedAadhaarDoc.data.role !== role) {
+      return res.status(400).json({
+        success: false,
+        message: `Aadhaar was verified for role: ${verifiedAadhaarDoc.data.role}. Please use the correct role.`,
+        code: 'ROLE_MISMATCH'
+      });
+    }
+    
 
-    // Check if user already exists
-    const existingUser = await TWgoldUser.findOne({ email: email.toLowerCase() });
+    // Check if user exists
+    const existingUser = await TWgoldUser.findOne({ email });
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: 'User with this email already exists',
+        message: 'User already exists',
         code: 'USER_EXISTS'
       });
     }
 
-    // Check if employee with this employeeId already exists
-    const existingEmployee = await TWgoldEmployee.findOne({ employeeId });
-    if (existingEmployee) {
-      return res.status(409).json({
-        success: false,
-        message: 'Employee with this ID already exists',
-        code: 'EMPLOYEE_ID_EXISTS'
-      });
-    }
-
-    // Verify manager exists
-    const managerDoc = await TWgoldManager.findById(manager);
-    if (!managerDoc) {
-      return res.status(404).json({
-        success: false,
-        message: 'Manager not found',
-        code: 'MANAGER_NOT_FOUND'
-      });
-    }
-
-    // Get admin profile
-    const adminProfile = await TWgoldAdmin.findOne({ user: req.user._id });
-    if (!adminProfile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Admin profile not found',
-        code: 'ADMIN_PROFILE_NOT_FOUND'
-      });
-    }
+    // Get default permissions based on role
+    const defaultPermissions = this.getDefaultPermissionsForRole(role, branch);
 
     // Create user
     user = new TWgoldUser({
-      email: email.toLowerCase(),
+      email,
       password,
-      name: name.trim(),
-      role: 'employee',
-      isActive: true
+      name,
+      role,
+      department,
+      branch: branch || undefined,
+      designation: designation || this.getDefaultDesignationForRole(role),
+      reportsTo,
+      permissions: permissions || defaultPermissions
     });
 
     await user.save();
 
-    // Create employee with Aadhaar verification data embedded
-    const employee = new TWgoldEmployee({
+    // Prepare Aadhaar data for employment profile
+    const aadhaarData = {
+      aadhaar_number: aadhaar_number,
+      aadhaar_hash: crypto
+        .createHash('sha256')
+        .update(aadhaar_number + process.env.AADHAAR_HASH_SALT)
+        .digest('hex'),
+      name_on_aadhaar: verifiedAadhaarDoc.data.name || '',
+      dob: verifiedAadhaarDoc.data.date_of_birth || '',
+      year_of_birth: verifiedAadhaarDoc.data.year_of_birth || null,
+      gender: verifiedAadhaarDoc.data.gender || '',
+      full_address: verifiedAadhaarDoc.data.full_address || '',
+      photo_base64: verifiedAadhaarDoc.data.photo || null,
+      is_otp_verified: true,
+      reference_id: verifiedAadhaarDoc.data.reference_id,
+      raw_response: { ...verifiedAadhaarDoc.data },
+      timestamp: Date.now()
+    };
+
+    // Determine status based on role
+    const status = this.getDefaultStatusForRole(role);
+
+    // Create employment profile
+    const employmentProfile = new EmploymentProfile({
       user: user._id,
-      employeeId,
-      aadhaarVerification: verifiedAadhaarDoc.data, // 👈 matches your TWgoldEmployee schema
-      position,
-      department,
-      salary: salary || 0,
-      manager: managerDoc._id,
-      admin: adminProfile._id,
-      joinDate: joinDate || new Date(),
-      skills: skills || [],
-      responsibilities: responsibilities || [],
-      permissions: permissions || [],
-      assignedBranch,
-      contactNumber,
-      emergencyContact,
-      shiftTiming,
-      certification: certification || [],
-      maxLoanApprovalLimit: maxLoanApprovalLimit || 0,
-      isActive: true,
-      performanceMetrics: {
-        loansProcessed: 0,
-        goldAppraisals: 0,
-        recoveryRate: 0,
-        customerSatisfaction: 0
-      }
+      employeeId: user.employeeId,
+      aadhaarDetails: aadhaarData,
+      ...mappedProfileData,
+      status: this.getDefaultStatusForRole(role)
     });
+    
 
-    await employee.save();
-    // ✅ Clean up verified Aadhaar cached record
-    await VerifiedAadhaar.deleteOne({ aadhaar_number: aadhaar_number });
+    await employmentProfile.save();
 
-    // Populate response data
-    const managerUser = await TWgoldUser.findById(managerDoc.user);
-
+    // Populate reportsTo if provided
+    let reportsToUser = null;
+    if (reportsTo) {
+      reportsToUser = await TWgoldUser.findById(reportsTo).select('name email role');
+    }
 
     res.status(201).json({
       success: true,
-      message: 'Employee created successfully with Aadhaar verification',
+      message: `${this.getRoleDisplayName(role)} created successfully with Aadhaar verification`,
       data: {
         user: {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          roleDisplay: this.getRoleDisplayName(role),
+          department: user.department,
+          branch: user.branch,
+          designation: user.designation,
+          employeeId: user.employeeId
         },
-        employee: {
-          id: employee._id,
-          employeeId: employee.employeeId,
-          position: employee.position,
-          department: employee.department,
-          aadhaar_verified: true,
-          aadhaar_name: verifiedAadhaarDoc.data.name,
-          assignedBranch: employee.assignedBranch,
-          joinDate: employee.joinDate,
-          admin: {
-            id: adminProfile._id,
-            name: req.user.name
-          },
-          manager: {
-            id: managerDoc._id,
-            name: managerUser.name
-          }
+        reportsTo: reportsToUser,
+        employmentProfile: {
+          id: employmentProfile._id,
+          aadhaarVerified: true,
+          status: status
         }
       },
-      code: 'EMPLOYEE_CREATED_SUCCESS'
+      code: 'USER_CREATED_SUCCESS'
     });
+      // Clean up verified Aadhaar
+      await VerifiedAadhaar.deleteOne({ aadhaar_number });
 
   } catch (error) {
-    console.error('Create employee with Aadhaar error:', {
-      message: error.message,
-      stack: error.stack,
-      code: error.code,
-      name: error.name
-    });
-
-    // Cleanup user if employee creation failed
+    console.error('Create user with Aadhaar error:', error);
+    
+    // Cleanup user if created
     if (user && user._id) {
-      try {
-        await TWgoldUser.findByIdAndDelete(user._id);
-      } catch (cleanupError) {
-        console.error('Error cleaning up user:', cleanupError);
-      }
+      await TWgoldUser.findByIdAndDelete(user._id);
     }
 
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
-      const friendlyField = field.includes('aadhaarVerification.aadhaar_number') ? 'Aadhaar number' : field;
+      const friendlyField = field.includes('aadhaarDetails.aadhaar_number') ? 'Aadhaar number' : field;
       
       return res.status(409).json({
         success: false,
@@ -758,15 +1128,266 @@ Controller.prototype.createEmployeeWithAadhaar = async function(req, res) {
 
     return res.status(500).json({
       success: false,
-      message: 'Employee creation failed',
+      message: 'User creation failed',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-      code: 'EMPLOYEE_CREATION_FAILED'
+      code: 'USER_CREATION_FAILED'
     });
   }
 };
 
+// ===============================
+// Create User without Aadhaar (for all roles except admin)
+// ===============================
+Controller.prototype.createUser = async function(req, res) {
+  try {
+    const { 
+      email, 
+      password, 
+      name, 
+      role,
+      department,
+      branch,
+      designation,
+      reportsTo,
+      permissions 
+    } = req.body;
 
-// Get Aadhaar verification status (optional helper endpoint)
+    // Validation
+    const requiredFields = ['email', 'password', 'name', 'role', 'department'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missingFields.join(', ')}`,
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    // Validate role - admin cannot be created through this route
+    if (role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin users cannot be created through this route. Use admin registration endpoint.',
+        code: 'INVALID_ROLE_FOR_AADHAAR'
+      });
+    }
+
+    // Validate role exists in enum
+    const validRoles = [
+      'manager', 'asst_manager', 'cashier', 'accountant', 
+      'recovery_agent', 'grivirence', 'auditor', 'hr', 
+      'administration', 'sales_marketing', 'rm', 'zm', 'employee','go_auditor'
+    ];
+    
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Must be one of: ${validRoles.join(', ')}`,
+        code: 'INVALID_ROLE'
+      });
+    }
+
+    const existingUser = await TWgoldUser.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: 'User already exists',
+        code: 'USER_EXISTS'
+      });
+    }
+
+    // Get default permissions based on role
+    const defaultPermissions = this.getDefaultPermissionsForRole(role, branch);
+
+    const user = new TWgoldUser({
+      email,
+      password,
+      name,
+      role,
+      department,
+      branch: branch || 'Main Branch',
+      designation: designation || this.getDefaultDesignationForRole(role),
+      reportsTo,
+      permissions: permissions || defaultPermissions
+    });
+
+    await user.save();
+
+    // Determine status based on role
+    const status = this.getDefaultStatusForRole(role);
+
+    // Create employment profile
+    const employmentProfile = new EmploymentProfile({
+      user: user._id,
+      employeeId: user.employeeId,
+      status: status
+    });
+
+    await employmentProfile.save();
+
+    res.status(201).json({
+      success: true,
+      message: `${this.getRoleDisplayName(role)} created successfully`,
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          roleDisplay: this.getRoleDisplayName(role),
+          department: user.department,
+          branch: user.branch,
+          designation: user.designation,
+          employeeId: user.employeeId
+        }
+      },
+      code: 'USER_CREATED_SUCCESS'
+    });
+
+  } catch (error) {
+    console.error('Create user error:', error);
+    
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'Duplicate entry',
+        code: 'DUPLICATE_ENTRY'
+      });
+    }
+
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: messages,
+        code: 'VALIDATION_ERROR'
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'User creation failed',
+      code: 'USER_CREATION_FAILED'
+    });
+  }
+};
+
+// ========================
+// Helper Methods
+// ========================
+
+// Get default permissions for a role
+Controller.prototype.getDefaultPermissionsForRole = function(role, branch = 'Main Branch') {
+  const permissionMap = {
+    manager: [
+      { module: 'loan_management', access: 'approve', scope: 'branch' },
+      { module: 'employee_management', access: 'read', scope: 'branch' },
+      { module: 'customer_management', access: 'write', scope: 'branch' }
+    ],
+    asst_manager: [
+      { module: 'loan_management', access: 'write', scope: 'branch' },
+      { module: 'customer_management', access: 'write', scope: 'branch' }
+    ],
+    cashier: [
+      { module: 'finance', access: 'write', scope: 'branch' },
+      { module: 'customer_management', access: 'read', scope: 'self' }
+    ],
+    accountant: [
+      { module: 'finance', access: 'write', scope: 'branch' },
+      { module: 'reporting', access: 'write', scope: 'branch' }
+    ],
+    recovery_agent: [
+      { module: 'loan_management', access: 'read', scope: 'self' },
+      { module: 'customer_management', access: 'write', scope: 'self' }
+    ],
+    grivirence: [
+      { module: 'reporting', access: 'write', scope: 'branch' },
+      { module: 'customer_management', access: 'read', scope: 'branch' }
+    ],
+    auditor: [
+      { module: 'system_admin', access: 'read', scope: 'all' },
+      { module: 'reporting', access: 'read', scope: 'all' }
+    ],
+    hr: [
+      { module: 'employee_management', access: 'manage', scope: 'branch' },
+      { module: 'reporting', access: 'read', scope: 'branch' }
+    ],
+    administration: [
+      { module: 'system_admin', access: 'write', scope: 'branch' },
+      { module: 'employee_management', access: 'read', scope: 'branch' }
+    ],
+    sales_marketing: [
+      { module: 'customer_management', access: 'write', scope: 'branch' },
+      { module: 'reporting', access: 'read', scope: 'self' }
+    ],
+    rm: [
+      { module: 'loan_management', access: 'approve', scope: 'region' },
+      { module: 'employee_management', access: 'read', scope: 'region' }
+    ],
+    zm: [
+      { module: 'loan_management', access: 'approve', scope: 'all' },
+      { module: 'employee_management', access: 'manage', scope: 'region' }
+    ],
+    employee: [
+      { module: 'customer_management', access: 'read', scope: 'self' }
+    ]
+  };
+
+  return permissionMap[role] || [{ module: 'customer_management', access: 'read', scope: 'self' }];
+};
+
+// Get default designation for a role
+Controller.prototype.getDefaultDesignationForRole = function(role) {
+  const designationMap = {
+    manager: 'Manager',
+    asst_manager: 'Assistant Manager',
+    cashier: 'Cashier',
+    accountant: 'Accountant',
+    recovery_agent: 'Recovery Agent',
+    grivirence: 'Grievance Officer',
+    auditor: 'Auditor',
+    hr: 'HR Manager',
+    administration: 'Administrative Officer',
+    sales_marketing: 'Sales Executive',
+    rm: 'Regional Manager',
+    zm: 'Zone Manager',
+    employee: 'Employee'
+  };
+
+  return designationMap[role] || 'Employee';
+};
+
+// Get default status for a role
+Controller.prototype.getDefaultStatusForRole = function(role) {
+  // Managerial roles start as active, others start as probation
+  const activeRoles = ['manager', 'asst_manager', 'rm', 'zm', 'hr', 'auditor'];
+  return activeRoles.includes(role) ? 'active' : 'probation';
+};
+
+// Get display name for a role
+Controller.prototype.getRoleDisplayName = function(role) {
+  const displayMap = {
+    admin: 'Administrator',
+    manager: 'Manager',
+    asst_manager: 'Assistant Manager',
+    cashier: 'Cashier',
+    accountant: 'Accountant',
+    recovery_agent: 'Recovery Agent',
+    grivirence: 'Grievance Officer',
+    auditor: 'Auditor',
+    hr: 'HR Manager',
+    administration: 'Administrative Officer',
+    sales_marketing: 'Sales Executive',
+    rm: 'Regional Manager',
+    zm: 'Zone Manager',
+    employee: 'Employee'
+  };
+
+  return displayMap[role] || 'User';
+};
+
+// Get Aadhaar verification status (remains same)
 Controller.prototype.getAadhaarVerificationStatus = async function(req, res) {
   try {
     const { aadhaar_number } = req.params;
@@ -794,6 +1415,7 @@ Controller.prototype.getAadhaarVerificationStatus = async function(req, res) {
       data: {
         is_verified: verifiedData.data.is_otp_verified,
         name: verifiedData.data.name,
+        role: verifiedData.data.role,
         timestamp: verifiedData.timestamp
       },
       code: 'AADHAAR_STATUS_RETRIEVED'
@@ -809,1181 +1431,377 @@ Controller.prototype.getAadhaarVerificationStatus = async function(req, res) {
   }
 };
 
-// Generate JWT Token
-Controller.prototype.generateToken = function(userId, role) {
-  return jwt.sign(
-    { id: userId, role },
-    process.env.JWT_SECRET || 'fehfwedneod',
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-  );
-};
-
-// Send token response
-Controller.prototype.sendTokenResponse = function(user, statusCode, res) {
-  const token = this.generateToken(user._id, user.role);
-
-  // Cookie options for HTTP-only cookie
-  const cookieOptions = {
-    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/'
-  };
-
-  // Set HTTP-only cookie
-  res.cookie('token', token, cookieOptions);
-
-  // Also send token in response for client-side storage if needed
-  res.status(statusCode).json({
-    success: true,
-    message: 'Login successful',
-    token, // Send token in response for Axios to store
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role
-    }
-  });
-};
-
-// Register Admin only (public route)
-Controller.prototype.registerAdmin = async function(req, res) {
-  try {
-    const { email, password, name, role = 'admin', ...adminData } = req.body;
-
-    // Validation
-    if (!email || !password || !name) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide all required fields: email, password, name',
-        code: 'MISSING_FIELDS'
-      });
-    }
-
-    // Force role to be admin only for public registration
-    if (role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only admin registration is allowed through this endpoint. Use protected endpoints for other roles.',
-        code: 'ROLE_NOT_ALLOWED'
-      });
-    }
-
-    // Check if user already exists
-    const existingUser = await TWgoldUser.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: `User with this email already exists as ${existingUser.role}. Please use a different email.`,
-        code: 'USER_EXISTS',
-        existingRole: existingUser.role
-      });
-    }
-
-    // Create user
-    const user = new TWgoldUser({
-      email,
-      password,
-      name,
-      role: 'admin' // Force admin role
-    });
-
-    await user.save();
-
-    // Create admin profile
-    const adminProfile = new TWgoldAdmin({
-      user: user._id,
-      department: adminData.department || 'General',
-      permissions: adminData.permissions || ['read', 'write', 'delete', 'manage_users'],
-      adminLevel: adminData.adminLevel || 'normal',
-      contactNumber: adminData.contactNumber
-    });
-
-    await adminProfile.save();
-    this.sendTokenResponse(user, 201, res);
-
-  } catch (error) {
-    console.error('Admin registration error:', error);
-
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0];
-      return res.status(409).json({
-        success: false,
-        message: `${field} already exists`,
-        code: 'DUPLICATE_ENTRY'
-      });
-    }
-
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: messages,
-        code: 'VALIDATION_ERROR'
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: 'Admin registration failed. Please try again.',
-      code: 'REGISTRATION_FAILED'
-    });
-  }
-};
-
-
-
-// Create Employee (Protected - requires auth)
-Controller.prototype.createEmployee = async function(req, res) {
-  try {
-    const { email, password, name, ...employeeData } = req.body;
-
-    // Check if user is authenticated and is admin
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only admin users can create employees',
-        code: 'ADMIN_ACCESS_REQUIRED'
-      });
-    }
-
-    // Validation (removed admin from required fields)
-    if (!email || !password || !name || !employeeData.employeeId || 
-        !employeeData.position || !employeeData.department || 
-        !employeeData.manager) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide all required fields: email, password, name, employeeId, position, department, manager',
-        code: 'MISSING_FIELDS'
-      });
-    }
-
-    // Check if user already exists
-    const existingUser = await TWgoldUser.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'User with this email already exists',
-        code: 'USER_EXISTS'
-      });
-    }
-
-    // Verify manager exists
-    const manager = await TWgoldManager.findById(employeeData.manager);
-    if (!manager) {
-      return res.status(404).json({
-        success: false,
-        message: 'Manager not found',
-        code: 'MANAGER_NOT_FOUND'
-      });
-    }
-
-    // Create user
-    const user = new TWgoldUser({
-      email,
-      password,
-      name,
-      role: 'employee'
-    });
-
-    await user.save();
-
-    // Get admin profile to use as admin reference
-    const adminProfile = await TWgoldAdmin.findOne({ user: req.user._id });
-    if (!adminProfile) {
-      // Clean up created user if admin profile not found
-      await TWgoldUser.findByIdAndDelete(user._id);
-      return res.status(404).json({
-        success: false,
-        message: 'Admin profile not found',
-        code: 'ADMIN_PROFILE_NOT_FOUND'
-      });
-    }
-
-    // Create employee profile with admin reference from authenticated user
-    const employee = new TWgoldEmployee({
-      user: user._id,
-      employeeId: employeeData.employeeId,
-      position: employeeData.position,
-      department: employeeData.department,
-      salary: employeeData.salary,
-      manager: employeeData.manager,
-      admin: adminProfile._id, // Use admin profile ID from authenticated admin
-      joinDate: employeeData.joinDate || new Date(),
-      skills: employeeData.skills || []
-    });
-
-    await employee.save();
-
-    // Populate manager details for response
-    const managerUser = await TWgoldUser.findById(manager.user);
-
-    res.status(201).json({
-      success: true,
-      message: 'Employee created successfully',
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        },
-        employee: {
-          ...employee.toObject(),
-          admin: {
-            id: adminProfile._id,
-            name: req.user.name,
-            email: req.user.email
-          },
-          manager: {
-            id: manager._id,
-            name: managerUser.name,
-            email: managerUser.email
-          }
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Create employee error:', error);
-
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0];
-      return res.status(409).json({
-        success: false,
-        message: `${field} already exists`,
-        code: 'DUPLICATE_ENTRY'
-      });
-    }
-
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: messages,
-        code: 'VALIDATION_ERROR'
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: 'Employee creation failed',
-      code: 'EMPLOYEE_CREATION_FAILED'
-    });
-  }
-};
-
-// Create Manager (Protected - requires auth)
-Controller.prototype.createManager = async function(req, res) {
-  try {
-    const { email, password, name, ...managerData } = req.body;
-
-    // Check if user is authenticated and is admin
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only admin users can create managers',
-        code: 'ADMIN_ACCESS_REQUIRED'
-      });
-    }
-
-    // Validation (removed reportsTo from required fields)
-    if (!email || !password || !name || !managerData.department) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide all required fields: email, password, name, department',
-        code: 'MISSING_FIELDS'
-      });
-    }
-
-    // Check if user already exists
-    const existingUser = await TWgoldUser.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'User with this email already exists',
-        code: 'USER_EXISTS'
-      });
-    }
-
-    // Create user
-    const user = new TWgoldUser({
-      email,
-      password,
-      name,
-      role: 'manager'
-    });
-
-    await user.save();
-
-    // Get admin profile to use as reportsTo
-    const adminProfile = await TWgoldAdmin.findOne({ user: req.user._id });
-    if (!adminProfile) {
-      // Clean up created user if admin profile not found
-      await TWgoldUser.findByIdAndDelete(user._id);
-      return res.status(404).json({
-        success: false,
-        message: 'Admin profile not found',
-        code: 'ADMIN_PROFILE_NOT_FOUND'
-      });
-    }
-
-    // Create manager profile with admin reference from authenticated user
-    const manager = new TWgoldManager({
-      user: user._id,
-      department: managerData.department,
-      teamSize: managerData.teamSize || 0,
-      projects: managerData.projects || [],
-      reportsTo: adminProfile._id // Use admin profile ID from authenticated admin
-    });
-
-    await manager.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Manager created successfully',
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        },
-        manager: {
-          ...manager.toObject(),
-          reportsTo: {
-            id: adminProfile._id,
-            name: req.user.name,
-            email: req.user.email
-          }
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Create manager error:', error);
-
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0];
-      return res.status(409).json({
-        success: false,
-        message: `${field} already exists`,
-        code: 'DUPLICATE_ENTRY'
-      });
-    }
-
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: messages,
-        code: 'VALIDATION_ERROR'
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: 'Manager creation failed',
-      code: 'MANAGER_CREATION_FAILED'
-    });
-  }
-};
-
-// Create Grievance (Protected - requires auth)
-Controller.prototype.createGrivirence = async function(req, res) {
-  try {
-    const { email, password, name, ...grievanceData } = req.body;
-
-    // Check if user is authenticated and is admin
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only admin users can create grievance officers',
-        code: 'ADMIN_ACCESS_REQUIRED'
-      });
-    }
-
-    // Validation (removed admin from required fields)
-    if (!email || !password || !name || !grievanceData.category || 
-        !grievanceData.reportsToManager) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide all required fields: email, password, name, category, reportsToManager',
-        code: 'MISSING_FIELDS'
-      });
-    }
-
-    // Verify manager exists
-    const manager = await TWgoldManager.findById(grievanceData.reportsToManager);
-    if (!manager) {
-      return res.status(404).json({
-        success: false,
-        message: 'Manager not found',
-        code: 'MANAGER_NOT_FOUND'
-      });
-    }
-
-    // Check if user already exists
-    const existingUser = await TWgoldUser.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'User with this email already exists',
-        code: 'USER_EXISTS'
-      });
-    }
-
-    // Create user
-    const user = new TWgoldUser({
-      email,
-      password,
-      name,
-      role: 'grivirence'
-    });
-
-    await user.save();
-
-    // Get admin profile to use as admin reference
-    const adminProfile = await TWgoldAdmin.findOne({ user: req.user._id });
-    if (!adminProfile) {
-      // Clean up created user if admin profile not found
-      await TWgoldUser.findByIdAndDelete(user._id);
-      return res.status(404).json({
-        success: false,
-        message: 'Admin profile not found',
-        code: 'ADMIN_PROFILE_NOT_FOUND'
-      });
-    }
-
-    // Create grievance profile with admin reference from authenticated user
-    const grivirence = new TWgoldGrivirence({
-      user: user._id,
-      category: grievanceData.category,
-      assignedCases: grievanceData.assignedCases || [],
-      specialization: grievanceData.specialization || [],
-      maxCases: grievanceData.maxCases || 10,
-      admin: adminProfile._id, // Use admin profile ID from authenticated admin
-      reportsToManager: grievanceData.reportsToManager
-    });
-
-    await grivirence.save();
-
-    // Populate manager details for response
-    const managerUser = await TWgoldUser.findById(manager.user);
-
-    res.status(201).json({
-      success: true,
-      message: 'Grievance officer created successfully',
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        },
-        grivirence: {
-          ...grivirence.toObject(),
-          admin: {
-            id: adminProfile._id,
-            name: req.user.name,
-            email: req.user.email
-          },
-          reportsToManager: {
-            id: manager._id,
-            name: managerUser.name,
-            email: managerUser.email
-          }
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Create grievance error:', error);
-
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0];
-      return res.status(409).json({
-        success: false,
-        message: `${field} already exists`,
-        code: 'DUPLICATE_ENTRY'
-      });
-    }
-
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: messages,
-        code: 'VALIDATION_ERROR'
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: 'Grievance officer creation failed',
-      code: 'GRIEVANCE_CREATION_FAILED'
-    });
-  }
-};
-
-// Login user
-Controller.prototype.login = async function(req, res) {
-  try {
-    const { email, password } = req.body;
-
-    // Validation
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide email and password',
-        code: 'MISSING_CREDENTIALS'
-      });
-    }
-
-    // Check if user exists
-    const user = await TWgoldUser.findOne({ email }).select('+password');
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-        code: 'INVALID_CREDENTIALS'
-      });
-    }
-
-    // Check if account is active
-    if (!user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Account is deactivated. Please contact administrator.',
-        code: 'ACCOUNT_DEACTIVATED'
-      });
-    }
-
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-        code: 'INVALID_CREDENTIALS'
-      });
-    }
-
-    // Update last login
-    await user.updateLastLogin();
-
-    this.sendTokenResponse(user, 200, res);
-
-  } catch (error) {
-    console.error('Login error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Login failed. Please try again.',
-      code: 'LOGIN_FAILED'
-    });
-  }
-};
-// Logout user
-Controller.prototype.logout = async function(req, res) {
-  try {
-    res.clearCookie('token');
-    
-    res.status(200).json({
-      success: true,
-      message: 'Logout successful',
-      code: 'LOGOUT_SUCCESS'
-    });
-  } catch (error) {
-    console.error('Logout error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Logout failed',
-      code: 'LOGOUT_FAILED'
-    });
-  }
-};
-
-// Get user profile with role-specific data
-Controller.prototype.getProfile = async function(req, res) {
-  try {
-    let roleData = null;
-
-    // Fetch role-specific data based on user role
-    switch (req.user.role) {
-      case 'admin':
-        roleData = await TWgoldAdmin.findOne({ user: req.user._id });
-        break;
-      case 'manager':
-        roleData = await TWgoldManager.findOne({ user: req.user._id }).populate('reportsTo', 'name email');
-        break;
-      case 'employee':
-        roleData = await TWgoldEmployee.findOne({ user: req.user._id }).populate('manager', 'name email');
-        break;
-      case 'grivirence':
-        roleData = await TWgoldGrivirence.findOne({ user: req.user._id });
-        break;
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Profile fetched successfully',
-      data: {
-        user: {
-          id: req.user._id,
-          name: req.user.name,
-          email: req.user.email,
-          role: req.user.role,
-          lastLogin: req.user.lastLogin,
-          isActive: req.user.isActive
-        },
-        roleData
-      }
-    });
-
-  } catch (error) {
-    console.error('Get profile error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch profile',
-      code: 'PROFILE_FETCH_FAILED'
-    });
-  }
-};
-
-// Update profile
-Controller.prototype.updateProfile = async function(req, res) {
-  try {
-    const { name, ...roleSpecificData } = req.body;
-
-    // Update basic user info
-    if (name) {
-      req.user.name = name;
-      await req.user.save();
-    }
-
-    // Update role-specific data
-    let roleData;
-    switch (req.user.role) {
-      case 'admin':
-        roleData = await TWgoldAdmin.findOneAndUpdate(
-          { user: req.user._id },
-          roleSpecificData,
-          { new: true, runValidators: true }
-        );
-        break;
-      case 'manager':
-        roleData = await TWgoldManager.findOneAndUpdate(
-          { user: req.user._id },
-          roleSpecificData,
-          { new: true, runValidators: true }
-        );
-        break;
-      case 'employee':
-        roleData = await TWgoldEmployee.findOneAndUpdate(
-          { user: req.user._id },
-          roleSpecificData,
-          { new: true, runValidators: true }
-        );
-        break;
-      case 'grivirence':
-        roleData = await TWgoldGrivirence.findOneAndUpdate(
-          { user: req.user._id },
-          roleSpecificData,
-          { new: true, runValidators: true }
-        );
-        break;
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Profile updated successfully',
-      data: {
-        user: {
-          id: req.user._id,
-          name: req.user.name,
-          email: req.user.email,
-          role: req.user.role
-        },
-        roleData
-      }
-    });
-
-  } catch (error) {
-    console.error('Update profile error:', error);
-    
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: messages,
-        code: 'VALIDATION_ERROR'
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: 'Profile update failed',
-      code: 'PROFILE_UPDATE_FAILED'
-    });
-  }
-};
-
-// Get all admins (Admin only)
+// ========================
+// User Management Methods
+// ========================
+
+// Get All Admins
 Controller.prototype.getAllAdmins = async function(req, res) {
   try {
-    // Only admin can access this
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Only admin can view admin list.',
-        code: 'ACCESS_DENIED'
-      });
-    }
-
-    const admins = await TWgoldAdmin.find()
-      .populate('user', 'name email role isActive lastLogin')
-      .select('-__v')
+    const admins = await TWgoldUser.find({ role: 'admin', isActive: true })
+      .select('-password')
+      .populate('reportsTo', 'name email')
       .sort({ createdAt: -1 });
 
-    const formattedAdmins = admins.map(admin => ({
-      id: admin._id,
-      user: {
-        id: admin.user._id,
-        name: admin.user.name,
-        email: admin.user.email,
-        role: admin.user.role,
-        isActive: admin.user.isActive,
-        lastLogin: admin.user.lastLogin
-      },
-      department: admin.department,
-      adminLevel: admin.adminLevel,
-      contactNumber: admin.contactNumber,
-      permissions: admin.permissions,
-      createdAt: admin.createdAt,
-      updatedAt: admin.updatedAt
+    const adminsWithProfiles = await Promise.all(admins.map(async (admin) => {
+      const profile = await EmploymentProfile.findOne({ user: admin._id });
+      return {
+        ...admin.toObject(),
+        employmentProfile: profile
+      };
     }));
 
     res.status(200).json({
       success: true,
-      message: 'Admins list retrieved successfully',
+      message: 'Admins retrieved successfully',
       data: {
-        count: formattedAdmins.length,
-        admins: formattedAdmins
-      },
-      code: 'ADMINS_RETRIEVED'
+        count: adminsWithProfiles.length,
+        admins: adminsWithProfiles
+      }
     });
 
   } catch (error) {
-    console.error('Get all admins error:', error);
+    console.error('Get admins error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to retrieve admins list',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      message: 'Failed to retrieve admins',
       code: 'ADMINS_RETRIEVAL_FAILED'
     });
   }
 };
 
-// Get all managers (Admin and Grivirence can access)
-Controller.prototype.getAllManagers = async function(req, res) {
+// Get All Users (with optional filtering)
+Controller.prototype.getAllUsers = async function(req, res) {
   try {
-    const userRole = req.user.role;
-    const userId = req.user.id;
-    
-    let managers;
-    let filters = {};
-    let projection = {};
-    let population = {};
+    const user = req.user;
+    const { role, branch, department, isActive } = req.query;
 
-    // Role-based segregation
-    switch(userRole) {
-      case 'admin':
-        // Admin can see all managers across all branches/departments
-        filters = {};
-        projection = '-__v';
-        population = [
-          { path: 'user', select: 'name email role isActive lastLogin' },
-          { path: 'reportsTo', select: 'name email department' },
-          { path: 'branch', select: 'name location branchCode' }
-        ];
-        break;
+    let query = { isActive: isActive !== 'false' };
 
-      case 'grivirence':
-        // Grivirence can see all managers but without sensitive info
-        filters = { isActive: true };
-        projection = '-__v -operationalAuthorities -performanceMetrics -responsibilities.loanApprovalLimit';
-        population = [
-          { path: 'user', select: 'name email role isActive' },
-          { path: 'branch', select: 'name location' }
-        ];
-        break;
+    // Apply filters
+    if (role) query.role = role;
+    if (branch) query.branch = branch;
+    if (department) query.department = department;
 
-      case 'manager':
-        // Manager can see only their peers in same branch/department
-        // First get the current manager's info
-        const currentManager = await TWgoldManager.findOne({ user: userId })
-          .select('branch department')
-          .lean();
-
-        if (!currentManager) {
-          return res.status(403).json({
-            success: false,
-            message: 'Manager profile not found',
-            code: 'MANAGER_NOT_FOUND'
-          });
-        }
-
-        filters = { 
-          branch: currentManager.branch,
-          isActive: true,
-          _id: { $ne: userId } // Exclude self
-        };
-        
-        projection = '-__v -operationalAuthorities -performanceMetrics -reportsTo -responsibilities';
-        population = [
-          { path: 'user', select: 'name email role department' },
-          { path: 'branch', select: 'name' }
-        ];
-        break;
-
-      case 'employee':
-        // Employee can see only their reporting manager
-        const employee = await TWgoldEmployee.findOne({ user: userId })
-          .select('reportsTo')
-          .populate({
-            path: 'reportsTo',
-            select: 'user department designation',
-            populate: {
-              path: 'user',
-              select: 'name email'
-            }
-          })
-          .lean();
-
-        if (!employee || !employee.reportsTo) {
-          return res.status(403).json({
-            success: false,
-            message: 'No reporting manager found',
-            code: 'NO_REPORTING_MANAGER'
-          });
-        }
-
-        // Return only their reporting manager
-        managers = [employee.reportsTo];
-        
-        return res.status(200).json({
-          success: true,
-          message: 'Reporting manager retrieved successfully',
-          data: {
-            count: 1,
-            managers: [{
-              id: managers[0]._id,
-              user: {
-                id: managers[0].user._id,
-                name: managers[0].user.name,
-                email: managers[0].user.email,
-                role: 'manager'
-              },
-              department: managers[0].department,
-              designation: managers[0].designation
-            }]
-          },
-          code: 'MANAGER_RETRIEVED'
-        });
-
-      default:
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied. Insufficient permissions.',
-          code: 'ACCESS_DENIED'
-        });
+    // Role-based access control
+    if (user.role === 'manager') {
+      query.branch = user.branch;
+      query.role = { $ne: 'admin' }; // Managers can't see admins
+    } else if (user.role === 'employee') {
+      query.branch = user.branch;
+      query.role = { $nin: ['admin', 'manager'] }; // Employees can only see non-managerial roles
     }
 
-    // Fetch managers based on role-specific filters
-    if (userRole !== 'employee') {
-      managers = await TWgoldManager.find(filters)
-        .select(projection)
-        .populate(population)
-        .sort({ createdAt: -1 })
-        .lean();
-    }
+    const users = await TWgoldUser.find(query)
+  .select('-password')
+  .populate('reportsTo', 'name email role')
+  .populate('TWGoldemploymentProfile')   // ✅ WORKS
+  .sort({ role: 1, name: 1 });
 
-    // Format the response based on role
-    const formattedManagers = managers.map(manager => {
-      const baseResponse = {
-        id: manager._id,
-        user: {
-          id: manager.user._id,
-          name: manager.user.name,
-          email: manager.user.email,
-          role: manager.user.role,
-          ...(userRole === 'admin' && { isActive: manager.user.isActive, lastLogin: manager.user.lastLogin })
-        },
-        department: manager.department,
-        designation: manager.designation,
-        ...(manager.branch && {
-          branch: {
-            id: manager.branch._id,
-            name: manager.branch.name,
-            ...(userRole === 'admin' && { location: manager.branch.location, branchCode: manager.branch.branchCode })
-          }
-        })
-      };
 
-      // Add role-specific fields
-      if (userRole === 'admin') {
-        Object.assign(baseResponse, {
-          teamSize: manager.teamSize,
-          responsibilities: {
-            loanApprovalLimit: manager.responsibilities?.loanApprovalLimit,
-            goldValuationApproval: manager.responsibilities?.goldValuationApproval,
-            riskAssessmentAuthority: manager.responsibilities?.riskAssessmentAuthority
-          },
-          performanceMetrics: manager.performanceMetrics,
-          isActive: manager.isActive,
-          ...(manager.reportsTo && {
-            reportsTo: {
-              id: manager.reportsTo._id,
-              name: manager.reportsTo.name,
-              email: manager.reportsTo.email,
-              department: manager.reportsTo.department
-            }
-          }),
-          createdAt: manager.createdAt,
-          updatedAt: manager.updatedAt
-        });
-      } else if (userRole === 'grivirence') {
-        Object.assign(baseResponse, {
-          teamSize: manager.teamSize,
-          isActive: manager.isActive,
-          createdAt: manager.createdAt
-        });
-      } else if (userRole === 'manager') {
-        Object.assign(baseResponse, {
-          teamSize: manager.teamSize,
-          projects: manager.projects?.map(p => ({
-            name: p.name,
-            type: p.type,
-            status: p.status
-          }))
-        });
-      }
-
-      return baseResponse;
-    });
-
+  const usersWithProfiles = users.map(userDoc => ({
+    ...userDoc.toObject(),
+    roleDisplay: this.getRoleDisplayName(userDoc.role)
+  }));
+  
     res.status(200).json({
       success: true,
-      message: 'Managers list retrieved successfully',
+      message: 'Users retrieved successfully',
       data: {
-        count: formattedManagers.length,
-        managers: formattedManagers
-      },
-      code: 'MANAGERS_RETRIEVED',
-      ...(userRole === 'manager' && { 
-        metadata: {
-          filters: {
-            branch: currentManager.branch,
-            department: currentManager.department
-          }
-        }
-      })
+        count: usersWithProfiles.length,
+        users: usersWithProfiles
+      }
     });
 
   } catch (error) {
-    console.error('Get all managers error:', error);
+    console.error('Get users error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to retrieve managers list',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-      code: 'MANAGERS_RETRIEVAL_FAILED'
+      message: 'Failed to retrieve users',
+      code: 'USERS_RETRIEVAL_FAILED'
     });
   }
 };
-// Get all employees (Admin, Manager, and Grivirence can access)
-Controller.prototype.getAllEmployees = async function(req, res) {
+
+// Get Users by Role
+Controller.prototype.getUsersByRole = async function(req, res) {
   try {
-    const userRole = req.user.role;
-    let employees;
+    const { role } = req.params;
+    const user = req.user;
+
+    // Validate role
+    const validRoles = [
+      'admin', 'manager', 'asst_manager', 'cashier', 'accountant', 
+      'recovery_agent', 'grivirence', 'auditor', 'hr', 
+      'administration', 'sales_marketing', 'rm', 'zm', 'employee','go_auditor'
+    ];
     
-    if (userRole === 'admin') {
-      // Admin can see all employees with complete details
-      employees = await TWgoldEmployee.find()
-        .populate('user', 'name email role isActive lastLogin')
-        .populate('manager', 'name email department')
-        .populate('admin', 'name email department')
-        .select('-__v')
-        .sort({ createdAt: -1 });
-        
-    } else if (userRole === 'manager') {
-      // Manager can only see employees under their management
-      const managerProfile = await TWgoldManager.findOne({ user: req.user._id });
-      if (!managerProfile) {
-        return res.status(404).json({
-          success: false,
-          message: 'Manager profile not found',
-          code: 'MANAGER_PROFILE_NOT_FOUND'
-        });
-      }
-      
-      employees = await TWgoldEmployee.find({ manager: managerProfile._id })
-        .populate('user', 'name email role isActive')
-        .populate('manager', 'name email department')
-        .select('-admin -aadhaarVerification -__v')
-        .sort({ createdAt: -1 });
-        
-    } else if (userRole === 'grivirence') {
-      // Grivirence can see all employees but without sensitive information
-      employees = await TWgoldEmployee.find()
-        .populate('user', 'name email role isActive')
-        .populate('manager', 'name email department')
-        .select('-admin -aadhaarVerification -salary -performanceMetrics -__v')
-        .sort({ createdAt: -1 });
-    } else {
-      return res.status(403).json({
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
         success: false,
-        message: 'Access denied. Only admin, manager, and grivirence can view employees list.',
-        code: 'ACCESS_DENIED'
+        message: `Invalid role. Must be one of: ${validRoles.join(', ')}`,
+        code: 'INVALID_ROLE'
       });
     }
 
-    const formattedEmployees = employees.map(employee => ({
-      id: employee._id,
-      user: {
-        id: employee.user._id,
-        name: employee.user.name,
-        email: employee.user.email,
-        role: employee.user.role,
-        isActive: employee.user.isActive,
-        ...(userRole === 'admin' && { lastLogin: employee.user.lastLogin })
-      },
-      employeeId: employee.employeeId,
-      position: employee.position,
-      department: employee.department,
-      ...(userRole === 'admin' && { salary: employee.salary }),
-      manager: employee.manager ? {
-        id: employee.manager._id,
-        name: employee.manager.name,
-        email: employee.manager.email,
-        department: employee.manager.department
-      } : null,
-      ...(userRole === 'admin' && employee.admin && {
-        admin: {
-          id: employee.admin._id,
-          name: employee.admin.name,
-          email: employee.admin.email,
-          department: employee.admin.department
-        }
-      }),
-      joinDate: employee.joinDate,
-      skills: employee.skills,
-      responsibilities: employee.responsibilities,
-      assignedBranch: employee.assignedBranch,
-      contactNumber: employee.contactNumber,
-      ...(userRole === 'admin' && { 
-        performanceMetrics: employee.performanceMetrics,
-        maxLoanApprovalLimit: employee.maxLoanApprovalLimit
-      }),
-      isActive: employee.isActive,
-      createdAt: employee.createdAt,
-      updatedAt: employee.updatedAt
+    let query = { role, isActive: true };
+
+    // Role-based access control
+    if (user.role === 'manager') {
+      query.branch = user.branch;
+    } else if (user.role === 'employee') {
+      query.branch = user.branch;
+    }
+
+    const users = await TWgoldUser.find(query)
+      .select('-password')
+      .populate('reportsTo', 'name email')
+      .sort({ name: 1 });
+
+    const usersWithProfiles = await Promise.all(users.map(async (userDoc) => {
+      const profile = await EmploymentProfile.findOne({ user: userDoc._id });
+      return {
+        ...userDoc.toObject(),
+        roleDisplay: this.getRoleDisplayName(userDoc.role),
+        employmentProfile: profile
+      };
     }));
 
     res.status(200).json({
       success: true,
-      message: 'Employees list retrieved successfully',
+      message: `Users with role '${this.getRoleDisplayName(role)}' retrieved successfully`,
       data: {
-        count: formattedEmployees.length,
-        employees: formattedEmployees
-      },
-      code: 'EMPLOYEES_RETRIEVED'
+        role,
+        roleDisplay: this.getRoleDisplayName(role),
+        count: usersWithProfiles.length,
+        users: usersWithProfiles
+      }
     });
 
   } catch (error) {
-    console.error('Get all employees error:', error);
+    console.error('Get users by role error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to retrieve employees list',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-      code: 'EMPLOYEES_RETRIEVAL_FAILED'
+      message: 'Failed to retrieve users by role',
+      code: 'USERS_BY_ROLE_RETRIEVAL_FAILED'
     });
   }
 };
 
-// Get all grivirence officers (Admin only)
-Controller.prototype.getAllGrivirence = async function(req, res) {
+// Get Users by Branch
+Controller.prototype.getUsersByBranch = async function(req, res) {
   try {
-    // Only admin can access this
+    const { branch } = req.params;
+    const user = req.user;
+
+    // Check if user has access to this branch
+    if (user.role !== 'admin' && user.branch !== branch) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied to this branch',
+        code: 'ACCESS_DENIED'
+      });
+    }
+
+    const users = await TWgoldUser.find({ branch, isActive: true })
+      .select('-password')
+      .populate('reportsTo', 'name email')
+      .sort({ role: 1, name: 1 });
+
+    const usersWithProfiles = await Promise.all(users.map(async (userDoc) => {
+      const profile = await EmploymentProfile.findOne({ user: userDoc._id });
+      return {
+        ...userDoc.toObject(),
+        roleDisplay: this.getRoleDisplayName(userDoc.role),
+        employmentProfile: profile
+      };
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: 'Users retrieved successfully',
+      data: {
+        branch,
+        count: usersWithProfiles.length,
+        users: usersWithProfiles
+      }
+    });
+
+  } catch (error) {
+    console.error('Get users by branch error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve users',
+      code: 'USERS_RETRIEVAL_FAILED'
+    });
+  }
+};
+
+// Get Users by Department
+Controller.prototype.getUsersByDepartment = async function(req, res) {
+  try {
+    const { department } = req.params;
+    const user = req.user;
+
+    const users = await TWgoldUser.find({ department, isActive: true })
+      .select('-password')
+      .populate('reportsTo', 'name email')
+      .sort({ role: 1, name: 1 });
+
+    const usersWithProfiles = await Promise.all(users.map(async (userDoc) => {
+      const profile = await EmploymentProfile.findOne({ user: userDoc._id });
+      return {
+        ...userDoc.toObject(),
+        roleDisplay: this.getRoleDisplayName(userDoc.role),
+        employmentProfile: profile
+      };
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: 'Users retrieved successfully',
+      data: {
+        department,
+        count: usersWithProfiles.length,
+        users: usersWithProfiles
+      }
+    });
+
+  } catch (error) {
+    console.error('Get users by department error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve users',
+      code: 'USERS_RETRIEVAL_FAILED'
+    });
+  }
+};
+
+// Update User Status
+Controller.prototype.updateUserStatus = async function(req, res) {
+  try {
+    const { id } = req.params;
+    const { isActive, status } = req.body;
+
+    const user = await TWgoldUser.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
+    // Check if user has permission to modify this user
+    const currentUser = req.user;
+    if (currentUser.role !== 'admin' && 
+        currentUser.branch !== user.branch) {
+      return res.status(403).json({
+        success: false,
+        message: 'Insufficient permissions',
+        code: 'INSUFFICIENT_PERMISSIONS'
+      });
+    }
+
+    // Cannot modify admin users unless you are admin
+    if (user.role === 'admin' && currentUser.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot modify admin users',
+        code: 'CANNOT_MODIFY_ADMIN'
+      });
+    }
+
+    if (isActive !== undefined) user.isActive = isActive;
+    
+    // Update employment profile status if provided
+    if (status) {
+      await EmploymentProfile.findOneAndUpdate(
+        { user: id },
+        { status }
+      );
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'User status updated successfully',
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        roleDisplay: this.getRoleDisplayName(user.role),
+        isActive: user.isActive,
+        status
+      }
+    });
+
+  } catch (error) {
+    console.error('Update user status error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update user status',
+      code: 'USER_STATUS_UPDATE_FAILED'
+    });
+  }
+};
+
+// Update User Permissions
+Controller.prototype.updateUserPermissions = async function(req, res) {
+  try {
+    const { id } = req.params;
+    const { permissions } = req.body;
+
+    if (!permissions || !Array.isArray(permissions)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Permissions array required',
+        code: 'INVALID_PERMISSIONS'
+      });
+    }
+
+    const user = await TWgoldUser.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
+    // Only admin can update permissions
     if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. Only admin can view grivirence list.',
-        code: 'ACCESS_DENIED'
+        message: 'Only admin can update permissions',
+        code: 'INSUFFICIENT_PERMISSIONS'
       });
     }
 
-    const grivirenceList = await TWgoldGrivirence.find()
-      .populate('user', 'name email role isActive lastLogin')
-      .populate('admin', 'name email department')
-      .populate('reportsToManager', 'name email department')
-      .select('-__v')
-      .sort({ createdAt: -1 });
-
-    const formattedGrivirence = grivirenceList.map(grivirence => ({
-      id: grivirence._id,
-      user: {
-        id: grivirence.user._id,
-        name: grivirence.user.name,
-        email: grivirence.user.email,
-        role: grivirence.user.role,
-        isActive: grivirence.user.isActive,
-        lastLogin: grivirence.user.lastLogin
-      },
-      category: grivirence.category,
-      specialization: grivirence.specialization,
-      assignedCases: grivirence.assignedCases,
-      maxCases: grivirence.maxCases,
-      admin: grivirence.admin ? {
-        id: grivirence.admin._id,
-        name: grivirence.admin.name,
-        email: grivirence.admin.email,
-        department: grivirence.admin.department
-      } : null,
-      reportsToManager: grivirence.reportsToManager ? {
-        id: grivirence.reportsToManager._id,
-        name: grivirence.reportsToManager.name,
-        email: grivirence.reportsToManager.email,
-        department: grivirence.reportsToManager.department
-      } : null,
-      isActive: grivirence.isActive,
-      createdAt: grivirence.createdAt,
-      updatedAt: grivirence.updatedAt
-    }));
+    user.permissions = permissions;
+    await user.save();
 
     res.status(200).json({
       success: true,
-      message: 'Grivirence officers list retrieved successfully',
+      message: 'User permissions updated successfully',
       data: {
-        count: formattedGrivirence.length,
-        grivirence: formattedGrivirence
-      },
-      code: 'GRIVIRENCE_RETRIEVED'
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        roleDisplay: this.getRoleDisplayName(user.role),
+        permissions: user.permissions
+      }
     });
 
   } catch (error) {
-    console.error('Get all grivirence error:', error);
+    console.error('Update permissions error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to retrieve grivirence list',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-      code: 'GRIVIRENCE_RETRIEVAL_FAILED'
+      message: 'Failed to update permissions',
+      code: 'PERMISSIONS_UPDATE_FAILED'
     });
   }
 };

@@ -47,7 +47,9 @@ import GoldRates from './components/TWGold/Admin/GoldRates';
 import CreatingEmployee from './components/TWGold/Admin/CreatingEmployee';
 import TWgoldBranchCreate from './components/TWGold/Admin/TWgoldBranchCreate';
 import TwgoldHome from './components/TWGold/Home/TwgoldHome';
-
+import Twgoldemployeeloan from './components/TWGold/Employee/Twgoldemployeeloan';
+import ManageBranches from './components/TWGold/Admin/ManageBranches';
+import EditBranch from './components/TWGold/Admin/EditBranch';
 
 function App() {
   return (
@@ -189,8 +191,17 @@ function App() {
               <TwgoldAdminDashboard />
             </TwgoldProtectedRoute>
           } />
-          
-          <Route path="/twgl&articles/admin/branches" element={
+            <Route path="/twgl&articles/admin/branches" element={
+            <TwgoldProtectedRoute allowedRoles={['admin']}>
+              <ManageBranches />
+            </TwgoldProtectedRoute>
+          } />
+          <Route path="/twgl&articles/admin/branches/edit/:branchId" element={
+            <TwgoldProtectedRoute allowedRoles={['admin']}>
+              <EditBranch />
+            </TwgoldProtectedRoute>
+          } />
+          <Route path="/twgl&articles/admin/branches/create" element={
             <TwgoldProtectedRoute allowedRoles={['admin']}>
               <TWgoldBranchCreate />
             </TwgoldProtectedRoute>
@@ -241,6 +252,11 @@ function App() {
           <Route path="/twgl&articles/employee/dashboard" element={
             <TwgoldProtectedRoute allowedRoles={['employee']}>
               <TwgoldEmployeeDashboard />
+            </TwgoldProtectedRoute>
+          } />
+          <Route path="/twgl&articles/employee/goldloan" element={
+            <TwgoldProtectedRoute allowedRoles={['employee']}>
+              <Twgoldemployeeloan />
             </TwgoldProtectedRoute>
           } />
           

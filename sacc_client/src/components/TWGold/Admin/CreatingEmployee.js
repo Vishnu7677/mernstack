@@ -10,51 +10,122 @@ const CreatingEmployee = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
+
   // Step 1: Aadhaar Verification
   const [aadhaarData, setAadhaarData] = useState({
     aadhaar_number: '',
     phone_number: '',
-    email_id: ''
+    email_id: '',
+    role: ''
   });
   const [otp, setOtp] = useState('');
   const [referenceId, setReferenceId] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [timer, setTimer] = useState(0);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
 
   // Step 2: Aadhaar Details (from verification)
   const [aadhaarDetails, setAadhaarDetails] = useState(null);
+  const [selectedRole, setSelectedRole] = useState('');
+  const lastSavedStepRef = useRef(null);
+  const [createdUserRole, setCreatedUserRole] = useState('');
 
-  // Step 3: Employee Details
-  const [employeeData, setEmployeeData] = useState({
+
+  // Step 3: User Details with new fields
+  const [userData, setUserData] = useState({
+    // Basic Information
     email: '',
     password: '',
     name: '',
-    employeeId: '',
-    position: '',
+    role: '',
     department: '',
-    manager: '',
-    salary: '',
-    joinDate: '',
-    skills: [],
-    responsibilities: [],
-    permissions: [],
-    assignedBranch: '',
+    branch: '',
+    designation: '',
+    reportsTo: '',
+
+    // Personal Details
+    fathersName: '',
+    mothersName: '',
+    panNumber: '',
+    maritalStatus: '',
+    bloodGroup: '',
+    nationality: 'Indian',
+    alternateMobile: '',
+    presentAddress: '',
+
+    // Statutory Employment Details
+    uanNumber: '',
+    esiNumber: '',
+    pfType: '',
+    esiStatus: '',
+    previousPFCompanyName: '',
+    previousPFExitDate: '',
+
+    // Qualifications
+    qualifications: [
+      { level: '10th', institution: '', board: '', year: '', grade: '' },
+      { level: 'Intermediate/12th', institution: '', board: '', year: '', grade: '' },
+      { level: 'Degree/Diploma', institution: '', board: '', year: '', grade: '' },
+      { level: 'Post Graduation', institution: '', board: '', year: '', grade: '' }
+    ],
+
+    // Work Experience
+    previouslyWorked: false,
+    currentEmployer: {
+      companyName: '',
+      designation: '',
+      fromDate: '',
+      toDate: '',
+      totalExperience: '',
+      lastCTC: '',
+      reasonForLeaving: ''
+    },
+    previousEmployers: [],
+
+    // Skills
+    technicalSkills: [],
+    softwareTools: [],
+    otherSkills: [],
+
+    // Bank Details
+    bankAccountHolder: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    branchName: '',
+
+    // Documents
+    documents: {
+      aadhaarCard: false,
+      panCard: false,
+      tenthCertificate: false,
+      interDegreeCertificates: false,
+      experienceLetter: false,
+      relievingLetter: false,
+      salarySlips: false,
+      uanCard: false,
+      esiCard: false,
+      bankPassbook: false,
+      updatedResume: false,
+      passportPhotos: false
+    },
+
+    // Contact
     contactNumber: '',
     emergencyContact: {
       name: '',
       relationship: '',
       phone: ''
     },
-    shiftTiming: {
-      start: '',
-      end: ''
-    },
-    certification: [],
-    maxLoanApprovalLimit: ''
+
+    // Other fields
+    permissions: [],
+    salary: '',
+    joinDate: '',
   });
 
   // Step 4: Review Data
-  const [managers, setManagers] = useState([]);
+  const [reportingUsers, setReportingUsers] = useState([]);
 
   // Form validation errors
   const [errors, setErrors] = useState({});
@@ -69,71 +140,180 @@ const CreatingEmployee = () => {
   // Use refs for values that don't need to trigger re-renders
   const savedApplicationsRef = useRef([]);
   const selectedApplicationIdRef = useRef(null);
+  const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+
 
   // Time constants for 7-day storage
   const SEVEN_DAYS = useMemo(() => 7 * 24 * 60 * 60 * 1000, []);
 
   const STORAGE_KEYS = useMemo(() => ({
     VERIFICATION_SESSION: 'aadhaar_verification_session',
-    EMPLOYEE_DATA: 'employee_form_data',
-    SAVED_APPLICATIONS: 'employee_saved_applications',
-    APPLICATION_ID_COUNTER: 'employee_application_id_counter'
+    USER_DATA: 'user_form_data',
+    SAVED_APPLICATIONS: 'user_saved_applications',
+    APPLICATION_ID_COUNTER: 'user_application_id_counter'
   }), []);
+
+  // Role definitions
+  const ROLES = useMemo(() => [
+    { value: 'manager', label: 'Manager', requiresManager: false },
+    { value: 'asst_manager', label: 'Assistant Manager', requiresManager: true },
+    { value: 'cashier', label: 'Cashier', requiresManager: true },
+    { value: 'accountant', label: 'Accountant', requiresManager: true },
+    { value: 'recovery_agent', label: 'Recovery Agent', requiresManager: true },
+    { value: 'grivirence', label: 'Grievance Officer', requiresManager: false },
+    { value: 'auditor', label: 'Auditor', requiresManager: false },
+    { value: 'hr', label: 'HR Manager', requiresManager: false },
+    { value: 'administration', label: 'Administrative Officer', requiresManager: true },
+    { value: 'sales_marketing', label: 'Sales Executive', requiresManager: true },
+    { value: 'rm', label: 'Regional Manager', requiresManager: false },
+    { value: 'zm', label: 'Zone Manager', requiresManager: false },
+    { value: 'employee', label: 'Employee', requiresManager: true },
+    { value: 'go&auditor', label: 'Grievance Officer & Auditor', requiresManager: false },
+
+  ], []);
+
+  // Get role display name
+  const getRoleDisplayName = (roleValue) => {
+    const role = ROLES.find(r => r.value === roleValue);
+    return role ? role.label : roleValue;
+  };
+
+  // Get default designation for role
+  const getDefaultDesignation = (role) => {
+    const designationMap = {
+      manager: 'Manager',
+      asst_manager: 'Assistant Manager',
+      cashier: 'Cashier',
+      accountant: 'Accountant',
+      recovery_agent: 'Recovery Agent',
+      grivirence: 'Grievance Officer',
+      auditor: 'Auditor',
+      hr: 'HR Manager',
+      administration: 'Administrative Officer',
+      sales_marketing: 'Sales Executive',
+      rm: 'Regional Manager',
+      zm: 'Zone Manager',
+      employee: 'Employee'
+    };
+    return designationMap[role] || 'Employee';
+  };
 
   // Clear all storage
   const clearStorage = useCallback(() => {
     clearEncryptedData(STORAGE_KEYS.VERIFICATION_SESSION);
-    clearEncryptedData(STORAGE_KEYS.EMPLOYEE_DATA);
-  }, [STORAGE_KEYS.VERIFICATION_SESSION, STORAGE_KEYS.EMPLOYEE_DATA]);
+    clearEncryptedData(STORAGE_KEYS.USER_DATA);
+  }, [STORAGE_KEYS.VERIFICATION_SESSION, STORAGE_KEYS.USER_DATA]);
 
   const resetForm = useCallback(() => {
     setCurrentStep(1);
-    setAadhaarData({ aadhaar_number: '', phone_number: '', email_id: '' });
+    setAadhaarData({
+      aadhaar_number: '',
+      phone_number: '',
+      email_id: '',
+      role: ''
+    });
     setOtp('');
     setReferenceId('');
     setOtpSent(false);
     setTimer(0);
+    setIsOtpVerified(false);
     setAadhaarDetails(null);
-    setEmployeeData({
+    setSelectedRole('');
+    setUserData({
       email: '',
       password: '',
       name: '',
-      employeeId: '',
-      position: '',
+      role: '',
       department: '',
-      manager: '',
-      salary: '',
-      joinDate: '',
-      skills: [],
-      responsibilities: [],
-      permissions: [],
-      assignedBranch: '',
+      branch: '',
+      designation: '',
+      reportsTo: '',
+
+      fathersName: '',
+      mothersName: '',
+      panNumber: '',
+      maritalStatus: '',
+      bloodGroup: '',
+      nationality: 'Indian',
+      alternateMobile: '',
+      presentAddress: '',
+
+      uanNumber: '',
+      esiNumber: '',
+      pfType: '',
+      esiStatus: '',
+      previousPFCompanyName: '',
+      previousPFExitDate: '',
+
+      qualifications: [
+        { level: '10th', institution: '', board: '', year: '', grade: '' },
+        { level: 'Intermediate/12th', institution: '', board: '', year: '', grade: '' },
+        { level: 'Degree/Diploma', institution: '', board: '', year: '', grade: '' },
+        { level: 'Post Graduation', institution: '', board: '', year: '', grade: '' }
+      ],
+
+      previouslyWorked: false,
+      currentEmployer: {
+        companyName: '',
+        designation: '',
+        fromDate: '',
+        toDate: '',
+        totalExperience: '',
+        lastCTC: '',
+        reasonForLeaving: ''
+      },
+      previousEmployers: [],
+
+      technicalSkills: [],
+      softwareTools: [],
+      otherSkills: [],
+
+      bankAccountHolder: '',
+      bankName: '',
+      accountNumber: '',
+      ifscCode: '',
+      branchName: '',
+
+      documents: {
+        aadhaarCard: false,
+        panCard: false,
+        tenthCertificate: false,
+        interDegreeCertificates: false,
+        experienceLetter: false,
+        relievingLetter: false,
+        salarySlips: false,
+        uanCard: false,
+        esiCard: false,
+        bankPassbook: false,
+        updatedResume: false,
+        passportPhotos: false
+      },
+
       contactNumber: '',
       emergencyContact: {
         name: '',
         relationship: '',
         phone: ''
       },
-      shiftTiming: {
-        start: '',
-        end: ''
-      },
-      certification: [],
-      maxLoanApprovalLimit: ''
+
+      permissions: [],
+      salary: '',
+      joinDate: '',
     });
     setSelectedApplicationId(null);
     selectedApplicationIdRef.current = null;
     setHasAadhaarData(false);
     clearStorage();
     setError('');
+    lastSavedStepRef.current = null;
   }, [clearStorage]);
 
   // Check if we have Aadhaar data
   const checkForAadhaarData = useCallback(() => {
     const hasData = !!(
-      aadhaarData.aadhaar_number || 
-      referenceId || 
-      otpSent || 
+      aadhaarData.aadhaar_number ||
+      referenceId ||
+      otpSent ||
       aadhaarDetails
     );
     if (hasData !== hasAadhaarData) {
@@ -141,27 +321,23 @@ const CreatingEmployee = () => {
     }
   }, [aadhaarData.aadhaar_number, referenceId, otpSent, aadhaarDetails, hasAadhaarData]);
 
-  // Load saved applications - memoized with empty dependencies
   const loadSavedApplications = useCallback(() => {
     try {
       const savedApps = localStorage.getItem(STORAGE_KEYS.SAVED_APPLICATIONS);
       if (savedApps) {
         const parsed = JSON.parse(savedApps);
-        // Filter out expired applications (older than 7 days)
         const validApps = parsed.filter(app => {
           const appAge = Date.now() - (app.timestamp || 0);
           return appAge < SEVEN_DAYS;
         });
         setSavedApplications(validApps);
         savedApplicationsRef.current = validApps;
-        
-        // Save back filtered list
+
         if (validApps.length !== parsed.length) {
           localStorage.setItem(STORAGE_KEYS.SAVED_APPLICATIONS, JSON.stringify(validApps));
         }
       }
-      
-      // Load application ID counter
+
       const counter = localStorage.getItem(STORAGE_KEYS.APPLICATION_ID_COUNTER);
       if (counter) {
         setApplicationIdCounter(parseInt(counter));
@@ -173,50 +349,80 @@ const CreatingEmployee = () => {
     }
   }, [STORAGE_KEYS.SAVED_APPLICATIONS, STORAGE_KEYS.APPLICATION_ID_COUNTER, SEVEN_DAYS]);
 
-  // Save current application - Only save after Aadhaar verification is complete
+  // Save current application
   const saveCurrentApplication = useCallback(() => {
-    // Only save applications that have Aadhaar details (step 2+)
-    if (!aadhaarDetails) {
-      console.log('Not saving application - no Aadhaar details yet');
-      return null;
+    if (!aadhaarDetails && !aadhaarData.aadhaar_number) return null;
+
+    // ⛔ Prevent duplicate saves for same step
+    if (lastSavedStepRef.current === currentStep) {
+      return selectedApplicationIdRef.current;
     }
 
     try {
-      const applicationId = selectedApplicationIdRef.current || `app_${applicationIdCounter}`;
+      const applicationId =
+        selectedApplicationIdRef.current || `app_${applicationIdCounter}`;
+
       const applicationData = {
         id: applicationId,
-        name: employeeData.name || aadhaarDetails.name || 'Unnamed Application',
+        name: userData.name || aadhaarDetails?.name || 'Unnamed Application',
         aadhaarNumber: aadhaarData.aadhaar_number,
+        role: userData.role || aadhaarData.role || selectedRole,
         step: currentStep,
         aadhaarData,
         referenceId,
         otpSent,
         aadhaarDetails,
-        employeeData,
-        timestamp: Date.now()
+        userData,
+        timestamp: Date.now(),
+        isOtpVerified
       };
 
-      // Update saved applications
-      const updatedApplications = savedApplicationsRef.current.filter(app => app.id !== applicationId);
+      const updatedApplications = savedApplicationsRef.current.filter(
+        app => app.id !== applicationId
+      );
+
       updatedApplications.push(applicationData);
-      
+
       setSavedApplications(updatedApplications);
       savedApplicationsRef.current = updatedApplications;
-      localStorage.setItem(STORAGE_KEYS.SAVED_APPLICATIONS, JSON.stringify(updatedApplications));
 
-      // Update counter if new application
+      localStorage.setItem(
+        STORAGE_KEYS.SAVED_APPLICATIONS,
+        JSON.stringify(updatedApplications)
+      );
+
       if (!selectedApplicationIdRef.current) {
         const newCounter = applicationIdCounter + 1;
         setApplicationIdCounter(newCounter);
-        localStorage.setItem(STORAGE_KEYS.APPLICATION_ID_COUNTER, newCounter.toString());
+        localStorage.setItem(
+          STORAGE_KEYS.APPLICATION_ID_COUNTER,
+          newCounter.toString()
+        );
       }
+
+      selectedApplicationIdRef.current = applicationId;
+      setSelectedApplicationId(applicationId);
+      lastSavedStepRef.current = currentStep;
 
       return applicationId;
     } catch (error) {
       console.error('Error saving application:', error);
       return null;
     }
-  }, [aadhaarDetails, employeeData.name, aadhaarDetails?.name, aadhaarData.aadhaar_number, currentStep, aadhaarData, referenceId, otpSent, employeeData, applicationIdCounter]);
+  }, [
+    aadhaarDetails,
+    aadhaarData,
+    userData,
+    currentStep,
+    referenceId,
+    otpSent,
+    applicationIdCounter,
+    isOtpVerified,
+    selectedRole,
+    STORAGE_KEYS.SAVED_APPLICATIONS,
+    STORAGE_KEYS.APPLICATION_ID_COUNTER
+  ]);
+
 
   // Load saved application
   const loadSavedApplication = useCallback((applicationId) => {
@@ -228,20 +434,21 @@ const CreatingEmployee = () => {
         if (application.otpSent) setOtpSent(application.otpSent);
         if (application.aadhaarDetails) {
           setAadhaarDetails(application.aadhaarDetails);
+          if (application.role) setSelectedRole(application.role);
         }
-        if (application.employeeData) setEmployeeData(application.employeeData);
+        if (application.userData) setUserData(application.userData);
         if (application.step) setCurrentStep(application.step);
+        if (application.isOtpVerified) setIsOtpVerified(application.isOtpVerified);
         setSelectedApplicationId(applicationId);
         selectedApplicationIdRef.current = applicationId;
-        
-        // Start OTP timer if needed
-        if (application.otpSent && application.timestamp) {
+
+        if (application.otpSent && application.timestamp && !application.isOtpVerified) {
           const elapsed = Math.floor((Date.now() - application.timestamp) / 1000);
           if (elapsed < 60) {
             setTimer(60 - elapsed);
           }
         }
-        
+
         setShowSavedApplications(false);
         setError('');
       }
@@ -253,14 +460,13 @@ const CreatingEmployee = () => {
 
   // Delete saved application
   const deleteSavedApplication = useCallback((applicationId, e) => {
-    e.stopPropagation(); // Prevent triggering load
+    e.stopPropagation();
     try {
       const updatedApplications = savedApplicationsRef.current.filter(app => app.id !== applicationId);
       setSavedApplications(updatedApplications);
       savedApplicationsRef.current = updatedApplications;
       localStorage.setItem(STORAGE_KEYS.SAVED_APPLICATIONS, JSON.stringify(updatedApplications));
-      
-      // If deleting currently selected app, reset form
+
       if (selectedApplicationIdRef.current === applicationId) {
         resetForm();
       }
@@ -268,7 +474,7 @@ const CreatingEmployee = () => {
       console.error('Error deleting application:', error);
       setError('Failed to delete application');
     }
-  }, [resetForm]);
+  }, [STORAGE_KEYS.SAVED_APPLICATIONS, resetForm]);
 
   // Update refs when state changes
   useEffect(() => {
@@ -279,80 +485,90 @@ const CreatingEmployee = () => {
     selectedApplicationIdRef.current = selectedApplicationId;
   }, [selectedApplicationId]);
 
-  // Load saved data on component mount - only once
+  // Load saved data on component mount
   useEffect(() => {
     const loadSavedData = () => {
       try {
-        // Load saved applications first
         loadSavedApplications();
 
-        // Check if we have any saved data
+        // Check if there's any active session
         const hasSavedSession = localStorage.getItem(STORAGE_KEYS.VERIFICATION_SESSION);
-        const hasSavedEmployeeData = localStorage.getItem(STORAGE_KEYS.EMPLOYEE_DATA);
 
-        if (!hasSavedSession && !hasSavedEmployeeData) {
-          // No saved data, ensure we're at step 1
+        // If no saved session, show step 1 with saved applications if any
+        if (!hasSavedSession) {
           setCurrentStep(1);
           return;
         }
 
-        // Load verification session
+        // Try to load saved session
         const savedSession = localStorage.getItem(STORAGE_KEYS.VERIFICATION_SESSION);
         if (savedSession) {
           const decryptedSession = decryptData(savedSession);
           if (decryptedSession) {
             const sessionAge = Date.now() - (decryptedSession.timestamp || 0);
-            
+
             if (sessionAge < SEVEN_DAYS) {
-              setAadhaarData(decryptedSession.aadhaarData || {});
-              if (decryptedSession.referenceId) setReferenceId(decryptedSession.referenceId);
-              if (decryptedSession.otpSent) setOtpSent(decryptedSession.otpSent);
-              if (decryptedSession.aadhaarDetails) {
-                setAadhaarDetails(decryptedSession.aadhaarDetails);
+              if (decryptedSession.isOtpVerified) {
+                setAadhaarData(decryptedSession.aadhaarData || {});
+                if (decryptedSession.referenceId) setReferenceId(decryptedSession.referenceId);
+                if (decryptedSession.otpSent) setOtpSent(decryptedSession.otpSent);
+                if (decryptedSession.aadhaarDetails) {
+                  setAadhaarDetails(decryptedSession.aadhaarDetails);
+                  if (decryptedSession.role) setSelectedRole(decryptedSession.role);
+                }
+                setIsOtpVerified(decryptedSession.isOtpVerified);
+                if (decryptedSession.currentStep && decryptedSession.currentStep > 1) {
+                  setCurrentStep(decryptedSession.currentStep);
+                }
+              } else {
+                // OTP not verified, clear session and show step 1
+                clearEncryptedData(STORAGE_KEYS.VERIFICATION_SESSION);
+                setCurrentStep(1);
+                return;
               }
-              if (decryptedSession.currentStep && decryptedSession.currentStep > 1) {
-                setCurrentStep(decryptedSession.currentStep);
-              }
-              
-              // Start OTP timer if needed
-              if (decryptedSession.timerStart) {
+
+              if (decryptedSession.timerStart && !decryptedSession.isOtpVerified) {
                 const elapsed = Math.floor((Date.now() - decryptedSession.timerStart) / 1000);
                 if (elapsed < 60) {
                   setTimer(60 - elapsed);
                 }
               }
             } else {
+              // Session expired
               clearEncryptedData(STORAGE_KEYS.VERIFICATION_SESSION);
+              setCurrentStep(1);
             }
+          } else {
+            // Failed to decrypt
+            setCurrentStep(1);
           }
         }
 
-        // Load employee form data
-        const savedEmployeeData = localStorage.getItem(STORAGE_KEYS.EMPLOYEE_DATA);
-        if (savedEmployeeData) {
-          const decryptedData = decryptData(savedEmployeeData);
+        const savedUserData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+        if (savedUserData) {
+          const decryptedData = decryptData(savedUserData);
           if (decryptedData && decryptedData.timestamp) {
             const dataAge = Date.now() - decryptedData.timestamp;
-            
+
             if (dataAge < SEVEN_DAYS) {
-              setEmployeeData(prev => ({
+              setUserData(prev => ({
                 ...prev,
-                ...decryptedData.employeeData
+                ...decryptedData.userData
               }));
             } else {
-              clearEncryptedData(STORAGE_KEYS.EMPLOYEE_DATA);
+              clearEncryptedData(STORAGE_KEYS.USER_DATA);
             }
           }
         }
       } catch (error) {
         console.error('Error loading saved data:', error);
         clearStorage();
+        setCurrentStep(1);
       }
     };
 
     loadSavedData();
-    // Run only once on mount
-  }, [SEVEN_DAYS, clearStorage, loadSavedApplications, STORAGE_KEYS.VERIFICATION_SESSION, STORAGE_KEYS.EMPLOYEE_DATA]);
+  }, [SEVEN_DAYS, clearStorage, loadSavedApplications, STORAGE_KEYS.VERIFICATION_SESSION, STORAGE_KEYS.USER_DATA]);
 
   // Check for Aadhaar data when relevant state changes
   useEffect(() => {
@@ -366,11 +582,13 @@ const CreatingEmployee = () => {
         referenceId,
         otpSent,
         aadhaarDetails,
+        role: selectedRole,
         currentStep,
         timerStart: otpSent ? Date.now() - (60 - timer) * 1000 : null,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        isOtpVerified
       };
-      
+
       const encrypted = encryptData(sessionData);
       if (encrypted) {
         localStorage.setItem(STORAGE_KEYS.VERIFICATION_SESSION, encrypted);
@@ -378,37 +596,37 @@ const CreatingEmployee = () => {
     } catch (error) {
       console.error('Error saving verification session:', error);
     }
-  }, [aadhaarData, referenceId, otpSent, aadhaarDetails, currentStep, timer, STORAGE_KEYS.VERIFICATION_SESSION]);
+  }, [aadhaarData, referenceId, otpSent, aadhaarDetails, selectedRole, currentStep, timer, isOtpVerified, STORAGE_KEYS.VERIFICATION_SESSION]);
 
-  const saveEmployeeData = useCallback(() => {
+  const saveUserData = useCallback(() => {
     try {
       const dataToSave = {
-        employeeData,
+        userData,
         timestamp: Date.now()
       };
-      
+
       const encrypted = encryptData(dataToSave);
       if (encrypted) {
-        localStorage.setItem(STORAGE_KEYS.EMPLOYEE_DATA, encrypted);
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, encrypted);
       }
     } catch (error) {
-      console.error('Error saving employee data:', error);
+      console.error('Error saving user data:', error);
     }
-  }, [employeeData, STORAGE_KEYS.EMPLOYEE_DATA]);
+  }, [userData, STORAGE_KEYS.USER_DATA]);
 
-  // Save employee data when step >= 3 and employee has name
+  // Save user data when step >= 3 and user has name
   useEffect(() => {
-    if (currentStep >= 3 && employeeData.name) {
-      saveEmployeeData();
+    if (currentStep >= 3 && userData.name) {
+      saveUserData();
     }
-  }, [currentStep, employeeData.name, saveEmployeeData]);
+  }, [currentStep, userData.name, saveUserData]);
 
   // Save verification session when relevant data changes
   useEffect(() => {
-    if (currentStep > 1) {
+    if (currentStep > 1 && (isOtpVerified || otpSent)) {
       saveVerificationSession();
     }
-  }, [currentStep, aadhaarData, referenceId, otpSent, aadhaarDetails, timer, saveVerificationSession]);
+  }, [currentStep, aadhaarData, referenceId, otpSent, aadhaarDetails, selectedRole, timer, isOtpVerified, saveVerificationSession]);
 
   // Timer for OTP
   useEffect(() => {
@@ -421,53 +639,63 @@ const CreatingEmployee = () => {
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Fetch managers list - only once
+  const handlePanChange = (e) => {
+    let value = e.target.value.toUpperCase();
+  
+    // Allow only A–Z and 0–9
+    value = value.replace(/[^A-Z0-9]/g, '');
+  
+    // Limit length to 10
+    if (value.length > 10) return;
+  
+    // Optional: Enforce structure while typing
+    // First 5 → letters, next 4 → digits, last → letter
+    if (
+      (value.length <= 5 && !/^[A-Z]*$/.test(value)) ||
+      (value.length > 5 && value.length <= 9 && !/^[A-Z]{5}[0-9]*$/.test(value)) ||
+      (value.length === 10 && !PAN_REGEX.test(value))
+    ) {
+      return;
+    }
+  
+    setUserData(prev => ({
+      ...prev,
+      panNumber: value
+    }));
+  
+    // Clear error while typing
+    setErrors(prev => ({
+      ...prev,
+      panNumber: ''
+    }));
+  };
+  
+
+  // Fetch reporting users
   useEffect(() => {
-    fetchManagers();
+    fetchReportingUsers();
   }, []);
 
-  const fetchManagers = async () => {
+
+
+  const fetchReportingUsers = async () => {
     try {
-      const response = await api.get('/twgoldlogin/managers');
-  
-      if (response.data && response.data.success && response.data.data && response.data.data.managers) {
-        const formattedManagers = response.data.data.managers.map(manager => ({
-          _id: manager.id || manager._id,
-          id: manager.id || manager._id,
-          employeeId: manager.id || manager._id,
-          name: manager.user?.name || 'Unknown',
-          email: manager.user?.email || '',
-          department: manager.department || 'No Department',
-          role: manager.user?.role || '',
-          teamSize: manager.teamSize || 0,
-          fullName: manager.user?.name || 'Unknown'
+      const response = await api.get('/twgoldlogin/users');
+      if (response.data?.success && response.data?.data?.users) {
+        const formattedUsers = response.data.data.users.map(user => ({
+          _id: user.id || user._id,
+          id: user.id || user._id,
+          name: user.name || 'Unknown',
+          email: user.email || '',
+          role: user.role || '',
+          department: user.department || 'No Department',
+          branch: user.branch || 'No Branch'
         }));
-        
-        setManagers(formattedManagers);
-        setError('');
-      } else if (response.data && Array.isArray(response.data.managers)) {
-        const formattedManagers = response.data.managers.map(manager => ({
-          _id: manager.id || manager._id,
-          id: manager.id || manager._id,
-          employeeId: manager.id || manager._id,
-          name: manager.user?.name || manager.name || 'Unknown',
-          email: manager.user?.email || manager.email || '',
-          department: manager.department || 'No Department',
-          fullName: manager.user?.name || manager.name || 'Unknown'
-        }));
-        
-        setManagers(formattedManagers);
-        setError('');
-      } else {
-        console.warn('Unexpected API response format:', response.data);
-        setManagers([]);
-        setError('Unexpected response format from server');
+        setReportingUsers(formattedUsers);
       }
-  
     } catch (error) {
-      console.error('Error fetching managers:', error);
-      setError('Failed to fetch managers list');
-      setManagers([]);
+      console.error('Error fetching reporting users:', error);
+      setReportingUsers([]);
     }
   };
 
@@ -477,17 +705,23 @@ const CreatingEmployee = () => {
       setLoading(true);
       setError('');
 
-      const response = await api.post('/twgoldlogin/employee/aadhaar/generate-otp', aadhaarData);
+      const response = await api.post('/twgoldlogin/user/aadhaar/generate-otp', {
+        aadhaar_number: aadhaarData.aadhaar_number,
+        phone_number: aadhaarData.phone_number,
+        email_id: aadhaarData.email_id,
+        role: selectedRole
+      });
 
       if (response.data.success) {
         setReferenceId(response.data.reference_id);
         setOtpSent(true);
         setTimer(60);
         setError('');
-        // Save verification session but NOT as application yet
+        setIsOtpVerified(false);
         saveVerificationSession();
       }
     } catch (error) {
+      console.log(error.response)
       setError(error.response?.data?.message || 'Failed to generate OTP');
     } finally {
       setLoading(false);
@@ -500,43 +734,119 @@ const CreatingEmployee = () => {
       setLoading(true);
       setError('');
 
-      const response = await api.post('/twgoldlogin/employee/aadhaar/verify-otp', {
+      const response = await api.post('/twgoldlogin/user/aadhaar/verify-otp', {
         aadhaar_number: aadhaarData.aadhaar_number,
         otp: otp,
-        reference_id: referenceId
+        reference_id: referenceId,
+        role: selectedRole
       });
 
       if (response.data.success) {
         setAadhaarDetails(response.data.aadhaar_data);
+        setIsOtpVerified(true);
         setCurrentStep(2);
         setError('');
-        
+
         saveVerificationSession();
-        // Save as application ONLY after successful verification
         saveCurrentApplication();
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to verify OTP');
+      setIsOtpVerified(false);
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 3: Create Employee
-  const createEmployee = async () => {
+  // Step 3: Create User with Aadhaar
+  const createUserWithAadhaar = async () => {
     try {
       setLoading(true);
       setError('');
 
-      const response = await api.post('/twgoldlogin/employee/create-with-aadhaar', {
-        ...employeeData,
-        aadhaar_number: aadhaarData.aadhaar_number
+      // Prepare data for backend
+      const userPayload = {
+        // Basic info (at the end as requested)
+        name: userData.name,
+
+        role: userData.role || selectedRole,
+        designation: userData.designation || getDefaultDesignation(userData.role || selectedRole),
+        department: userData.department,
+        branch: userData.branch,
+        reportsTo: userData.reportsTo,
+
+        // Personal details
+        aadhaar_number: aadhaarData.aadhaar_number,
+        fathers_name: userData.fathersName,
+        mothers_name: userData.mothersName,
+        pan_number: userData.panNumber,
+        marital_status: userData.maritalStatus,
+        blood_group: userData.bloodGroup,
+        nationality: userData.nationality,
+        alternate_mobile: userData.alternateMobile,
+        present_address: userData.presentAddress,
+        contact_number: userData.contactNumber,
+
+        // Statutory details
+        uan_number: userData.uanNumber,
+        esi_number: userData.esiNumber,
+        pf_type: userData.pfType,
+        esi_status: userData.esiStatus,
+        previous_pf_company_name: userData.previousPFCompanyName,
+        previous_pf_exit_date: userData.previousPFExitDate,
+
+        // Qualifications
+        qualifications: userData.qualifications,
+
+        // Work experience
+        previously_worked: userData.previouslyWorked,
+        current_employer: userData.previouslyWorked ? userData.currentEmployer : null,
+        previous_employers: userData.previousEmployers,
+
+        // Skills
+        technical_skills: userData.technicalSkills,
+        software_tools: userData.softwareTools,
+        other_skills: userData.otherSkills,
+
+        // Bank details
+        bank_account_holder: userData.bankAccountHolder,
+        bank_name: userData.bankName,
+        account_number: userData.accountNumber,
+        ifsc_code: userData.ifscCode,
+        branch_name: userData.branchName,
+
+        // Documents
+        documents: userData.documents,
+
+        // Emergency contact
+        emergency_contact: userData.emergencyContact,
+
+        // Employment details
+        salary: userData.salary,
+        join_date: userData.joinDate,
+        permissions: userData.permissions,
+
+        // Email and password (at the end)
+        email: userData.email,
+        password: userData.password
+      };
+
+      // Remove empty arrays and null values
+      Object.keys(userPayload).forEach(key => {
+        if (Array.isArray(userPayload[key]) && userPayload[key].length === 0) {
+          delete userPayload[key];
+        }
+        if (userPayload[key] === null || userPayload[key] === undefined || userPayload[key] === '') {
+          delete userPayload[key];
+        }
       });
+
+      const response = await api.post('/twgoldlogin/user/create-with-aadhaar', userPayload);
 
       if (response.data.success) {
         setSuccess(true);
         setCurrentStep(5);
-        // Clear storage and remove saved application on success
+        setCreatedUserRole(userData.role || selectedRole);
         clearStorage();
         if (selectedApplicationIdRef.current) {
           const updatedApplications = savedApplicationsRef.current.filter(app => app.id !== selectedApplicationIdRef.current);
@@ -548,7 +858,7 @@ const CreatingEmployee = () => {
         }
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to create employee');
+      setError(error.response?.data?.message || 'Failed to create user');
     } finally {
       setLoading(false);
     }
@@ -562,15 +872,36 @@ const CreatingEmployee = () => {
     }));
   };
 
-  const handleEmployeeInputChange = (field, value) => {
-    setEmployeeData(prev => ({
+  const handleUserInputChange = (field, value) => {
+    setUserData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
+  const handleRoleChange = (role) => {
+    setSelectedRole(role);
+    setUserData(prev => ({
+      ...prev,
+      role,
+      designation: getDefaultDesignation(role)
+    }));
+    handleAadhaarInputChange('role', role);
+  };
+
+  useEffect(() => {
+    if (isOtpVerified && aadhaarDetails) {
+      setUserData(prev => ({
+        ...prev,
+        name: prev.name || aadhaarDetails.name || '',
+        contactNumber: prev.contactNumber || aadhaarData.phone_number || '',
+      }));
+    }
+  }, [isOtpVerified, aadhaarDetails, aadhaarData.phone_number]);
+
+
   const handleEmergencyContactChange = (field, value) => {
-    setEmployeeData(prev => ({
+    setUserData(prev => ({
       ...prev,
       emergencyContact: {
         ...prev.emergencyContact,
@@ -579,13 +910,60 @@ const CreatingEmployee = () => {
     }));
   };
 
-  const handleShiftTimingChange = (field, value) => {
-    setEmployeeData(prev => ({
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().split('T')[0];
+  }, []);
+  
+
+  const handleQualificationChange = (index, field, value) => {
+    setUserData(prev => {
+      const newQualifications = [...prev.qualifications];
+      newQualifications[index] = {
+        ...newQualifications[index],
+        [field]: value
+      };
+      return {
+        ...prev,
+        qualifications: newQualifications
+      };
+    });
+  };
+
+  const handleCurrentEmployerChange = (field, value) => {
+    setUserData(prev => ({
       ...prev,
-      shiftTiming: {
-        ...prev.shiftTiming,
+      currentEmployer: {
+        ...prev.currentEmployer,
         [field]: value
       }
+    }));
+  };
+
+  const handleDocumentChange = (documentName, checked) => {
+    setUserData(prev => ({
+      ...prev,
+      documents: {
+        ...prev.documents,
+        [documentName]: checked
+      }
+    }));
+  };
+
+  const addSkill = (field, value) => {
+    if (value.trim()) {
+      setUserData(prev => ({
+        ...prev,
+        [field]: [...prev[field], value.trim()]
+      }));
+    }
+  };
+
+  const removeSkill = (field, index) => {
+    setUserData(prev => ({
+      ...prev,
+      [field]: prev[field].filter((_, i) => i !== index)
     }));
   };
 
@@ -601,26 +979,49 @@ const CreatingEmployee = () => {
     if (aadhaarData.email_id && !aadhaarData.email_id.match(/^\S+@\S+\.\S+$/)) {
       newErrors.email_id = 'Invalid email format';
     }
+    if (!selectedRole) {
+      newErrors.role = 'Please select a role';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const validateStep3 = () => {
     const newErrors = {};
-    if (!employeeData.email) newErrors.email = 'Email is required';
-    if (!employeeData.password) newErrors.password = 'Password is required';
-    if (!employeeData.name) newErrors.name = 'Name is required';
-    if (!employeeData.employeeId) newErrors.employeeId = 'Employee ID is required';
-    if (!employeeData.position) newErrors.position = 'Position is required';
-    if (!employeeData.department) newErrors.department = 'Department is required';
-    if (!employeeData.manager) newErrors.manager = 'Manager is required';
-    if (!employeeData.assignedBranch) newErrors.assignedBranch = 'Branch is required';
-    if (!employeeData.contactNumber) newErrors.contactNumber = 'Contact number is required';
-    if (!employeeData.emergencyContact.name) newErrors.emergencyName = 'Emergency contact name is required';
-    if (!employeeData.emergencyContact.relationship) newErrors.emergencyRelationship = 'Relationship is required';
-    if (!employeeData.emergencyContact.phone) newErrors.emergencyPhone = 'Emergency phone is required';
-    if (!employeeData.shiftTiming.start) newErrors.shiftStart = 'Shift start time is required';
-    if (!employeeData.shiftTiming.end) newErrors.shiftEnd = 'Shift end time is required';
+    if (!userData.email) newErrors.email = 'Email is required';
+    if (!userData.password) newErrors.password = 'Password is required';
+    if (!userData.name) newErrors.name = 'Name is required';
+    if (!userData.role) newErrors.role = 'Role is required';
+    if (!userData.contactNumber) newErrors.contactNumber = 'Contact number is required';
+    if (!userData.panNumber) {
+      newErrors.panNumber = 'PAN number is required';
+    } else if (!PAN_REGEX.test(userData.panNumber)) {
+      newErrors.panNumber = 'Invalid PAN format (ABCDE1234F)';
+    }
+    
+    if (!userData.fathersName) newErrors.fathersName = 'Father\'s/Husband\'s name is required';
+    if (!userData.mothersName) newErrors.mothersName = 'Mother\'s name is required';
+
+    // Check if role requires reportsTo
+    const roleObj = ROLES.find(r => r.value === userData.role);
+    if (roleObj?.requiresManager && !userData.reportsTo) {
+      newErrors.reportsTo = 'Reporting manager is required';
+    }
+
+    if (!userData.emergencyContact.name) newErrors.emergencyName = 'Emergency contact name is required';
+    if (!userData.emergencyContact.relationship) newErrors.emergencyRelationship = 'Relationship is required';
+    if (!userData.emergencyContact.phone) newErrors.emergencyPhone = 'Emergency phone is required';
+
+    if (userData.joinDate) {
+      const selectedDate = new Date(userData.joinDate);
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+    
+      if (selectedDate < todayDate) {
+        newErrors.joinDate = 'Joining date cannot be in the past';
+      }
+    }
+    
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -630,26 +1031,33 @@ const CreatingEmployee = () => {
   const nextStep = () => {
     if (currentStep === 1 && validateStep1()) {
       if (otpSent) {
-        verifyAadhaarOtp();
+        verifyAadhaarOtp(); // OTP verify already saves once
       } else {
         generateAadhaarOtp();
       }
-    } else if (currentStep === 2) {
+    }
+    else if (currentStep === 2) {
       setCurrentStep(3);
-      // Save application when moving to employee details
-      saveCurrentApplication();
-    } else if (currentStep === 3 && validateStep3()) {
+      saveCurrentApplication(); // ✅ OK (first transition)
+    }
+    else if (currentStep === 3 && validateStep3()) {
       setCurrentStep(4);
-      saveCurrentApplication();
-    } else if (currentStep === 4) {
-      createEmployee();
+      saveCurrentApplication(); // ✅ OK (final draft)
+    }
+    else if (currentStep === 4) {
+      createUserWithAadhaar();
     }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
+    if (currentStep === 3 && isOtpVerified) {
+      // If OTP is verified, go directly to step 2 (verified details)
+      setCurrentStep(2);
+    } else if (currentStep === 2 && isOtpVerified) {
+      // If on step 2 and OTP is verified, go to step 1 but don't show OTP section
+      setCurrentStep(1);
+    } else if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
-      // Don't save when going back - only save on forward progression
     }
   };
 
@@ -660,7 +1068,7 @@ const CreatingEmployee = () => {
     }
   };
 
-  // New: Save data and get back to add another employee
+  // Save data and get back to add another user
   const saveAndAddAnother = () => {
     const appId = saveCurrentApplication();
     if (appId) {
@@ -670,52 +1078,55 @@ const CreatingEmployee = () => {
     }
   };
 
-  // New: Clear all data and move to step 1
+  // Clear all data and move to step 1
   const clearAllAndStartNew = () => {
-    // Remove from saved applications
     if (selectedApplicationIdRef.current) {
-      const updatedApplications = savedApplicationsRef.current.filter(app => app.id !== selectedApplicationIdRef.current);
+      const updatedApplications = savedApplicationsRef.current.filter(
+        app => app.id !== selectedApplicationIdRef.current
+      );
       setSavedApplications(updatedApplications);
       savedApplicationsRef.current = updatedApplications;
-      localStorage.setItem(STORAGE_KEYS.SAVED_APPLICATIONS, JSON.stringify(updatedApplications));
+      localStorage.setItem(
+        STORAGE_KEYS.SAVED_APPLICATIONS,
+        JSON.stringify(updatedApplications)
+      );
     }
-    
+
+    setSuccess(false);          // ✅ important
     resetForm();
+    setCurrentStep(1);          // ✅ force step 1
     setShowSavedApplications(false);
   };
 
-  // Render saved applications list
-  const renderSavedApplications = () => (
-    <div className="creating-employee-saved-applications">
+
+  // Render saved applications list - shown above step 1 form
+  const renderSavedApplicationsList = () => (
+    <div className="creating-employee-saved-applications-list">
       <h3>Continue Existing Application</h3>
       <p>Select an application to continue from where you left off:</p>
-      
+
       {savedApplications.length === 0 ? (
         <div className="creating-employee-no-applications">
           <p>No saved applications found.</p>
-          <button
-            className="creating-employee-button creating-employee-button-primary"
-            onClick={() => setShowSavedApplications(false)}
-          >
-            Start New Application
-          </button>
         </div>
       ) : (
         <div className="creating-employee-applications-list">
           {savedApplications.map(app => (
-            <div 
-              key={app.id} 
+            <div
+              key={app.id}
               className="creating-employee-application-card"
               onClick={() => loadSavedApplication(app.id)}
             >
               <div className="creating-employee-application-info">
                 <h4>{app.name}</h4>
+                <p>Role: {getRoleDisplayName(app.role)}</p>
                 <p>Aadhaar: {app.aadhaarNumber ? `${app.aadhaarNumber.substring(0, 4)}XXXX${app.aadhaarNumber.substring(8)}` : 'Not entered'}</p>
+                <p>Status: {app.isOtpVerified ? 'OTP Verified' : 'OTP Pending'}</p>
                 <p>Last saved: {new Date(app.timestamp).toLocaleString()}</p>
-                <p>Current step: {app.step === 1 ? 'Aadhaar Verification' : 
-                                 app.step === 2 ? 'Verified Details' : 
-                                 app.step === 3 ? 'Employee Details' : 
-                                 'Review & Submit'}</p>
+                <p>Current step: {app.step === 1 ? 'Aadhaar Verification' :
+                  app.step === 2 ? 'Verified Details' :
+                    app.step === 3 ? 'User Details' :
+                      'Review & Submit'}</p>
               </div>
               <div className="creating-employee-application-actions">
                 <button
@@ -733,6 +1144,18 @@ const CreatingEmployee = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // Render Step 1 with saved applications shown above the form
+  const renderStep1 = () => {
+    // If showing saved applications in full screen mode
+    if (showSavedApplications) {
+      return (
+        <div className="creating-employee-form-step">
+          {renderSavedApplicationsList()}
           <div className="creating-employee-applications-footer">
             <button
               className="creating-employee-button creating-employee-button-secondary"
@@ -742,37 +1165,58 @@ const CreatingEmployee = () => {
             </button>
           </div>
         </div>
-      )}
-    </div>
-  );
-
-  // Render Step 1 - Fixed logic
-  const renderStep1 = () => {
-    // Only show saved applications if explicitly clicked AND we have some saved
-    if (showSavedApplications && savedApplications.length > 0) {
-      return renderSavedApplications();
+      );
     }
 
     return (
       <div className="creating-employee-form-step">
+        {/* Show saved applications list above the form only on fresh mount */}
+        {savedApplications.length > 0 && !hasAadhaarData && !otpSent && (
+          <div className="creating-employee-saved-applications-above">
+            {renderSavedApplicationsList()}
+            <div className="creating-employee-form-divider">
+              <span>OR</span>
+            </div>
+          </div>
+        )}
+
+
         <div className="creating-employee-form-section">
           <h3>Aadhaar Verification</h3>
           <p>Enter employee's Aadhaar details to verify identity</p>
 
-          {/* Only show "Continue Existing" button if we have saved applications */}
-          {savedApplications.length > 0 && !hasAadhaarData && !otpSent && (
-            <div className="creating-employee-continue-existing">
-              <button
-                className="creating-employee-button creating-employee-button-secondary"
-                onClick={() => setShowSavedApplications(true)}
-              >
-                Continue Existing Application ({savedApplications.length})
-              </button>
-            </div>
+          {/* If we have saved applications and not showing them, show button */}
+          {savedApplications.length > 0 && !showSavedApplications && (
+            <button
+              className="creating-employee-button creating-employee-button-secondary"
+              onClick={() => setShowSavedApplications(true)}
+            >
+              Continue Existing Application ({savedApplications.length})
+            </button>
           )}
 
-          {/* If OTP is sent, show OTP section */}
-          {otpSent ? (
+
+          {/* Role Selection */}
+          <div className="creating-employee-form-group">
+            <label className="creating-employee-form-label">Select Role *</label>
+            <select
+              className={`creating-employee-form-select ${errors.role ? 'error' : ''}`}
+              value={selectedRole}
+              onChange={(e) => handleRoleChange(e.target.value)}
+              disabled={otpSent && !isOtpVerified}
+            >
+              <option value="">Select Role</option>
+              {ROLES.map(role => (
+                <option key={role.value} value={role.value}>
+                  {role.label}
+                </option>
+              ))}
+            </select>
+            {errors.role && <span className="creating-employee-form-error">{errors.role}</span>}
+          </div>
+
+          {/* If OTP is sent but NOT verified, show OTP section */}
+          {otpSent && !isOtpVerified ? (
             <div className="creating-employee-otp-section">
               <h4>Enter OTP</h4>
               <p>OTP sent to registered mobile number ending with {aadhaarData.phone_number.slice(-2)}</p>
@@ -858,7 +1302,6 @@ const CreatingEmployee = () => {
               </div>
             </div>
           ) : (
-            /* If OTP not sent, show Aadhaar form */
             <>
               <div className="creating-employee-form-group">
                 <label className="creating-employee-form-label">Aadhaar Number *</label>
@@ -869,7 +1312,7 @@ const CreatingEmployee = () => {
                   onChange={(e) => handleAadhaarInputChange('aadhaar_number', e.target.value)}
                   placeholder="Enter 12-digit Aadhaar number"
                   maxLength="12"
-                  disabled={otpSent}
+                  disabled={otpSent && !isOtpVerified}
                 />
                 {errors.aadhaar_number && <span className="creating-employee-form-error">{errors.aadhaar_number}</span>}
               </div>
@@ -883,7 +1326,7 @@ const CreatingEmployee = () => {
                   onChange={(e) => handleAadhaarInputChange('phone_number', e.target.value)}
                   placeholder="Enter registered mobile number"
                   maxLength="10"
-                  disabled={otpSent}
+                  disabled={otpSent && !isOtpVerified}
                 />
                 {errors.phone_number && <span className="creating-employee-form-error">{errors.phone_number}</span>}
               </div>
@@ -896,7 +1339,7 @@ const CreatingEmployee = () => {
                   value={aadhaarData.email_id}
                   onChange={(e) => handleAadhaarInputChange('email_id', e.target.value)}
                   placeholder="Enter email address (optional)"
-                  disabled={otpSent}
+                  disabled={otpSent && !isOtpVerified}
                 />
                 {errors.email_id && <span className="creating-employee-form-error">{errors.email_id}</span>}
               </div>
@@ -934,6 +1377,10 @@ const CreatingEmployee = () => {
                 <span className="creating-employee-detail-label">Aadhaar Number</span>
                 <span className="creating-employee-detail-value">{aadhaarDetails.masked_aadhaar}</span>
               </div>
+              <div className="creating-employee-detail-item">
+                <span className="creating-employee-detail-label">Role</span>
+                <span className="creating-employee-detail-value">{getRoleDisplayName(selectedRole)}</span>
+              </div>
               <div className="creating-employee-detail-item" style={{ gridColumn: '1 / -1' }}>
                 <span className="creating-employee-detail-label">Address</span>
                 <span className="creating-employee-detail-value">{aadhaarDetails.full_address}</span>
@@ -942,312 +1389,1054 @@ const CreatingEmployee = () => {
           </div>
         )}
 
-        <p>All Aadhaar details have been verified and will be stored securely with the employee record.</p>
+        <p>All Aadhaar details have been verified and will be stored securely with the user record.</p>
       </div>
     </div>
   );
 
-  const renderStep3 = () => (
-    <div className="creating-employee-form-step">
-      <div className="creating-employee-form-section">
-        <h3>Employee Details</h3>
 
-        <div className="creating-employee-form-row">
-          <div className="creating-employee-form-group">
-            <label className="creating-employee-form-label">Email Address *</label>
-            <input
-              type="email"
-              className={`creating-employee-form-input ${errors.email ? 'error' : ''}`}
-              value={employeeData.email}
-              onChange={(e) => handleEmployeeInputChange('email', e.target.value)}
-              placeholder="employee@company.com"
-            />
-            {errors.email && <span className="creating-employee-form-error">{errors.email}</span>}
+  const renderStep3 = () => {
+    
+    const selectedRoleObj = ROLES.find(r => r.value === userData.role);
+
+    return (
+      <div className="creating-employee-form-step">
+        <div className="creating-employee-form-section">
+          <h3>User Details</h3>
+
+          <div className="creating-employee-form-section">
+            <h4>Personal Information</h4>
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Full Name *</label>
+                <input
+                  type="text"
+                  value={userData.name}
+                  disabled
+                  className="creating-employee-form-input"
+                />
+
+                {errors.name && <span className="creating-employee-form-error">{errors.name}</span>}
+              </div>
+
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Contact Number *</label>
+                <input
+                  type="text"
+                  value={userData.contactNumber}
+                  disabled
+                  className="creating-employee-form-input"
+                />
+
+                {errors.contactNumber && <span className="creating-employee-form-error">{errors.contactNumber}</span>}
+              </div>
+            </div>
+
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Father's/Husband's Name *</label>
+                <input
+                  type="text"
+                  className={`creating-employee-form-input ${errors.fathersName ? 'error' : ''}`}
+                  value={userData.fathersName}
+                  onChange={(e) => handleUserInputChange('fathersName', e.target.value)}
+                  placeholder="Father's/Husband's name"
+                />
+                {errors.fathersName && <span className="creating-employee-form-error">{errors.fathersName}</span>}
+              </div>
+
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Mother's Name *</label>
+                <input
+                  type="text"
+                  className={`creating-employee-form-input ${errors.mothersName ? 'error' : ''}`}
+                  value={userData.mothersName}
+                  onChange={(e) => handleUserInputChange('mothersName', e.target.value)}
+                  placeholder="Mother's name"
+                />
+                {errors.mothersName && <span className="creating-employee-form-error">{errors.mothersName}</span>}
+              </div>
+            </div>
+
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">PAN Number *</label>
+                <input
+  type="text"
+  className={`creating-employee-form-input ${errors.panNumber ? 'error' : ''}`}
+  value={userData.panNumber}
+  onChange={handlePanChange}
+  placeholder="ABCDE1234F"
+  maxLength="10"
+/>
+
+                {errors.panNumber && <span className="creating-employee-form-error">{errors.panNumber}</span>}
+              </div>
+
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Marital Status</label>
+                <select
+                  className="creating-employee-form-select"
+                  value={userData.maritalStatus}
+                  onChange={(e) => handleUserInputChange('maritalStatus', e.target.value)}
+                >
+                  <option value="">Select</option>
+                  <option value="Single">Single</option>
+                  <option value="Married">Married</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Blood Group</label>
+                <select
+                  className="creating-employee-form-select"
+                  value={userData.bloodGroup}
+                  onChange={(e) => handleUserInputChange('bloodGroup', e.target.value)}
+                >
+                  <option value="">Select</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                </select>
+              </div>
+
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Nationality</label>
+                <input
+                  type="text"
+                  className="creating-employee-form-input"
+                  value={userData.nationality}
+                  onChange={(e) => handleUserInputChange('nationality', e.target.value)}
+                  placeholder="Nationality"
+                />
+              </div>
+            </div>
+
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Alternate Mobile</label>
+                <input
+                  type="text"
+                  className="creating-employee-form-input"
+                  value={userData.alternateMobile}
+                  onChange={(e) => handleUserInputChange('alternateMobile', e.target.value)}
+                  placeholder="Alternate mobile number"
+                  maxLength="10"
+                />
+              </div>
+            </div>
+
+            <div className="creating-employee-form-group">
+              <label className="creating-employee-form-label">Present Address</label>
+              <textarea
+                className={`creating-employee-form-input`}
+                value={userData.presentAddress}
+                onChange={(e) => handleUserInputChange('presentAddress', e.target.value)}
+                placeholder="Present address"
+                rows="3"
+              />
+            </div>
           </div>
 
-          <div className="creating-employee-form-group">
-            <label className="creating-employee-form-label">Password *</label>
-            <input
-              type="password"
-              className={`creating-employee-form-input ${errors.password ? 'error' : ''}`}
-              value={employeeData.password}
-              onChange={(e) => handleEmployeeInputChange('password', e.target.value)}
-              placeholder="Set password"
-            />
-            {errors.password && <span className="creating-employee-form-error">{errors.password}</span>}
-          </div>
-        </div>
+          <div className="creating-employee-form-section">
+            <h4>Statutory Employment Details</h4>
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">UAN Number (PF)</label>
+                <input
+                  type="text"
+                  className="creating-employee-form-input"
+                  value={userData.uanNumber}
+                  onChange={(e) => handleUserInputChange('uanNumber', e.target.value)}
+                  placeholder="UAN number"
+                />
+              </div>
 
-        <div className="creating-employee-form-row">
-          <div className="creating-employee-form-group">
-            <label className="creating-employee-form-label">Full Name *</label>
-            <input
-              type="text"
-              className={`creating-employee-form-input ${errors.name ? 'error' : ''}`}
-              value={employeeData.name}
-              onChange={(e) => handleEmployeeInputChange('name', e.target.value)}
-              placeholder="Employee full name"
-            />
-            {errors.name && <span className="creating-employee-form-error">{errors.name}</span>}
-          </div>
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">ESI Number</label>
+                <input
+                  type="text"
+                  className="creating-employee-form-input"
+                  value={userData.esiNumber}
+                  onChange={(e) => handleUserInputChange('esiNumber', e.target.value)}
+                  placeholder="ESI number (if available)"
+                />
+              </div>
+            </div>
 
-          <div className="creating-employee-form-group">
-            <label className="creating-employee-form-label">Employee ID *</label>
-            <input
-              type="text"
-              className={`creating-employee-form-input ${errors.employeeId ? 'error' : ''}`}
-              value={employeeData.employeeId}
-              onChange={(e) => handleEmployeeInputChange('employeeId', e.target.value)}
-              placeholder="EMP001"
-            />
-            {errors.employeeId && <span className="creating-employee-form-error">{errors.employeeId}</span>}
-          </div>
-        </div>
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">PF Type</label>
+                <div className="creating-employee-radio-group">
+                  <label>
+                    <input
+                      type="radio"
+                      name="pfType"
+                      value="Existing UAN"
+                      checked={userData.pfType === 'Existing UAN'}
+                      onChange={(e) => handleUserInputChange('pfType', e.target.value)}
+                    />
+                    Existing UAN
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="pfType"
+                      value="New UAN Required"
+                      checked={userData.pfType === 'New UAN Required'}
+                      onChange={(e) => handleUserInputChange('pfType', e.target.value)}
+                    />
+                    New UAN Required
+                  </label>
+                </div>
+              </div>
 
-        <div className="creating-employee-form-row">
-          <div className="creating-employee-form-group">
-            <label className="creating-employee-form-label">Position *</label>
-            <select
-              className={`creating-employee-form-select ${errors.position ? 'error' : ''}`}
-              value={employeeData.position}
-              onChange={(e) => handleEmployeeInputChange('position', e.target.value)}
-            >
-              <option value="">Select Position</option>
-              <option value="Gold Appraiser">Gold Appraiser</option>
-              <option value="Loan Officer">Loan Officer</option>
-              <option value="Branch Manager">Branch Manager</option>
-              <option value="Customer Service Representative">Customer Service Representative</option>
-              <option value="Gold Valuation Expert">Gold Valuation Expert</option>
-              <option value="Risk Assessment Officer">Risk Assessment Officer</option>
-              <option value="Document Verification Specialist">Document Verification Specialist</option>
-              <option value="Recovery Agent">Recovery Agent</option>
-              <option value="Operations Manager">Operations Manager</option>
-              <option value="Sales Executive">Sales Executive</option>
-            </select>
-            {errors.position && <span className="creating-employee-form-error">{errors.position}</span>}
-          </div>
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">ESI Status</label>
+                <div className="creating-employee-radio-group">
+                  <label>
+                    <input
+                      type="radio"
+                      name="esiStatus"
+                      value="Registered"
+                      checked={userData.esiStatus === 'Registered'}
+                      onChange={(e) => handleUserInputChange('esiStatus', e.target.value)}
+                    />
+                    Registered
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="esiStatus"
+                      value="Not Registered"
+                      checked={userData.esiStatus === 'Not Registered'}
+                      onChange={(e) => handleUserInputChange('esiStatus', e.target.value)}
+                    />
+                    Not Registered
+                  </label>
+                </div>
+              </div>
+            </div>
 
-          <div className="creating-employee-form-group">
-            <label className="creating-employee-form-label">Department *</label>
-            <select
-              className={`creating-employee-form-select ${errors.department ? 'error' : ''}`}
-              value={employeeData.department}
-              onChange={(e) => handleEmployeeInputChange('department', e.target.value)}
-            >
-              <option value="">Select Department</option>
-              <option value="Operations">Operations</option>
-              <option value="Sales & Marketing">Sales & Marketing</option>
-              <option value="Risk Management">Risk Management</option>
-              <option value="Customer Service">Customer Service</option>
-              <option value="Valuation">Valuation</option>
-              <option value="Recovery">Recovery</option>
-              <option value="Administration">Administration</option>
-              <option value="Finance">Finance</option>
-            </select>
-            {errors.department && <span className="creating-employee-form-error">{errors.department}</span>}
-          </div>
-        </div>
+            {userData.pfType === 'Existing UAN' && (
+              <div className="creating-employee-form-row">
+                <div className="creating-employee-form-group">
+                  <label className="creating-employee-form-label">Previous PF Company Name</label>
+                  <input
+                    type="text"
+                    className="creating-employee-form-input"
+                    value={userData.previousPFCompanyName}
+                    onChange={(e) => handleUserInputChange('previousPFCompanyName', e.target.value)}
+                    placeholder="Previous company name"
+                  />
+                </div>
 
-        <div className="creating-employee-form-group">
-          <label className="creating-employee-form-label">Manager *</label>
-          <select
-            className={`creating-employee-form-select ${errors.manager ? 'error' : ''}`}
-            value={employeeData.manager}
-            onChange={(e) => handleEmployeeInputChange('manager', e.target.value)}
-            disabled={managers.length === 0}
-          >
-            <option value="">Select Manager</option>
-            {managers.length > 0 ? (
-              managers.map(manager => (
-                <option key={manager._id} value={manager._id}>
-                  {manager.name} - {manager.department}
-                </option>
-              ))
-            ) : (
-              <option value="" disabled>
-                {error ? 'Failed to load managers' : 'Loading managers...'}
-              </option>
+                <div className="creating-employee-form-group">
+                  <label className="creating-employee-form-label">Previous PF Exit Date</label>
+                  <input
+                    type="date"
+                    className="creating-employee-form-input"
+                    value={userData.previousPFExitDate}
+                    onChange={(e) => handleUserInputChange('previousPFExitDate', e.target.value)}
+                  />
+                </div>
+              </div>
             )}
-          </select>
-          {errors.manager && <span className="creating-employee-form-error">{errors.manager}</span>}
-          {managers.length === 0 && !error && (
-            <span className="creating-employee-form-info">Loading managers...</span>
-          )}
-          {managers.length === 0 && error && (
-            <span className="creating-employee-form-error">Failed to load managers</span>
-          )}
-        </div>
-
-        <div className="creating-employee-form-row">
-          <div className="creating-employee-form-group">
-            <label className="creating-employee-form-label">Salary</label>
-            <input
-              type="number"
-              className="creating-employee-form-input"
-              value={employeeData.salary}
-              onChange={(e) => handleEmployeeInputChange('salary', e.target.value)}
-              placeholder="Monthly salary"
-            />
           </div>
 
-          <div className="creating-employee-form-group">
-            <label className="creating-employee-form-label">Join Date</label>
-            <input
-              type="date"
-              className="creating-employee-form-input"
-              value={employeeData.joinDate}
-              onChange={(e) => handleEmployeeInputChange('joinDate', e.target.value)}
-            />
-          </div>
-        </div>
+          <div className="creating-employee-form-section">
+            <h4>Qualifications</h4>
+            {userData.qualifications.map((qual, index) => (
+              <div key={index} className="creating-employee-qualification-row">
+                <div className="creating-employee-form-row">
+                  <div className="creating-employee-form-group">
+                    <label className="creating-employee-form-label">{qual.level}</label>
+                    <input
+                      type="text"
+                      className="creating-employee-form-input"
+                      value={qual.institution}
+                      onChange={(e) => handleQualificationChange(index, 'institution', e.target.value)}
+                      placeholder="School/College"
+                    />
+                  </div>
 
-        <div className="creating-employee-form-row">
-          <div className="creating-employee-form-group">
-            <label className="creating-employee-form-label">Contact Number *</label>
-            <input
-              type="text"
-              className={`creating-employee-form-input ${errors.contactNumber ? 'error' : ''}`}
-              value={employeeData.contactNumber}
-              onChange={(e) => handleEmployeeInputChange('contactNumber', e.target.value)}
-              placeholder="Contact number"
-              maxLength="10"
-            />
-            {errors.contactNumber && <span className="creating-employee-form-error">{errors.contactNumber}</span>}
+                  <div className="creating-employee-form-group">
+                    <label className="creating-employee-form-label">Board/University</label>
+                    <input
+                      type="text"
+                      className="creating-employee-form-input"
+                      value={qual.board}
+                      onChange={(e) => handleQualificationChange(index, 'board', e.target.value)}
+                      placeholder="Board/University"
+                    />
+                  </div>
+                </div>
+
+                <div className="creating-employee-form-row">
+                  <div className="creating-employee-form-group">
+                    <label className="creating-employee-form-label">Year</label>
+                    <input
+                      type="text"
+                      className="creating-employee-form-input"
+                      value={qual.year}
+                      onChange={(e) => handleQualificationChange(index, 'year', e.target.value)}
+                      placeholder="Year"
+                      maxLength="4"
+                    />
+                  </div>
+
+                  <div className="creating-employee-form-group">
+                    <label className="creating-employee-form-label">% / Grade</label>
+                    <input
+                      type="text"
+                      className="creating-employee-form-input"
+                      value={qual.grade}
+                      onChange={(e) => handleQualificationChange(index, 'grade', e.target.value)}
+                      placeholder="Percentage/Grade"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
-          <div className="creating-employee-form-group">
-            <label className="creating-employee-form-label">Max Loan Approval Limit</label>
-            <input
-              type="number"
-              className="creating-employee-form-input"
-              value={employeeData.maxLoanApprovalLimit}
-              onChange={(e) => handleEmployeeInputChange('maxLoanApprovalLimit', e.target.value)}
-              placeholder="Loan approval limit"
-            />
-          </div>
-        </div>
-
-        <div className="creating-employee-form-section">
-          <h4>Emergency Contact</h4>
-          <div className="creating-employee-form-row">
+          <div className="creating-employee-form-section">
+            <h4>Work Experience</h4>
             <div className="creating-employee-form-group">
-              <label className="creating-employee-form-label">Name *</label>
+              <label className="creating-employee-form-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.previouslyWorked}
+                  onChange={(e) => handleUserInputChange('previouslyWorked', e.target.checked)}
+                />
+                Previously Worked
+              </label>
+            </div>
+
+            {userData.previouslyWorked && (
+              <>
+                <div className="creating-employee-form-section">
+                  <h5>Current / Last Employer</h5>
+                  <div className="creating-employee-form-row">
+                    <div className="creating-employee-form-group">
+                      <label className="creating-employee-form-label">Company Name</label>
+                      <input
+                        type="text"
+                        className="creating-employee-form-input"
+                        value={userData.currentEmployer.companyName}
+                        onChange={(e) => handleCurrentEmployerChange('companyName', e.target.value)}
+                        placeholder="Company name"
+                      />
+                    </div>
+
+                    <div className="creating-employee-form-group">
+                      <label className="creating-employee-form-label">Designation</label>
+                      <input
+                        type="text"
+                        className="creating-employee-form-input"
+                        value={userData.currentEmployer.designation}
+                        onChange={(e) => handleCurrentEmployerChange('designation', e.target.value)}
+                        placeholder="Designation"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="creating-employee-form-row">
+                    <div className="creating-employee-form-group">
+                      <label className="creating-employee-form-label">Experience From</label>
+                      <input
+                        type="date"
+                        className="creating-employee-form-input"
+                        value={userData.currentEmployer.fromDate}
+                        onChange={(e) => handleCurrentEmployerChange('fromDate', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="creating-employee-form-group">
+                      <label className="creating-employee-form-label">Experience To</label>
+                      <input
+                        type="date"
+                        className="creating-employee-form-input"
+                        value={userData.currentEmployer.toDate}
+                        onChange={(e) => handleCurrentEmployerChange('toDate', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="creating-employee-form-row">
+                    <div className="creating-employee-form-group">
+                      <label className="creating-employee-form-label">Total Experience</label>
+                      <input
+                        type="text"
+                        className="creating-employee-form-input"
+                        value={userData.currentEmployer.totalExperience}
+                        onChange={(e) => handleCurrentEmployerChange('totalExperience', e.target.value)}
+                        placeholder="e.g., 3 Years 6 Months"
+                      />
+                    </div>
+
+                    <div className="creating-employee-form-group">
+                      <label className="creating-employee-form-label">Last CTC</label>
+                      <input
+                        type="text"
+                        className="creating-employee-form-input"
+                        value={userData.currentEmployer.lastCTC}
+                        onChange={(e) => handleCurrentEmployerChange('lastCTC', e.target.value)}
+                        placeholder="Last CTC"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="creating-employee-form-group">
+                    <label className="creating-employee-form-label">Reason for Leaving</label>
+                    <input
+                      type="text"
+                      className="creating-employee-form-input"
+                      value={userData.currentEmployer.reasonForLeaving}
+                      onChange={(e) => handleCurrentEmployerChange('reasonForLeaving', e.target.value)}
+                      placeholder="Reason for leaving"
+                    />
+                  </div>
+                </div>
+
+                <div className="creating-employee-form-section">
+                  <h5>Previous Employers</h5>
+                  <div className="creating-employee-form-group">
+                    <button
+                      className="creating-employee-button creating-employee-button-secondary"
+                      onClick={() => {
+                        setUserData(prev => ({
+                          ...prev,
+                          previousEmployers: [...prev.previousEmployers, {
+                            companyName: '',
+                            position: '',
+                            duration: '',
+                            reasonForLeaving: ''
+                          }]
+                        }));
+                      }}
+                    >
+                      Add Previous Employer
+                    </button>
+                  </div>
+
+                  {userData.previousEmployers.map((employer, index) => (
+                    <div key={index} className="creating-employee-form-section">
+                      <div className="creating-employee-form-row">
+                        <div className="creating-employee-form-group">
+                          <label className="creating-employee-form-label">Company Name</label>
+                          <input
+                            type="text"
+                            className="creating-employee-form-input"
+                            value={employer.companyName}
+                            onChange={(e) => {
+                              const newEmployers = [...userData.previousEmployers];
+                              newEmployers[index].companyName = e.target.value;
+                              handleUserInputChange('previousEmployers', newEmployers);
+                            }}
+                            placeholder="Company name"
+                          />
+                        </div>
+
+                        <div className="creating-employee-form-group">
+                          <label className="creating-employee-form-label">Position Held</label>
+                          <input
+                            type="text"
+                            className="creating-employee-form-input"
+                            value={employer.position}
+                            onChange={(e) => {
+                              const newEmployers = [...userData.previousEmployers];
+                              newEmployers[index].position = e.target.value;
+                              handleUserInputChange('previousEmployers', newEmployers);
+                            }}
+                            placeholder="Position held"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="creating-employee-form-row">
+                        <div className="creating-employee-form-group">
+                          <label className="creating-employee-form-label">Duration</label>
+                          <input
+                            type="text"
+                            className="creating-employee-form-input"
+                            value={employer.duration}
+                            onChange={(e) => {
+                              const newEmployers = [...userData.previousEmployers];
+                              newEmployers[index].duration = e.target.value;
+                              handleUserInputChange('previousEmployers', newEmployers);
+                            }}
+                            placeholder="Duration"
+                          />
+                        </div>
+
+                        <div className="creating-employee-form-group">
+                          <label className="creating-employee-form-label">Reason for Leaving</label>
+                          <input
+                            type="text"
+                            className="creating-employee-form-input"
+                            value={employer.reasonForLeaving}
+                            onChange={(e) => {
+                              const newEmployers = [...userData.previousEmployers];
+                              newEmployers[index].reasonForLeaving = e.target.value;
+                              handleUserInputChange('previousEmployers', newEmployers);
+                            }}
+                            placeholder="Reason for leaving"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="creating-employee-form-group">
+                        <button
+                          className="creating-employee-button creating-employee-button-secondary"
+                          onClick={() => {
+                            const newEmployers = userData.previousEmployers.filter((_, i) => i !== index);
+                            handleUserInputChange('previousEmployers', newEmployers);
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="creating-employee-form-section">
+            <h4>Skills & Expertise</h4>
+            <div className="creating-employee-form-group">
+              <label className="creating-employee-form-label">Technical Skills</label>
+              <div className="creating-employee-tag-input">
+                {userData.technicalSkills.map((skill, index) => (
+                  <div key={index} className="creating-employee-tag">
+                    {skill}
+                    <button
+                      className="creating-employee-tag-remove"
+                      onClick={() => removeSkill('technicalSkills', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <input
+                  type="text"
+                  placeholder="Add technical skill"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      addSkill('technicalSkills', e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) {
+                      addSkill('technicalSkills', e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="creating-employee-form-group">
+              <label className="creating-employee-form-label">Software Tools</label>
+              <div className="creating-employee-tag-input">
+                {userData.softwareTools.map((tool, index) => (
+                  <div key={index} className="creating-employee-tag">
+                    {tool}
+                    <button
+                      className="creating-employee-tag-remove"
+                      onClick={() => removeSkill('softwareTools', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <input
+                  type="text"
+                  placeholder="Add software tool"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      addSkill('softwareTools', e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) {
+                      addSkill('softwareTools', e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="creating-employee-form-group">
+              <label className="creating-employee-form-label">Other Relevant Skills</label>
+              <div className="creating-employee-tag-input">
+                {userData.otherSkills.map((skill, index) => (
+                  <div key={index} className="creating-employee-tag">
+                    {skill}
+                    <button
+                      className="creating-employee-tag-remove"
+                      onClick={() => removeSkill('otherSkills', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <input
+                  type="text"
+                  placeholder="Add other skill"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      addSkill('otherSkills', e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) {
+                      addSkill('otherSkills', e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="creating-employee-form-section">
+            <h4>Bank Details</h4>
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Account Holder Name</label>
+                <input
+                  type="text"
+                  className={`creating-employee-form-input ${errors.bankAccountHolder ? 'error' : ''}`}
+                  value={userData.bankAccountHolder}
+                  onChange={(e) => handleUserInputChange('bankAccountHolder', e.target.value)}
+                  placeholder="Account holder name"
+                />
+              </div>
+
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Bank Name</label>
+                <input
+                  type="text"
+                  className={`creating-employee-form-input ${errors.bankName ? 'error' : ''}`}
+                  value={userData.bankName}
+                  onChange={(e) => handleUserInputChange('bankName', e.target.value)}
+                  placeholder="Bank name"
+                />
+              </div>
+            </div>
+
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Account Number</label>
+                <input
+                  type="text"
+                  className={`creating-employee-form-input ${errors.accountNumber ? 'error' : ''}`}
+                  value={userData.accountNumber}
+                  onChange={(e) => handleUserInputChange('accountNumber', e.target.value)}
+                  placeholder="Account number"
+                />
+              </div>
+
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">IFSC Code</label>
+                <input
+                  type="text"
+                  className={`creating-employee-form-input ${errors.ifscCode ? 'error' : ''}`}
+                  value={userData.ifscCode}
+                  onChange={(e) => handleUserInputChange('ifscCode', e.target.value.toUpperCase())}
+                  placeholder="IFSC code"
+                />
+              </div>
+            </div>
+
+            <div className="creating-employee-form-group">
+              <label className="creating-employee-form-label">Branch</label>
               <input
                 type="text"
-                className={`creating-employee-form-input ${errors.emergencyName ? 'error' : ''}`}
-                value={employeeData.emergencyContact.name}
-                onChange={(e) => handleEmergencyContactChange('name', e.target.value)}
-                placeholder="Emergency contact name"
+                className="creating-employee-form-input"
+                value={userData.branchName}
+                onChange={(e) => handleUserInputChange('branchName', e.target.value)}
+                placeholder="Branch name"
               />
-              {errors.emergencyName && <span className="creating-employee-form-error">{errors.emergencyName}</span>}
+            </div>
+          </div>
+
+          <div className="creating-employee-form-section">
+            <h4>Documents to be Submitted (Xerox Only)</h4>
+            <div className="creating-employee-documents-grid">
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.aadhaarCard}
+                  onChange={(e) => handleDocumentChange('aadhaarCard', e.target.checked)}
+                />
+                Aadhaar Card
+              </label>
+
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.panCard}
+                  onChange={(e) => handleDocumentChange('panCard', e.target.checked)}
+                />
+                PAN Card
+              </label>
+
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.tenthCertificate}
+                  onChange={(e) => handleDocumentChange('tenthCertificate', e.target.checked)}
+                />
+                10th Certificate
+              </label>
+
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.interDegreeCertificates}
+                  onChange={(e) => handleDocumentChange('interDegreeCertificates', e.target.checked)}
+                />
+                Inter / Degree Certificates
+              </label>
+
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.experienceLetter}
+                  onChange={(e) => handleDocumentChange('experienceLetter', e.target.checked)}
+                />
+                Experience Letter
+              </label>
+
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.relievingLetter}
+                  onChange={(e) => handleDocumentChange('relievingLetter', e.target.checked)}
+                />
+                Relieving Letter
+              </label>
+
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.salarySlips}
+                  onChange={(e) => handleDocumentChange('salarySlips', e.target.checked)}
+                />
+                Salary Slips (Last 3 Months)
+              </label>
+
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.uanCard}
+                  onChange={(e) => handleDocumentChange('uanCard', e.target.checked)}
+                />
+                UAN Card / PF Passbook (If available)
+              </label>
+
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.esiCard}
+                  onChange={(e) => handleDocumentChange('esiCard', e.target.checked)}
+                />
+                ESI Card (If available)
+              </label>
+
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.bankPassbook}
+                  onChange={(e) => handleDocumentChange('bankPassbook', e.target.checked)}
+                />
+                Bank Passbook Xerox
+              </label>
+
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.updatedResume}
+                  onChange={(e) => handleDocumentChange('updatedResume', e.target.checked)}
+                />
+                Updated Resume
+              </label>
+
+              <label className="creating-employee-document-checkbox">
+                <input
+                  type="checkbox"
+                  checked={userData.documents.passportPhotos}
+                  onChange={(e) => handleDocumentChange('passportPhotos', e.target.checked)}
+                />
+                Passport Size Photos (2)
+              </label>
+            </div>
+          </div>
+
+          <div className="creating-employee-form-section">
+            <h4>Emergency Contact</h4>
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Name *</label>
+                <input
+                  type="text"
+                  className={`creating-employee-form-input ${errors.emergencyName ? 'error' : ''}`}
+                  value={userData.emergencyContact.name}
+                  onChange={(e) => handleEmergencyContactChange('name', e.target.value)}
+                  placeholder="Emergency contact name"
+                />
+                {errors.emergencyName && <span className="creating-employee-form-error">{errors.emergencyName}</span>}
+              </div>
+
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Relationship *</label>
+                <input
+                  type="text"
+                  className={`creating-employee-form-input ${errors.emergencyRelationship ? 'error' : ''}`}
+                  value={userData.emergencyContact.relationship}
+                  onChange={(e) => handleEmergencyContactChange('relationship', e.target.value)}
+                  placeholder="Father/Mother/Spouse etc."
+                />
+                {errors.emergencyRelationship && <span className="creating-employee-form-error">{errors.emergencyRelationship}</span>}
+              </div>
             </div>
 
             <div className="creating-employee-form-group">
-              <label className="creating-employee-form-label">Relationship *</label>
+              <label className="creating-employee-form-label">Phone Number *</label>
               <input
                 type="text"
-                className={`creating-employee-form-input ${errors.emergencyRelationship ? 'error' : ''}`}
-                value={employeeData.emergencyContact.relationship}
-                onChange={(e) => handleEmergencyContactChange('relationship', e.target.value)}
-                placeholder="Father/Mother/Spouse etc."
+                className={`creating-employee-form-input ${errors.emergencyPhone ? 'error' : ''}`}
+                value={userData.emergencyContact.phone}
+                onChange={(e) => handleEmergencyContactChange('phone', e.target.value)}
+                placeholder="Emergency contact number"
+                maxLength="10"
               />
-              {errors.emergencyRelationship && <span className="creating-employee-form-error">{errors.emergencyRelationship}</span>}
+              {errors.emergencyPhone && <span className="creating-employee-form-error">{errors.emergencyPhone}</span>}
             </div>
           </div>
 
-          <div className="creating-employee-form-group">
-            <label className="creating-employee-form-label">Phone Number *</label>
-            <input
-              type="text"
-              className={`creating-employee-form-input ${errors.emergencyPhone ? 'error' : ''}`}
-              value={employeeData.emergencyContact.phone}
-              onChange={(e) => handleEmergencyContactChange('phone', e.target.value)}
-              placeholder="Emergency contact number"
-              maxLength="10"
-            />
-            {errors.emergencyPhone && <span className="creating-employee-form-error">{errors.emergencyPhone}</span>}
-          </div>
-        </div>
+          <div className="creating-employee-form-section">
+            <h4>Employment Details</h4>
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Role *</label>
+                <select
+                  disabled={isOtpVerified}
+                  className={`creating-employee-form-select ${errors.role ? 'error' : ''}`}
+                  value={userData.role}
+                  onChange={(e) => handleRoleChange(e.target.value)}
+                >
+                  <option value="">Select Role</option>
+                  {ROLES.map(role => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.role && <span className="creating-employee-form-error">{errors.role}</span>}
+              </div>
 
-        <div className="creating-employee-form-section">
-          <h4>Shift Timing</h4>
-          <div className="creating-employee-form-row">
-            <div className="creating-employee-form-group">
-              <label className="creating-employee-form-label">Start Time *</label>
-              <input
-                type="time"
-                className={`creating-employee-form-input ${errors.shiftStart ? 'error' : ''}`}
-                value={employeeData.shiftTiming.start}
-                onChange={(e) => handleShiftTimingChange('start', e.target.value)}
-              />
-              {errors.shiftStart && <span className="creating-employee-form-error">{errors.shiftStart}</span>}
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Designation</label>
+                <input
+                  type="text"
+                  className="creating-employee-form-input"
+                  value={userData.designation}
+                  onChange={(e) => handleUserInputChange('designation', e.target.value)}
+                  placeholder="Designation"
+                />
+              </div>
             </div>
 
-            <div className="creating-employee-form-group">
-              <label className="creating-employee-form-label">End Time *</label>
-              <input
-                type="time"
-                className={`creating-employee-form-input ${errors.shiftEnd ? 'error' : ''}`}
-                value={employeeData.shiftTiming.end}
-                onChange={(e) => handleShiftTimingChange('end', e.target.value)}
-              />
-              {errors.shiftEnd && <span className="creating-employee-form-error">{errors.shiftEnd}</span>}
+            {selectedRoleObj?.requiresManager && (
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Reports To *</label>
+                <select
+                  className={`creating-employee-form-select ${errors.reportsTo ? 'error' : ''}`}
+                  value={userData.reportsTo}
+                  onChange={(e) => handleUserInputChange('reportsTo', e.target.value)}
+                  disabled={reportingUsers.length === 0}
+                >
+                  <option value="">Select Reporting Manager</option>
+                  {reportingUsers.length > 0 ? (
+                    reportingUsers.filter(user =>
+                      user.role === 'manager' || user.role === 'rm' || user.role === 'zm'
+                    ).map(user => (
+                      <option key={user._id} value={user._id}>
+                        {user.name} - {user.role}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>
+                      Loading reporting users...
+                    </option>
+                  )}
+                </select>
+                {errors.reportsTo && <span className="creating-employee-form-error">{errors.reportsTo}</span>}
+              </div>
+            )}
+
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Department</label>
+                <input
+                  type="text"
+                  className="creating-employee-form-input"
+                  value={userData.department}
+                  onChange={(e) => handleUserInputChange('department', e.target.value)}
+                  placeholder="Department"
+                />
+              </div>
+
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Branch</label>
+                <input
+                  type="text"
+                  className="creating-employee-form-input"
+                  value={userData.branch}
+                  onChange={(e) => handleUserInputChange('branch', e.target.value)}
+                  placeholder="Branch"
+                />
+              </div>
+            </div>
+
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Salary</label>
+                <input
+                  type="number"
+                  className="creating-employee-form-input"
+                  value={userData.salary}
+                  onChange={(e) => handleUserInputChange('salary', e.target.value)}
+                  placeholder="Monthly salary"
+                />
+              </div>
+
+              <div className="creating-employee-form-group">
+  <label className="creating-employee-form-label">Join Date</label>
+  <input
+    type="date"
+    className={`creating-employee-form-input ${errors.joinDate ? 'error' : ''}`}
+    value={userData.joinDate}
+    min={today}
+    onChange={(e) => handleUserInputChange('joinDate', e.target.value)}
+  />
+  {errors.joinDate && (
+    <span className="creating-employee-form-error">{errors.joinDate}</span>
+  )}
+</div>
+
+            </div>
+          </div>
+
+          {/* Email and Password at the end as requested */}
+          <div className="creating-employee-form-section">
+            <h4>Login Credentials</h4>
+            <div className="creating-employee-form-row">
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Email Address *</label>
+                <input
+                  type="email"
+                  className={`creating-employee-form-input ${errors.email ? 'error' : ''}`}
+                  value={userData.email}
+                  onChange={(e) => handleUserInputChange('email', e.target.value)}
+                  placeholder="user@company.com"
+                />
+                {errors.email && <span className="creating-employee-form-error">{errors.email}</span>}
+              </div>
+
+              <div className="creating-employee-form-group">
+                <label className="creating-employee-form-label">Password *</label>
+                <input
+                  type="password"
+                  className={`creating-employee-form-input ${errors.password ? 'error' : ''}`}
+                  value={userData.password}
+                  onChange={(e) => handleUserInputChange('password', e.target.value)}
+                  placeholder="Set password"
+                />
+                {errors.password && <span className="creating-employee-form-error">{errors.password}</span>}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderStep4 = () => (
     <div className="creating-employee-form-step">
       <div className="creating-employee-form-section">
         <h3>Review & Submit</h3>
-        <p>Please review all details before creating the employee</p>
+        <p>Please review all details before creating the user</p>
 
         <div className="creating-employee-review-section">
           <h4>Personal Information</h4>
           <div className="creating-employee-review-item">
             <span className="creating-employee-review-label">Full Name</span>
-            <span className="creating-employee-review-value">{employeeData.name}</span>
+            <span className="creating-employee-review-value">{userData.name}</span>
           </div>
           <div className="creating-employee-review-item">
             <span className="creating-employee-review-label">Email</span>
-            <span className="creating-employee-review-value">{employeeData.email}</span>
+            <span className="creating-employee-review-value">{userData.email}</span>
           </div>
           <div className="creating-employee-review-item">
-            <span className="creating-employee-review-label">Employee ID</span>
-            <span className="creating-employee-review-value">{employeeData.employeeId}</span>
+            <span className="creating-employee-review-label">Role</span>
+            <span className="creating-employee-review-value">{getRoleDisplayName(userData.role)}</span>
           </div>
           <div className="creating-employee-review-item">
             <span className="creating-employee-review-label">Contact Number</span>
-            <span className="creating-employee-review-value">{employeeData.contactNumber}</span>
-          </div>
-        </div>
-
-        <div className="creating-employee-review-section">
-          <h4>Employment Details</h4>
-          <div className="creating-employee-review-item">
-            <span className="creating-employee-review-label">Position</span>
-            <span className="creating-employee-review-value">{employeeData.position}</span>
+            <span className="creating-employee-review-value">{userData.contactNumber}</span>
           </div>
           <div className="creating-employee-review-item">
-            <span className="creating-employee-review-label">Department</span>
-            <span className="creating-employee-review-value">{employeeData.department}</span>
+            <span className="creating-employee-review-label">Father's/Husband's Name</span>
+            <span className="creating-employee-review-value">{userData.fathersName}</span>
           </div>
           <div className="creating-employee-review-item">
-            <span className="creating-employee-review-label">Assigned Branch</span>
-            <span className="creating-employee-review-value">{employeeData.assignedBranch}</span>
+            <span className="creating-employee-review-label">Mother's Name</span>
+            <span className="creating-employee-review-value">{userData.mothersName}</span>
           </div>
           <div className="creating-employee-review-item">
-            <span className="creating-employee-review-label">Salary</span>
-            <span className="creating-employee-review-value">₹{employeeData.salary || '0'}</span>
+            <span className="creating-employee-review-label">PAN Number</span>
+            <span className="creating-employee-review-value">{userData.panNumber}</span>
           </div>
           <div className="creating-employee-review-item">
-            <span className="creating-employee-review-label">Join Date</span>
-            <span className="creating-employee-review-value">
-              {employeeData.joinDate ? new Date(employeeData.joinDate).toLocaleDateString() : 'Not specified'}
-            </span>
+            <span className="creating-employee-review-label">Marital Status</span>
+            <span className="creating-employee-review-value">{userData.maritalStatus}</span>
+          </div>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">Blood Group</span>
+            <span className="creating-employee-review-value">{userData.bloodGroup}</span>
+          </div>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">Nationality</span>
+            <span className="creating-employee-review-value">{userData.nationality}</span>
+          </div>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">Alternate Mobile</span>
+            <span className="creating-employee-review-value">{userData.alternateMobile}</span>
+          </div>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">Present Address</span>
+            <span className="creating-employee-review-value">{userData.presentAddress}</span>
           </div>
         </div>
 
@@ -1266,6 +2455,126 @@ const CreatingEmployee = () => {
             <span className="creating-employee-review-value">{aadhaarDetails?.dob}</span>
           </div>
         </div>
+
+        <div className="creating-employee-review-section">
+          <h4>Statutory Details</h4>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">UAN Number</span>
+            <span className="creating-employee-review-value">{userData.uanNumber || 'Not provided'}</span>
+          </div>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">ESI Number</span>
+            <span className="creating-employee-review-value">{userData.esiNumber || 'Not provided'}</span>
+          </div>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">PF Type</span>
+            <span className="creating-employee-review-value">{userData.pfType || 'Not specified'}</span>
+          </div>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">ESI Status</span>
+            <span className="creating-employee-review-value">{userData.esiStatus || 'Not specified'}</span>
+          </div>
+        </div>
+
+        <div className="creating-employee-review-section">
+          <h4>Qualifications</h4>
+          {userData.qualifications.map((qual, index) => (
+            <div key={index} className="creating-employee-review-item">
+              <span className="creating-employee-review-label">{qual.level}</span>
+              <span className="creating-employee-review-value">
+                {qual.institution} ({qual.board}) - {qual.year} - {qual.grade}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {userData.previouslyWorked && (
+          <div className="creating-employee-review-section">
+            <h4>Work Experience</h4>
+            <div className="creating-employee-review-item">
+              <span className="creating-employee-review-label">Company</span>
+              <span className="creating-employee-review-value">{userData.currentEmployer.companyName}</span>
+            </div>
+            <div className="creating-employee-review-item">
+              <span className="creating-employee-review-label">Designation</span>
+              <span className="creating-employee-review-value">{userData.currentEmployer.designation}</span>
+            </div>
+            <div className="creating-employee-review-item">
+              <span className="creating-employee-review-label">Duration</span>
+              <span className="creating-employee-review-value">
+                {userData.currentEmployer.fromDate} to {userData.currentEmployer.toDate}
+              </span>
+            </div>
+            <div className="creating-employee-review-item">
+              <span className="creating-employee-review-label">Total Experience</span>
+              <span className="creating-employee-review-value">{userData.currentEmployer.totalExperience}</span>
+            </div>
+            <div className="creating-employee-review-item">
+              <span className="creating-employee-review-label">Last CTC</span>
+              <span className="creating-employee-review-value">{userData.currentEmployer.lastCTC}</span>
+            </div>
+          </div>
+        )}
+
+        <div className="creating-employee-review-section">
+          <h4>Bank Details</h4>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">Account Holder</span>
+            <span className="creating-employee-review-value">{userData.bankAccountHolder}</span>
+          </div>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">Bank Name</span>
+            <span className="creating-employee-review-value">{userData.bankName}</span>
+          </div>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">Account Number</span>
+            <span className="creating-employee-review-value">{userData.accountNumber}</span>
+          </div>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">IFSC Code</span>
+            <span className="creating-employee-review-value">{userData.ifscCode}</span>
+          </div>
+          <div className="creating-employee-review-item">
+            <span className="creating-employee-review-label">Branch</span>
+            <span className="creating-employee-review-value">{userData.branchName}</span>
+          </div>
+        </div>
+
+        <div className="creating-employee-review-section">
+          <h4>Documents Submitted</h4>
+          <div className="creating-employee-review-grid">
+            {Object.entries(userData.documents)
+              .filter(([_, submitted]) => submitted)
+              .map(([doc, _]) => (
+                <div key={doc} className="creating-employee-document-review">
+                  ✓ {doc.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                </div>
+              ))}
+            {Object.values(userData.documents).filter(submitted => submitted).length === 0 && (
+              <div className="creating-employee-review-item">
+                <span className="creating-employee-review-value">No documents marked</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {userData.salary && (
+          <div className="creating-employee-review-section">
+            <h4>Salary Details</h4>
+            <div className="creating-employee-review-item">
+              <span className="creating-employee-review-label">Salary</span>
+              <span className="creating-employee-review-value">₹{userData.salary}</span>
+            </div>
+            {userData.joinDate && (
+              <div className="creating-employee-review-item">
+                <span className="creating-employee-review-label">Join Date</span>
+                <span className="creating-employee-review-value">
+                  {new Date(userData.joinDate).toLocaleDateString()}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1273,20 +2582,17 @@ const CreatingEmployee = () => {
   const renderSuccess = () => (
     <div className="creating-employee-success">
       <div className="creating-employee-success-icon">✓</div>
-      <h2>Employee Created Successfully!</h2>
-      <p>The employee has been added to the system with Aadhaar verification.</p>
+      <h2>User Created Successfully!</h2>
+      <p>
+        The {getRoleDisplayName(createdUserRole)} has been added to the system with Aadhaar verification.
+      </p>
+
       <div className="creating-employee-button-group" style={{ justifyContent: 'center', gap: '15px' }}>
         <button
           className="creating-employee-button creating-employee-button-primary"
           onClick={clearAllAndStartNew}
         >
-          Create Another Employee
-        </button>
-        <button
-          className="creating-employee-button creating-employee-button-secondary"
-          onClick={saveAndAddAnother}
-        >
-          Save Data & Add Another
+          Create Another User
         </button>
       </div>
     </div>
@@ -1297,8 +2603,8 @@ const CreatingEmployee = () => {
       <Navbar />
       <div className="creating-employee-container">
         <div className="creating-employee-header">
-          <h1>Create New Employee</h1>
-          <p>Complete the step-by-step process to add a new employee with Aadhaar verification</p>
+          <h1>Create New User</h1>
+          <p>Complete the step-by-step process to add a new user with Aadhaar verification</p>
         </div>
 
         {/* Steps Progress */}
@@ -1313,7 +2619,7 @@ const CreatingEmployee = () => {
               <div className="creating-employee-step-label">
                 {step === 1 && 'Aadhaar Verification'}
                 {step === 2 && 'Verified Details'}
-                {step === 3 && 'Employee Details'}
+                {step === 3 && 'User Details'}
                 {step === 4 && 'Review & Submit'}
               </div>
             </div>
@@ -1360,18 +2666,27 @@ const CreatingEmployee = () => {
                 </button>
 
                 <button
+                  className="creating-employee-button creating-employee-button-secondary"
+                  onClick={saveAndAddAnother}
+                  disabled={(currentStep === 1&& otpSent && !otp )}
+                >
+                  Save Data & Add Another
+                </button>
+
+                <button
                   className={`creating-employee-button ${currentStep === 4
-                      ? 'creating-employee-button-success'
-                      : 'creating-employee-button-primary'
+                    ? 'creating-employee-button-success'
+                    : 'creating-employee-button-primary'
                     }`}
                   onClick={nextStep}
                   disabled={loading || (currentStep === 1 && otpSent && !otp)}
                 >
                   {currentStep === 1 && !otpSent && 'Send OTP'}
-                  {currentStep === 1 && otpSent && 'Verify OTP'}
-                  {currentStep === 2 && 'Continue to Employee Details'}
+                  {currentStep === 1 && otpSent && !isOtpVerified && 'Verify OTP'}
+                  {currentStep === 1 && isOtpVerified && 'Continue to User Details'}
+                  {currentStep === 2 && 'Continue to User Details'}
                   {currentStep === 3 && 'Continue to Review'}
-                  {currentStep === 4 && 'Create Employee'}
+                  {currentStep === 4 && `Create ${getRoleDisplayName(userData.role)}`}
                 </button>
               </div>
             </>

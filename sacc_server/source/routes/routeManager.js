@@ -21,6 +21,9 @@ const CareerJobs = require('./route/CareerJobs')
 const PaymentGateWay = require('./route/RazorpayPay')
 const uploadRoutes = require('./route/uploadRoutes');
 const TwGoldLogin = require('./route/TwgoldRoutes')
+const TWGoldBranch = require('./route/TWGoldBranch');
+const TWGoldRate = require('./route/TWGoldRate')
+const TWGoldLoan = require ('./route/TWGoldLoan')
 
 
 
@@ -39,6 +42,9 @@ router.use('/api/upload', uploadRoutes);
 
 // TwGoldRoutes
 router.use('/api/twgoldlogin',TwGoldLogin)
+router.use('/api/twgoldbranch',TWGoldBranch)
+router.use('/api/twgoldrate',TWGoldRate)
+router.use('/api/twgoldloan',TWGoldLoan)
 
 
 

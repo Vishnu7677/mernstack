@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { getNextSequence } = require('./TWGoldcommonschema')
 
 const branchAddressSchema = new mongoose.Schema({
   street: { type: String, required: true },
@@ -37,7 +38,6 @@ const branchPerformanceSchema = new mongoose.Schema({
 const branchSchema = new mongoose.Schema({
   branchCode: {
     type: String,
-    required: [true, 'Branch code is required'],
     unique: true,
     trim: true
   },
@@ -52,8 +52,14 @@ const branchSchema = new mongoose.Schema({
   },
   contact: {
     phone: { type: String, required: true },
+    landline: { type: String },
     email: { type: String, required: true },
-    emergencyContact: String
+    emergencyContact: { type: String },
+    gstin: {
+      type: String,
+      required: true,
+      match: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/
+    }
   },
   timing: {
     type: branchTimingSchema,
@@ -61,17 +67,10 @@ const branchSchema = new mongoose.Schema({
   },
   manager: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'TWgoldManager',
-    required: [true, 'Branch manager is required']
+    ref: 'TWgoldUser',
+    required: [true, 'Branch manager is required'],
+    unique: true
   },
-  employees: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'TWgoldEmployee'
-  }],
-  grivirenceOfficers: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'TWgoldGrivirence'
-  }],
   performance: {
     type: branchPerformanceSchema,
     default: () => ({})
@@ -87,7 +86,11 @@ const branchSchema = new mongoose.Schema({
       'security_guard',
       'cctv_surveillance',
       'fire_safety',
-      'wheelchair_access'
+      'wheelchair_access',
+      'valuation_service',
+'insurance_facility',
+'loan_services'
+
     ]
   }],
   status: {
@@ -95,6 +98,24 @@ const branchSchema = new mongoose.Schema({
     enum: ['active', 'inactive', 'maintenance', 'closed'],
     default: 'active'
   },
+  financials: {
+    openingBalance: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    branchLimit: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    currentBalance: {
+      type: Number,
+      default: function () {
+        return this.financials?.openingBalance || 0;
+      }
+    }
+  },  
   establishedDate: {
     type: Date,
     required: true
@@ -106,17 +127,23 @@ const branchSchema = new mongoose.Schema({
   },
   admin: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'TWgoldAdmin',
+    ref: 'TWgoldUser',
     required: [true, 'Admin reference is required']
   },
   regionalOffice: {
     type: String,
-    required: true
   },
   zone: {
-    type: String,
+    type: String
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TWgoldUser',
     required: true
-  }
+  },
+  closedAt: Date,
+  closureReason: String
+  
 }, {
   timestamps: true
 });
@@ -125,21 +152,47 @@ const branchSchema = new mongoose.Schema({
 branchSchema.index({ branchCode: 1 });
 branchSchema.index({ 'address.city': 1 });
 branchSchema.index({ 'address.state': 1 });
-branchSchema.index({ manager: 1 });
+branchSchema.index({ manager: 1 }, { unique: true });
 branchSchema.index({ admin: 1 });
 branchSchema.index({ status: 1 });
 branchSchema.index({ regionalOffice: 1 });
 branchSchema.index({ zone: 1 });
 
-// Virtual for total employees count
-branchSchema.virtual('totalEmployees').get(function() {
-  return this.employees.length;
+branchSchema.virtual('employeeList', {
+  ref: 'TWgoldUser',
+  localField: '_id',
+  foreignField: 'branch'
 });
+// Virtual for total employees count
+branchSchema.virtual('totalEmployees', {
+  ref: 'TWgoldUser',
+  localField: '_id',
+  foreignField: 'branch',
+  count: true
+});
+
 
 // Virtual for branch age
 branchSchema.virtual('branchAge').get(function() {
   return Math.floor((Date.now() - this.establishedDate) / (1000 * 60 * 60 * 24 * 365));
 });
+
+branchSchema.pre('save', async function (next) {
+  try {
+    if (!this.branchCode) {
+      const seq = await getNextSequence('branch_code');
+
+      this.branchCode = `TWGL${String(seq).padStart(5, '0')}`;
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+branchSchema.path('financials.branchLimit').validate(function (value) {
+  return value >= this.financials.openingBalance;
+}, 'Branch limit must be >= opening balance');
 
 // Methods
 branchSchema.methods.updatePerformance = async function(metric, value) {
@@ -154,17 +207,7 @@ branchSchema.methods.updatePerformance = async function(metric, value) {
   return this.save();
 };
 
-branchSchema.methods.addEmployee = function(employeeId) {
-  if (!this.employees.includes(employeeId)) {
-    this.employees.push(employeeId);
-  }
-  return this.save();
-};
 
-branchSchema.methods.removeEmployee = function(employeeId) {
-  this.employees = this.employees.filter(emp => emp.toString() !== employeeId.toString());
-  return this.save();
-};
 
 branchSchema.methods.updateOperationalStatus = function(isOpen, reason = '') {
   this.operationalStatus.isOpen = isOpen;
@@ -192,4 +235,4 @@ branchSchema.statics.getBranchesByManager = function(managerId) {
   return this.find({ manager: managerId });
 };
 
-module.exports = mongoose.model('TWgoldBranch', branchSchema);
+module.exports = mongoose.model('TWGoldBranch', branchSchema);

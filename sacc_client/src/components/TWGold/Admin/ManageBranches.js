@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../TWGLogin/axiosConfig';
 import './ManageBranches.css';
+import Navbar from './Navbar';
 
 const ManageBranches = () => {
   const [branches, setBranches] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    code: '',
-    address: { street: '', city: '', state: '', pincode: '' },
-    contact: { phone: '', email: '' },
-    cashLimit: ''
-  });
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchBranches();
@@ -19,103 +14,83 @@ const ManageBranches = () => {
 
   const fetchBranches = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/twgl&articles/branches', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setBranches(response.data);
+      const res = await api.get('/twgoldbranch/branches');
+  
+      console.log(res.data.data.branches);
+  
+      if (
+        res.data?.success &&
+        res.data?.data?.branches &&
+        Array.isArray(res.data.data.branches)
+      ) {
+        setBranches(res.data.data.branches);
+      } else {
+        setBranches([]);
+      }
     } catch (error) {
       console.error('Error fetching branches:', error);
+      setBranches([]);
     }
   };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post('/twgl&articles/branches', formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setShowForm(false);
-      setFormData({
-        name: '', code: '', address: { street: '', city: '', state: '', pincode: '' },
-        contact: { phone: '', email: '' }, cashLimit: ''
-      });
-      fetchBranches();
-    } catch (error) {
-      console.error('Error creating branch:', error);
-    }
-  };
+  
 
   return (
+    <>
+    <Navbar/>
     <div className="admin_gold_manage_branches">
+      {/* Header */}
       <div className="admin_gold_page_header">
         <h1 className="admin_gold_page_title">Manage Branches</h1>
-        <button 
+
+        <button
           className="admin_gold_add_btn"
-          onClick={() => setShowForm(true)}
+          onClick={() => navigate('/twgl&articles/admin/branches/create')}
         >
           Add New Branch
         </button>
       </div>
 
-      {showForm && (
-        <div className="admin_gold_modal_overlay">
-          <div className="admin_gold_modal">
-            <h2 className="admin_gold_modal_title">Create New Branch</h2>
-            <form onSubmit={handleSubmit} className="admin_gold_form">
-              <div className="admin_gold_form_group">
-                <label className="admin_gold_form_label">Branch Name</label>
-                <input
-                  type="text"
-                  className="admin_gold_form_input"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="admin_gold_form_group">
-                <label className="admin_gold_form_label">Branch Code</label>
-                <input
-                  type="text"
-                  className="admin_gold_form_input"
-                  value={formData.code}
-                  onChange={(e) => setFormData({...formData, code: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="admin_gold_form_actions">
-                <button type="submit" className="admin_gold_submit_btn">Create</button>
-                <button 
-                  type="button" 
-                  className="admin_gold_cancel_btn"
-                  onClick={() => setShowForm(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
+      {/* Branches Grid */}
       <div className="admin_gold_branches_grid">
-        {branches.map((branch) => (
-          <div key={branch._id} className="admin_gold_branch_card">
-            <h3 className="admin_gold_branch_name">{branch.name}</h3>
-            <p className="admin_gold_branch_code">Code: {branch.code}</p>
-            <p className="admin_gold_branch_address">
-              {branch.address.city}, {branch.address.state}
-            </p>
-            <p className="admin_gold_branch_contact">{branch.contact.phone}</p>
-            <div className="admin_gold_branch_actions">
-              <button className="admin_gold_edit_btn">Edit</button>
-              <button className="admin_gold_delete_btn">Delete</button>
+        {branches.length === 0 ? (
+          <p className="admin_gold_empty_text">No branches found</p>
+        ) : (
+          branches.map(branch => (
+            <div key={branch._id} className="admin_gold_branch_card">
+              <h3 className="admin_gold_branch_name">
+                {branch.branchName || branch.name || 'Unnamed Branch'}
+              </h3>
+
+              <p className="admin_gold_branch_code">
+                Code: {branch.branchCode || branch.code || 'N/A'}
+              </p>
+
+              <p className="admin_gold_branch_address">
+                {branch.address?.city || 'City'}, {branch.address?.state || 'State'}
+              </p>
+
+              <p className="admin_gold_branch_contact">
+                {branch.contact?.phone || 'No Contact'}
+              </p>
+
+              <div className="admin_gold_branch_actions">
+              <button
+  className="admin_gold_edit_btn"
+  onClick={() =>
+    navigate(`/twgl&articles/admin/branches/edit/${branch._id}`)
+  }
+>
+  Edit
+</button>
+
+                <button className="admin_gold_delete_btn">Delete</button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
+    </>
   );
 };
 

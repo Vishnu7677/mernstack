@@ -1,27 +1,39 @@
-const Branch = require('../../commons/models/mongo/documents/TWGoldBranches');
-const ActivityLog = require('../../commons/models/mongo/documents/TWGoldActivitylog');
-const Employee = require('../../commons/models/mongo/documents/TwGoldEmployee');
+const Branch = require('../../commons/models/mongo/documents/TWGoldBranch');
+const ActivityLog = require('../../commons/models/mongo/documents/TWGoldActivityLog');
+const User = require('../../commons/models/mongo/documents/TwGoldUser');
 
+function Controller() {}
 
-exports.createBranch = async (req, res) => {
+/**
+ * CREATE BRANCH
+ */
+// In your controller file
+Controller.prototype.createBranch = async (req, res) => {
   try {
-    const branchData = {
-      ...req.body,
-      admin: req.user.id
-    };
+    if (!req.body.manager) {
+      return res.status(400).json({ message: 'Manager is required' });
+    }
+    const { managerLogin, ...safeData } = req.body;
 
-    const branch = new Branch(branchData);
-    await branch.save();
+const branch = await Branch.create({
+  ...safeData,
+  admin: req.user._id,
+  createdBy: req.user._id
+});
 
-    // Log activity
+// Assign branch to manager
+await User.findByIdAndUpdate(safeData.manager, {
+  branch: branch._id
+});
+
     await ActivityLog.logActivity({
-      action: `Branch created: ${branch.branchName}`,
+      action: 'CREATE_BRANCH',
       module: 'branch',
-      user: req.user.id,
-      userRole: req.user.role,
+      user: req.user._id,
+      roleAtThatTime: req.user.role,
       branch: branch._id,
       targetEntity: {
-        entityType: 'branch',
+        modelName: 'TWGoldBranch',
         entityId: branch._id
       },
       details: {
@@ -32,35 +44,56 @@ exports.createBranch = async (req, res) => {
       userAgent: req.get('User-Agent')
     });
 
-    res.json({
-      success: true,
-      message: 'Branch created successfully',
-      data: { branch }
+    res.status(201).json({ 
+      success: true, 
+      data: branch,
+      message: 'Branch created successfully'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error creating branch',
-      error: error.message
+    console.error('Error creating branch:', error);
+    
+    // Handle duplicate branch code
+    if (error.code === 11000 && error.keyPattern?.branchCode) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Branch code already exists. Please try again.' 
+      });
+    }
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      console.log(error)
+      return res.status(400).json({ 
+        success: false, 
+        message: messages.join(', ') 
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to create branch. Please try again.' 
     });
   }
 };
 
-exports.getAllBranches = async (req, res) => {
+/**
+ * GET ALL BRANCHES
+ */
+Controller.prototype.getAllBranches = async (req, res) => {
   try {
     const { page = 1, limit = 10, status, zone } = req.query;
-    
+
     const query = {};
     if (status) query.status = status;
     if (zone) query.zone = new RegExp(zone, 'i');
-    
+
     const branches = await Branch.find(query)
-      .populate('manager', 'name email')
-      .populate('employees', 'name position')
-      .populate('grivirenceOfficers', 'name')
+      .populate('manager', 'name email employeeId')
+      .populate('admin', 'name email')
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
 
     const total = await Branch.countDocuments(query);
 
@@ -68,49 +101,39 @@ exports.getAllBranches = async (req, res) => {
       success: true,
       data: {
         branches,
+        total,
         totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        total
+        currentPage: Number(page)
       }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching branches',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.getBranchById = async (req, res) => {
+/**
+ * GET BRANCH BY ID
+ */
+Controller.prototype.getBranchById = async (req, res) => {
   try {
     const branch = await Branch.findById(req.params.id)
-      .populate('manager')
-      .populate('employees')
-      .populate('grivirenceOfficers')
-      .populate('admin');
+      .populate('manager', 'name email employeeId')
+      .populate('admin', 'name email');
 
     if (!branch) {
-      return res.status(404).json({
-        success: false,
-        message: 'Branch not found'
-      });
+      return res.status(404).json({ success: false, message: 'Branch not found' });
     }
 
-    res.json({
-      success: true,
-      data: { branch }
-    });
+    res.json({ success: true, data: branch });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching branch',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.updateBranch = async (req, res) => {
+/**
+ * UPDATE BRANCH
+ */
+Controller.prototype.updateBranch = async (req, res) => {
   try {
     const branch = await Branch.findByIdAndUpdate(
       req.params.id,
@@ -119,21 +142,17 @@ exports.updateBranch = async (req, res) => {
     );
 
     if (!branch) {
-      return res.status(404).json({
-        success: false,
-        message: 'Branch not found'
-      });
+      return res.status(404).json({ success: false, message: 'Branch not found' });
     }
 
-    // Log activity
     await ActivityLog.logActivity({
-      action: `Branch updated: ${branch.branchName}`,
+      action: 'UPDATE_BRANCH',
       module: 'branch',
-      user: req.user.id,
-      userRole: req.user.role,
+      user: req.user._id,
+      roleAtThatTime: req.user.role,
       branch: branch._id,
       targetEntity: {
-        entityType: 'branch',
+        modelName: 'TWgoldBranch',
         entityId: branch._id
       },
       details: req.body,
@@ -141,49 +160,40 @@ exports.updateBranch = async (req, res) => {
       userAgent: req.get('User-Agent')
     });
 
-    res.json({
-      success: true,
-      message: 'Branch updated successfully',
-      data: { branch }
-    });
+    res.json({ success: true, data: branch });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error updating branch',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.getBranchPerformance = async (req, res) => {
+/**
+ * BRANCH PERFORMANCE
+ */
+Controller.prototype.getBranchPerformance = async (req, res) => {
   try {
     const branches = await Branch.find({ status: 'active' })
-      .select('branchName branchCode performance address manager')
+      .select('branchName branchCode performance manager')
       .populate('manager', 'name')
       .sort({ 'performance.targetAchievement': -1 });
 
     res.json({
       success: true,
-      data: {
-        performance: branches,
-        totalBranches: branches.length
-      }
+      data: branches
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching branch performance',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.addEmployeeToBranch = async (req, res) => {
+/**
+ * ADD EMPLOYEE TO BRANCH
+ */
+Controller.prototype.addEmployeeToBranch = async (req, res) => {
   try {
     const { branchId, employeeId } = req.params;
-    
+
     const branch = await Branch.findById(branchId);
-    const employee = await Employee.findById(employeeId);
+    const employee = await User.findById(employeeId);
 
     if (!branch || !employee) {
       return res.status(404).json({
@@ -192,19 +202,17 @@ exports.addEmployeeToBranch = async (req, res) => {
       });
     }
 
-    await branch.addEmployee(employeeId);
-    employee.assignedBranch = branch.branchName;
+    employee.branch = branch._id;
     await employee.save();
 
-    // Log activity
     await ActivityLog.logActivity({
-      action: `Employee added to branch: ${employee.name}`,
+      action: 'ADD_EMPLOYEE_TO_BRANCH',
       module: 'branch',
-      user: req.user.id,
-      userRole: req.user.role,
+      user: req.user._id,
+      roleAtThatTime: req.user.role,
       branch: branch._id,
       targetEntity: {
-        entityType: 'employee',
+        modelName: 'TWgoldUser',
         entityId: employee._id
       },
       details: {
@@ -215,15 +223,10 @@ exports.addEmployeeToBranch = async (req, res) => {
       userAgent: req.get('User-Agent')
     });
 
-    res.json({
-      success: true,
-      message: 'Employee added to branch successfully'
-    });
+    res.json({ success: true, message: 'Employee assigned to branch' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error adding employee to branch',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
+module.exports = new Controller();

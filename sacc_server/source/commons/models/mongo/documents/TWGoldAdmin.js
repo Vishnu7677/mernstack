@@ -12,10 +12,6 @@ const adminSchema = new mongoose.Schema({
     required: [true, 'Department is required'],
     trim: true
   },
-  permissions: [{
-    type: String,
-    enum: ['read', 'write', 'delete', 'manage_users']
-  }],
   adminLevel: {
     type: String,
     enum: ['super', 'normal'],

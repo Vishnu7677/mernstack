@@ -1,0 +1,310 @@
+/* Base styles */
+.twgold_gold_loan_body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #f4f6f9;
+}
+
+.twgold_gold_loan_container {
+  min-height: 100vh;
+  background: #f4f6f9;
+}
+
+.twgold_gold_loan_header {
+  background: #0b3c5d;
+  color: #fff;
+  padding: 10px 20px;
+}
+
+.twgold_gold_loan_header h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.twgold_gold_loan_sub {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.twgold_gold_loan_user-info {
+  float: right;
+  font-size: 12px;
+}
+
+.twgold_gold_loan_nav {
+  background: #082840;
+  padding: 8px 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.twgold_gold_loan_tab-btn {
+  background: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.twgold_gold_loan_tab-btn:hover {
+  opacity: 0.9;
+}
+
+.twgold_gold_loan_tab-btn.twgold_gold_loan_active {
+  background: #e67e22;
+  color: #fff;
+}
+
+.twgold_gold_loan_main-container {
+  padding: 20px;
+}
+
+.twgold_gold_loan_section {
+  display: block;
+  background: #fff;
+  padding: 20px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.twgold_gold_loan_section h2 {
+  margin-top: 0;
+  font-size: 18px;
+  color: #0b3c5d;
+}
+
+/* Card Grid */
+.twgold_gold_loan_card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+}
+
+.twgold_gold_loan_card {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 15px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.twgold_gold_loan_card-title {
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #0b3c5d;
+  font-size: 12px;
+}
+
+.twgold_gold_loan_card-value {
+  font-size: 24px;
+  font-weight: bold;
+  display: block;
+}
+
+.twgold_gold_loan_card-value.twgold_gold_loan_rupees {
+  color: #27ae60;
+}
+
+.twgold_gold_loan_card-value.twgold_gold_loan_warning {
+  color: #f39c12;
+}
+
+/* Form Styles */
+.twgold_gold_loan_form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px 20px;
+}
+
+.twgold_gold_loan_form-group {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+
+.twgold_gold_loan_form-group label {
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.twgold_gold_loan_form-group input,
+.twgold_gold_loan_form-group select {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.twgold_gold_loan_form-group input:focus,
+.twgold_gold_loan_form-group select:focus {
+  outline: none;
+  border-color: #0b3c5d;
+}
+
+.twgold_gold_loan_calc-result {
+  background: #e8f5e8;
+  padding: 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.twgold_gold_loan_form-row {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+}
+
+.twgold_gold_loan_form-row .twgold_gold_loan_form-group {
+  flex: 1;
+}
+
+/* Button Styles */
+.twgold_gold_loan_btn {
+  background: #0b3c5d;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  margin: 5px 5px 5px 0;
+}
+
+.twgold_gold_loan_btn:hover {
+  opacity: 0.9;
+}
+
+.twgold_gold_loan_btn.twgold_gold_loan_secondary {
+  background: #7f8c8d;
+}
+
+.twgold_gold_loan_btn.twgold_gold_loan_success {
+  background: #27ae60;
+}
+
+.twgold_gold_loan_btn.twgold_gold_loan_primary {
+  background: #3498db;
+}
+
+/* Table Styles */
+.twgold_gold_loan_table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  font-size: 12px;
+}
+
+.twgold_gold_loan_table th,
+.twgold_gold_loan_table td {
+  border: 1px solid #ddd;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.twgold_gold_loan_table th {
+  background: #f0f3f5;
+  font-weight: 600;
+}
+
+.twgold_gold_loan_status-pending {
+  background: #fff3cd;
+  color: #856404;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.twgold_gold_loan_tag {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.twgold_gold_loan_tag.twgold_gold_loan_pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* LTV Gauge */
+.twgold_gold_loan_ltv-gauge {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 8px solid #eee;
+  position: relative;
+  margin: 10px auto;
+}
+
+.twgold_gold_loan_ltv-fill {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.twgold_gold_loan_ltv-low {
+  /* Style handled inline with conic-gradient */
+}
+
+.twgold_gold_loan_ltv-high {
+  /* Style handled inline with conic-gradient */
+}
+
+.twgold_gold_loan_ltv-critical {
+  /* Style handled inline with conic-gradient */
+}
+
+/* Rate Table */
+.twgold_gold_loan_rate-table {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 15px;
+  margin: 15px 0;
+  font-size: 12px;
+}
+
+.twgold_gold_loan_rate-table h4 {
+  margin-top: 0;
+  color: #0b3c5d;
+}
+
+.twgold_gold_loan_rate-table table {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.twgold_gold_loan_rate-table th,
+.twgold_gold_loan_rate-table td {
+  padding: 6px 8px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+.twgold_gold_loan_rate-table th {
+  background: #0b3c5d;
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .twgold_gold_loan_form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .twgold_gold_loan_nav {
+    flex-direction: column;
+  }
+  
+  .twgold_gold_loan_card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}

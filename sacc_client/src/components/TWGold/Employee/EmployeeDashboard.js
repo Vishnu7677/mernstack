@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useTwgoldAuth } from '../TWGLogin/TwgoldAuthContext';
 import AppraisalModal from './AppraisalModal';
+import TwgoldEmployeeNav from './TwgoldEmployeeNav';
 import './employee_dashboard.css';
-import { Link } from "react-router-dom";
-
 
 const TwgoldEmployeeDashboard = () => {
-  const { user, twgold_logout } = useTwgoldAuth();
   const [query, setQuery] = useState('');
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [showAppraisal, setShowAppraisal] = useState(false);
@@ -75,240 +72,266 @@ const TwgoldEmployeeDashboard = () => {
 
   if (loading) {
     return (
-      <div className="twgold_dashboard">
-        <div className="employee_dashboard_loading">Loading...</div>
+      <div className="twgold_employee_dash_loading">
+        <div className="twgold_employee_dash_loading_spinner"></div>
+        <div className="twgold_employee_dash_loading_text">Loading dashboard...</div>
       </div>
     );
   }
 
   return (
-    <div className="twgold_dashboard">
-      {/* Simple Header for TWGold */}
-      <div className="twgold_dashboard_header">
-        <h1>Employee Dashboard - Gold Loan Management</h1>
-        <div className="twgold_user_info">
-          <span>Welcome, {user?.name}!</span>
-          <button onClick={twgold_logout} className="twgold_logout_button">
-            Logout
-          </button>
-        </div>
-      </div>
+    <div className="twgold_employee_dash">
+      {/* Navigation */}
+      <TwgoldEmployeeNav />
 
-      {/* Detailed Employee Dashboard */}
-      <div className="employee_dashboard_container">
-        {/* Sidebar */}
-        <aside className="employee_dashboard_sidebar">
-          <div className="employee_dashboard_sidebar_header">
-            <div className="employee_dashboard_company_name">SACC Finance</div>
-            <div className="employee_dashboard_portal_name">Employee Portal</div>
+      {/* Main Dashboard Content */}
+      <main className="twgold_employee_dash_main">
+        {/* Dashboard Header */}
+        <header className="twgold_employee_dash_header">
+          <div className="twgold_employee_dash_header_left">
+            <h1 className="twgold_employee_dash_title">Loan Queue Management</h1>
+            <p className="twgold_employee_dash_subtitle">
+              Review and process incoming gold loan applications
+            </p>
           </div>
-          <nav className="employee_dashboard_nav">
-            <Link to="/employee/dashboard" className="employee_dashboard_nav_item employee_dashboard_nav_active">
-  Dashboard
-</Link>
-
-<Link to="/employee/loan-queue" className="employee_dashboard_nav_item">
-  Loan Queue
-</Link>
-
-<Link to="/employee/valuation" className="employee_dashboard_nav_item">
-  Valuation
-</Link>
-
-<Link to="/employee/disbursal" className="employee_dashboard_nav_item">
-  Disbursal
-</Link>
-
-<Link to="/employee/vault" className="employee_dashboard_nav_item">
-  Vault
-</Link>
-
-<Link to="/employee/reports" className="employee_dashboard_nav_item">
-  Reports
-</Link>
-
-<Link to="/employee/settings" className="employee_dashboard_nav_item">
-  Settings
-</Link>
-
-          </nav>
           
-          {/* TWGold User Info in Sidebar */}
-          <div className="employee_dashboard_user_section">
-            <div className="employee_dashboard_user_display">
-              <div className="employee_dashboard_user_initial">
-                {user?.name?.charAt(0).toUpperCase()}
+          <div className="twgold_employee_dash_header_actions">
+            <div className="twgold_employee_dash_search">
+              <input
+                type="text"
+                value={query}
+                onChange={handleSearch}
+                placeholder="Search loans by customer, ID, or mobile..."
+                className="twgold_employee_dash_search_input"
+              />
+              <span className="twgold_employee_dash_search_icon">🔍</span>
+            </div>
+            
+            <div className="twgold_employee_dash_stats">
+              <div className="twgold_employee_dash_stat">
+                <span className="twgold_employee_dash_stat_label">Total</span>
+                <span className="twgold_employee_dash_stat_value">{loans.length}</span>
               </div>
-              <div className="employee_dashboard_user_details">
-                <div className="employee_dashboard_user_role">{user?.role?.toUpperCase()}</div>
-                <div className="employee_dashboard_user_name">{user?.name}</div>
-                <div className="employee_dashboard_user_email">{user?.email}</div>
+              <div className="twgold_employee_dash_stat">
+                <span className="twgold_employee_dash_stat_label">Pending</span>
+                <span className="twgold_employee_dash_stat_value">
+                  {loans.filter(l => l.status === 'Pending').length}
+                </span>
               </div>
             </div>
           </div>
-        </aside>
+        </header>
 
-        {/* Main area */}
-        <div className="employee_dashboard_main">
-          {/* Topbar */}
-          <header className="employee_dashboard_header">
-            <div className="employee_dashboard_header_left">
-              <h1 className="employee_dashboard_title">Loan Queue</h1>
-              <div className="employee_dashboard_subtitle">Manage incoming gold-loan applications</div>
+        {/* Dashboard Content */}
+        <div className="twgold_employee_dash_content">
+          {/* Loans Table Section */}
+          <section className="twgold_employee_dash_section">
+            <div className="twgold_employee_dash_section_header">
+              <h2 className="twgold_employee_dash_section_title">
+                Pending Applications ({filteredLoans.length})
+              </h2>
+              <button className="twgold_employee_dash_refresh_btn" onClick={fetchLoans}>
+                🔄 Refresh
+              </button>
             </div>
 
-            <div className="employee_dashboard_header_right">
-              <div className="employee_dashboard_search_container">
-                <input
-                  value={query}
-                  onChange={handleSearch}
-                  className="employee_dashboard_search_input"
-                  placeholder="Search by customer, loan ID or mobile"
-                />
-              </div>
-              <button className="employee_dashboard_primary_btn">New Loan</button>
-              <div className="employee_dashboard_user_profile">
-                <div className="employee_dashboard_user_info">
-                  <div className="employee_dashboard_user_role">You</div>
-                  <div className="employee_dashboard_user_name">{user?.name || 'Employee'}</div>
-                </div>
-                <div className="employee_dashboard_user_avatar">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </div>
-              </div>
-            </div>
-          </header>
-
-          <div className="employee_dashboard_content">
-            {/* Loan queue table */}
-            <section className="employee_dashboard_loan_section">
-              <div className="employee_dashboard_section_header">
-                <h2 className="employee_dashboard_section_title">Pending Applications</h2>
-                <div className="employee_dashboard_result_count">{filteredLoans.length} results</div>
-              </div>
-
-              <div className="employee_dashboard_table_container">
-                <table className="employee_dashboard_table">
-                  <thead>
-                    <tr className="employee_dashboard_table_header">
-                      <th>Loan ID</th>
-                      <th>Customer</th>
-                      <th>Valuation</th>
-                      <th>Requested</th>
-                      <th>LTV</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredLoans.length > 0 ? (
-                      filteredLoans.map((loan) => (
-                        <tr key={loan._id} className="employee_dashboard_table_row">
-                          <td className="employee_dashboard_loan_id">{loan.loanId}</td>
-                          <td className="employee_dashboard_customer_cell">
-                            <div className="employee_dashboard_customer_name">{loan.customerName}</div>
-                            <div className="employee_dashboard_customer_mobile">{loan.mobile}</div>
-                          </td>
-                          <td className="employee_dashboard_valuation">₹{loan.valuation?.toLocaleString()}</td>
-                          <td className="employee_dashboard_requested">₹{loan.requested?.toLocaleString()}</td>
-                          <td className="employee_dashboard_ltv">{loan.ltv}%</td>
-                          <td className="employee_dashboard_status_cell">
-                            <span className={`employee_dashboard_status employee_dashboard_status_${loan.status?.toLowerCase()}`}>
-                              {loan.status}
-                            </span>
-                          </td>
-                          <td className="employee_dashboard_actions_cell">
-                            <div className="employee_dashboard_action_buttons">
-                              <button
-                                onClick={() => openLoan(loan)}
-                                className="employee_dashboard_secondary_btn"
-                              >
-                                View
-                              </button>
-                              <button
-                                onClick={() => openAppraisal(loan)}
-                                className="employee_dashboard_appraise_btn"
-                              >
-                                Appraise
-                              </button>
+            <div className="twgold_employee_dash_table_container">
+              <table className="twgold_employee_dash_table">
+                <thead>
+                  <tr>
+                    <th className="twgold_employee_dash_table_header">Loan ID</th>
+                    <th className="twgold_employee_dash_table_header">Customer Details</th>
+                    <th className="twgold_employee_dash_table_header">Requested Amount</th>
+                    <th className="twgold_employee_dash_table_header">Gold Details</th>
+                    <th className="twgold_employee_dash_table_header">Status</th>
+                    <th className="twgold_employee_dash_table_header">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLoans.length > 0 ? (
+                    filteredLoans.map((loan) => (
+                      <tr key={loan._id} className="twgold_employee_dash_table_row">
+                        <td className="twgold_employee_dash_table_cell">
+                          <div className="twgold_employee_dash_loan_id">{loan.loanId}</div>
+                          <div className="twgold_employee_dash_loan_date">
+                            {new Date(loan.createdAt).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="twgold_employee_dash_table_cell">
+                          <div className="twgold_employee_dash_customer_info">
+                            <div className="twgold_employee_dash_customer_name">
+                              {loan.customerName}
                             </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="7" className="employee_dashboard_no_data">
-                          No loans found
+                            <div className="twgold_employee_dash_customer_mobile">
+                              📱 {loan.mobile}
+                            </div>
+                            <div className="twgold_employee_dash_customer_aadhar">
+                              🪪 {loan.aadharNumber || 'N/A'}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="twgold_employee_dash_table_cell">
+                          <div className="twgold_employee_dash_amount">
+                            ₹{loan.requestedAmount?.toLocaleString('en-IN')}
+                          </div>
+                        </td>
+                        <td className="twgold_employee_dash_table_cell">
+                          <div className="twgold_employee_dash_gold_info">
+                            <div className="twgold_employee_dash_gold_weight">
+                              ⚖️ {loan.weight} g
+                            </div>
+                            <div className="twgold_employee_dash_gold_purity">
+                              🏅 {loan.purity}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="twgold_employee_dash_table_cell">
+                          <span className={`twgold_employee_dash_status twgold_employee_dash_status_${loan.status?.toLowerCase()}`}>
+                            {loan.status}
+                          </span>
+                        </td>
+                        <td className="twgold_employee_dash_table_cell">
+                          <div className="twgold_employee_dash_actions">
+                            <button
+                              onClick={() => openLoan(loan)}
+                              className="twgold_employee_dash_action_btn twgold_employee_dash_view_btn"
+                            >
+                              👁️ View
+                            </button>
+                            <button
+                              onClick={() => openAppraisal(loan)}
+                              className="twgold_employee_dash_action_btn twgold_employee_dash_appraise_btn"
+                              disabled={loan.status === 'Appraised'}
+                            >
+                              ⚖️ {loan.status === 'Appraised' ? 'Appraised' : 'Appraise'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
+                    ))
+                  ) : (
+                    <tr className="twgold_employee_dash_empty_row">
+                      <td colSpan="6" className="twgold_employee_dash_empty_cell">
+                        <div className="twgold_employee_dash_empty_state">
+                          <div className="twgold_employee_dash_empty_icon">📋</div>
+                          <div className="twgold_employee_dash_empty_text">
+                            No loans found. Try adjusting your search.
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Customer Details Panel */}
+          <aside className="twgold_employee_dash_sidebar">
+            <div className="twgold_employee_dash_sidebar_header">
+              <h3 className="twgold_employee_dash_sidebar_title">
+                {selectedLoan ? 'Customer Details' : 'Select a Loan'}
+              </h3>
+            </div>
+
+            {selectedLoan ? (
+              <div className="twgold_employee_dash_customer_details">
+                <div className="twgold_employee_dash_customer_summary">
+                  <div className="twgold_employee_dash_customer_avatar">
+                    {selectedLoan.customerName?.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="twgold_employee_dash_customer_info_panel">
+                    <h4 className="twgold_employee_dash_customer_name_panel">
+                      {selectedLoan.customerName}
+                    </h4>
+                    <div className="twgold_employee_dash_customer_contact">
+                      <div>📱 {selectedLoan.mobile}</div>
+                      <div>📧 {selectedLoan.email || 'N/A'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="twgold_employee_dash_loan_details">
+                  <div className="twgold_employee_dash_detail_card">
+                    <div className="twgold_employee_dash_detail_label">Loan Information</div>
+                    <div className="twgold_employee_dash_detail_grid">
+                      <div className="twgold_employee_dash_detail_item">
+                        <span className="twgold_employee_dash_detail_key">Loan ID:</span>
+                        <span className="twgold_employee_dash_detail_value">{selectedLoan.loanId}</span>
+                      </div>
+                      <div className="twgold_employee_dash_detail_item">
+                        <span className="twgold_employee_dash_detail_key">Requested:</span>
+                        <span className="twgold_employee_dash_detail_value">
+                          ₹{selectedLoan.requestedAmount?.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      <div className="twgold_employee_dash_detail_item">
+                        <span className="twgold_employee_dash_detail_key">Status:</span>
+                        <span className={`twgold_employee_dash_detail_status twgold_employee_dash_status_${selectedLoan.status?.toLowerCase()}`}>
+                          {selectedLoan.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="twgold_employee_dash_detail_card">
+                    <div className="twgold_employee_dash_detail_label">Gold Details</div>
+                    <div className="twgold_employee_dash_detail_grid">
+                      <div className="twgold_employee_dash_detail_item">
+                        <span className="twgold_employee_dash_detail_key">Weight:</span>
+                        <span className="twgold_employee_dash_detail_value">
+                          {selectedLoan.weight} g
+                        </span>
+                      </div>
+                      <div className="twgold_employee_dash_detail_item">
+                        <span className="twgold_employee_dash_detail_key">Purity:</span>
+                        <span className="twgold_employee_dash_detail_value">
+                          {selectedLoan.purity}
+                        </span>
+                      </div>
+                      <div className="twgold_employee_dash_detail_item">
+                        <span className="twgold_employee_dash_detail_key">Type:</span>
+                        <span className="twgold_employee_dash_detail_value">
+                          {selectedLoan.goldType || 'Ornament'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="twgold_employee_dash_action_panel">
+                  <button
+                    onClick={() => openAppraisal(selectedLoan)}
+                    className="twgold_employee_dash_primary_action"
+                    disabled={selectedLoan.status === 'Appraised'}
+                  >
+                    ⚖️ {selectedLoan.status === 'Appraised' ? 'Already Appraised' : 'Start Appraisal'}
+                  </button>
+                  <button className="twgold_employee_dash_secondary_action">
+                    📄 View Documents
+                  </button>
+                </div>
               </div>
-            </section>
-
-            {/* Customer 360 panel */}
-            <aside className="employee_dashboard_customer_panel">
-              <div className="employee_dashboard_customer_header">
-                <div className="employee_dashboard_customer_avatar">
-                  {selectedLoan?.customerName?.charAt(0).toUpperCase() || '?'}
-                </div>
-                <div>
-                  <div className="employee_dashboard_customer_panel_name">
-                    {selectedLoan ? selectedLoan.customerName : "Select a customer"}
-                  </div>
-                  <div className="employee_dashboard_customer_panel_mobile">
-                    {selectedLoan ? selectedLoan.mobile : "No customer selected"}
-                  </div>
+            ) : (
+              <div className="twgold_employee_dash_no_selection">
+                <div className="twgold_employee_dash_no_selection_icon">👈</div>
+                <div className="twgold_employee_dash_no_selection_text">
+                  Select a loan from the table to view customer details and take actions.
                 </div>
               </div>
-
-              {selectedLoan ? (
-                <div className="employee_dashboard_customer_details">
-                  <div className="employee_dashboard_detail_item">
-                    <div className="employee_dashboard_detail_label">Loan ID</div>
-                    <div className="employee_dashboard_detail_value">{selectedLoan.loanId}</div>
-                  </div>
-                  <div className="employee_dashboard_detail_item">
-                    <div className="employee_dashboard_detail_label">Valuation</div>
-                    <div className="employee_dashboard_detail_value">₹{selectedLoan.valuation?.toLocaleString()}</div>
-                  </div>
-                  <div className="employee_dashboard_detail_item">
-                    <div className="employee_dashboard_detail_label">Pledge Weight</div>
-                    <div className="employee_dashboard_detail_value">{selectedLoan.weight} g</div>
-                  </div>
-                  <div className="employee_dashboard_detail_item">
-                    <div className="employee_dashboard_detail_label">Purity</div>
-                    <div className="employee_dashboard_detail_value">{selectedLoan.purity}</div>
-                  </div>
-
-                  <div className="employee_dashboard_panel_actions">
-                    <button
-                      onClick={() => openAppraisal(selectedLoan)}
-                      className="employee_dashboard_appraisal_btn"
-                    >
-                      Start Appraisal
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="employee_dashboard_no_selection">
-                  Select a loan from the queue to see customer details and actions.
-                </div>
-              )}
-            </aside>
-          </div>
-
-          {/* Appraisal modal */}
-          {showAppraisal && selectedLoan && (
-            <AppraisalModal
-              loan={selectedLoan}
-              onSave={saveAppraisal}
-              onClose={() => setShowAppraisal(false)}
-            />
-          )}
+            )}
+          </aside>
         </div>
-      </div>
+
+        {/* Appraisal Modal */}
+        {showAppraisal && selectedLoan && (
+          <AppraisalModal
+            loan={selectedLoan}
+            onSave={saveAppraisal}
+            onClose={() => setShowAppraisal(false)}
+          />
+        )}
+      </main>
     </div>
   );
 };

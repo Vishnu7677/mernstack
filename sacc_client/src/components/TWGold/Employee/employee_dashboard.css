@@ -1,597 +1,609 @@
+/* Twgold Employee Dashboard Styles */
+.twgold_employee_dash {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
 
-  
-  /* Main container */
-  .employee_dashboard_container {
-    display: flex;
-    min-height: 100vh;
-    background-color: #f8fafc;
+/* Loading State */
+.twgold_employee_dash_loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: white;
+}
+
+.twgold_employee_dash_loading_spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: twgold_employee_dash_spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes twgold_employee_dash_spin {
+  to { transform: rotate(360deg); }
+}
+
+.twgold_employee_dash_loading_text {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Main Content */
+.twgold_employee_dash_main {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Dashboard Header */
+.twgold_employee_dash_header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.twgold_employee_dash_header_left {
+  flex: 1;
+}
+
+.twgold_employee_dash_title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.twgold_employee_dash_subtitle {
+  font-size: 14px;
+  color: #64748b;
+  max-width: 600px;
+}
+
+.twgold_employee_dash_header_actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.twgold_employee_dash_search {
+  position: relative;
+  min-width: 300px;
+}
+
+.twgold_employee_dash_search_input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.twgold_employee_dash_search_input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.twgold_employee_dash_search_icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.twgold_employee_dash_stats {
+  display: flex;
+  gap: 16px;
+}
+
+.twgold_employee_dash_stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  min-width: 80px;
+}
+
+.twgold_employee_dash_stat_label {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.twgold_employee_dash_stat_value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* Dashboard Content */
+.twgold_employee_dash_content {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 24px;
+}
+
+/* Table Section */
+.twgold_employee_dash_section {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.twgold_employee_dash_section_header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.twgold_employee_dash_section_title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.twgold_employee_dash_refresh_btn {
+  padding: 8px 16px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.twgold_employee_dash_refresh_btn:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.twgold_employee_dash_table_container {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.twgold_employee_dash_table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.twgold_employee_dash_table_header {
+  padding: 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.twgold_employee_dash_table_row {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.3s ease;
+}
+
+.twgold_employee_dash_table_row:hover {
+  background: #f8fafc;
+}
+
+.twgold_employee_dash_table_cell {
+  padding: 20px 16px;
+  vertical-align: top;
+}
+
+/* Loan ID Cell */
+.twgold_employee_dash_loan_id {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.twgold_employee_dash_loan_date {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* Customer Info Cell */
+.twgold_employee_dash_customer_info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.twgold_employee_dash_customer_name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.twgold_employee_dash_customer_mobile,
+.twgold_employee_dash_customer_aadhar {
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Amount Cell */
+.twgold_employee_dash_amount {
+  font-size: 16px;
+  font-weight: 600;
+  color: #059669;
+}
+
+/* Gold Info Cell */
+.twgold_employee_dash_gold_info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.twgold_employee_dash_gold_weight,
+.twgold_employee_dash_gold_purity {
+  font-size: 13px;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Status Styles */
+.twgold_employee_dash_status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+.twgold_employee_dash_status_pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.twgold_employee_dash_status_appraised {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.twgold_employee_dash_status_approved {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.twgold_employee_dash_status_rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Actions Cell */
+.twgold_employee_dash_actions {
+  display: flex;
+  gap: 8px;
+}
+
+.twgold_employee_dash_action_btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.twgold_employee_dash_view_btn {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.twgold_employee_dash_view_btn:hover {
+  background: #e2e8f0;
+}
+
+.twgold_employee_dash_appraise_btn {
+  background: #3b82f6;
+  color: white;
+}
+
+.twgold_employee_dash_appraise_btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.twgold_employee_dash_appraise_btn:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+/* Empty State */
+.twgold_employee_dash_empty_row {
+  height: 300px;
+}
+
+.twgold_employee_dash_empty_cell {
+  text-align: center;
+}
+
+.twgold_employee_dash_empty_state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 60px 20px;
+}
+
+.twgold_employee_dash_empty_icon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.twgold_employee_dash_empty_text {
+  color: #94a3b8;
+  font-size: 14px;
+  max-width: 300px;
+}
+
+/* Sidebar */
+.twgold_employee_dash_sidebar {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  height: fit-content;
+  position: sticky;
+  top: 24px;
+}
+
+.twgold_employee_dash_sidebar_header {
+  padding: 24px 24px 0;
+}
+
+.twgold_employee_dash_sidebar_title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 24px;
+}
+
+/* Customer Details */
+.twgold_employee_dash_customer_details {
+  padding: 0 24px 24px;
+}
+
+.twgold_employee_dash_customer_summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.twgold_employee_dash_customer_avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.twgold_employee_dash_customer_info_panel {
+  flex: 1;
+}
+
+.twgold_employee_dash_customer_name_panel {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.twgold_employee_dash_customer_contact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.twgold_employee_dash_loan_details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.twgold_employee_dash_detail_card {
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.twgold_employee_dash_detail_label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.twgold_employee_dash_detail_grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.twgold_employee_dash_detail_item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.twgold_employee_dash_detail_key {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.twgold_employee_dash_detail_value {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.twgold_employee_dash_detail_status {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.twgold_employee_dash_action_panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.twgold_employee_dash_primary_action {
+  padding: 14px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.twgold_employee_dash_primary_action:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.twgold_employee_dash_primary_action:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.twgold_employee_dash_secondary_action {
+  padding: 12px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.twgold_employee_dash_secondary_action:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+/* No Selection State */
+.twgold_employee_dash_no_selection {
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.twgold_employee_dash_no_selection_icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  opacity: 0.3;
+}
+
+.twgold_employee_dash_no_selection_text {
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .twgold_employee_dash_content {
+    grid-template-columns: 1fr;
   }
   
-  /* Sidebar */
-  .employee_dashboard_sidebar {
-    width: 280px;
-    background-color: #ffffff;
-    border-right: 1px solid #e2e8f0;
-    display: flex;
-    flex-direction: column;
+  .twgold_employee_dash_sidebar {
+    position: static;
   }
-  
-  .employee_dashboard_sidebar_header {
-    padding: 24px;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  
-  .employee_dashboard_company_name {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1e293b;
-  }
-  
-  .employee_dashboard_portal_name {
-    font-size: 14px;
-    color: #64748b;
-    margin-top: 4px;
-  }
-  
-  .employee_dashboard_nav {
+}
+
+@media (max-width: 768px) {
+  .twgold_employee_dash_main {
     padding: 16px;
-    display: flex;
+  }
+  
+  .twgold_employee_dash_header {
     flex-direction: column;
-    gap: 4px;
   }
   
-  .employee_dashboard_nav_item {
-    padding: 12px 16px;
-    border-radius: 8px;
-    text-decoration: none;
-    color: #64748b;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    cursor: pointer;
-  }
-  
-  .employee_dashboard_nav_item:hover {
-    background-color: #f1f5f9;
-    color: #334155;
-  }
-  
-  .employee_dashboard_nav_active {
-    background-color: #eff6ff;
-    color: #2563eb;
-  }
-  
-  /* Main content area */
-  .employee_dashboard_main {
-    flex: 1;
-    padding: 24px;
-    overflow-x: auto;
-  }
-  
-  /* Header */
-  .employee_dashboard_header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-  
-  .employee_dashboard_header_left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-  
-  .employee_dashboard_title {
-    font-size: 24px;
-    font-weight: 600;
-    color: #1e293b;
-  }
-  
-  .employee_dashboard_subtitle {
-    font-size: 14px;
-    color: #64748b;
-  }
-  
-  .employee_dashboard_header_right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  
-  .employee_dashboard_search_container {
-    position: relative;
-  }
-  
-  .employee_dashboard_search_input {
-    padding: 10px 16px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    width: 280px;
-    font-size: 14px;
-    transition: border-color 0.2s ease;
-  }
-  
-  .employee_dashboard_search_input:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-  
-  .employee_dashboard_primary_btn {
-    padding: 10px 20px;
-    background-color: #2563eb;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-  
-  .employee_dashboard_primary_btn:hover {
-    background-color: #1d4ed8;
-  }
-  
-  .employee_dashboard_user_profile {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  
-  .employee_dashboard_user_info {
-    text-align: right;
-  }
-  
-  .employee_dashboard_user_role {
-    font-size: 12px;
-    color: #64748b;
-  }
-  
-  .employee_dashboard_user_name {
-    font-size: 14px;
-    font-weight: 500;
-    color: #1e293b;
-  }
-  
-  .employee_dashboard_user_avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-  
-  /* Content layout */
-  .employee_dashboard_content {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 24px;
-  }
-  
-  /* Loan section */
-  .employee_dashboard_loan_section {
-    background-color: #ffffff;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-  
-  .employee_dashboard_section_header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  
-  .employee_dashboard_section_title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1e293b;
-  }
-  
-  .employee_dashboard_result_count {
-    font-size: 14px;
-    color: #64748b;
-  }
-  
-  /* Table styles */
-  .employee_dashboard_table_container {
-    overflow-x: auto;
-  }
-  
-  .employee_dashboard_table {
+  .twgold_employee_dash_header_actions {
     width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-  }
-  
-  .employee_dashboard_table_header {
-    border-bottom: 1px solid #e2e8f0;
-  }
-  
-  .employee_dashboard_table_header th {
-    padding: 12px 16px;
-    text-align: left;
-    font-weight: 500;
-    color: #64748b;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .employee_dashboard_table_row {
-    border-bottom: 1px solid #f1f5f9;
-    transition: background-color 0.2s ease;
-  }
-  
-  .employee_dashboard_table_row:hover {
-    background-color: #f8fafc;
-  }
-  
-  .employee_dashboard_table_row td {
-    padding: 16px;
-  }
-  
-  .employee_dashboard_loan_id {
-    font-weight: 500;
-    color: #1e293b;
-  }
-  
-  .employee_dashboard_customer_cell {
-    min-width: 160px;
-  }
-  
-  .employee_dashboard_customer_name {
-    font-weight: 500;
-    color: #1e293b;
-    margin-bottom: 4px;
-  }
-  
-  .employee_dashboard_customer_mobile {
-    font-size: 12px;
-    color: #64748b;
-  }
-  
-  .employee_dashboard_valuation,
-  .employee_dashboard_requested {
-    font-weight: 500;
-    color: #059669;
-  }
-  
-  .employee_dashboard_ltv {
-    font-weight: 500;
-    color: #1e293b;
-  }
-  
-  .employee_dashboard_status {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .employee_dashboard_status_pending {
-    background-color: #fef3c7;
-    color: #92400e;
-  }
-  
-  .employee_dashboard_status_appraised {
-    background-color: #d1fae5;
-    color: #065f46;
-  }
-  
-  .employee_dashboard_action_buttons {
-    display: flex;
-    gap: 8px;
-  }
-  
-  .employee_dashboard_secondary_btn {
-    padding: 6px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    background-color: white;
-    color: #374151;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .employee_dashboard_secondary_btn:hover {
-    background-color: #f9fafb;
-    border-color: #9ca3af;
-  }
-  
-  .employee_dashboard_appraise_btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 6px;
-    background-color: #4f46e5;
-    color: white;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-  
-  .employee_dashboard_appraise_btn:hover {
-    background-color: #4338ca;
-  }
-  
-  /* Customer panel */
-  .employee_dashboard_customer_panel {
-    background-color: #ffffff;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    height: fit-content;
-  }
-  
-  .employee_dashboard_customer_header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #f1f5f9;
-  }
-  
-  .employee_dashboard_customer_avatar {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-  
-  .employee_dashboard_customer_panel_name {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 4px;
-  }
-  
-  .employee_dashboard_customer_panel_mobile {
-    font-size: 12px;
-    color: #64748b;
-  }
-  
-  .employee_dashboard_customer_details {
-    display: flex;
     flex-direction: column;
-    gap: 16px;
+    align-items: stretch;
   }
   
-  .employee_dashboard_detail_item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+  .twgold_employee_dash_search {
+    min-width: auto;
   }
   
-  .employee_dashboard_detail_label {
-    font-size: 12px;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .employee_dashboard_detail_value {
-    font-size: 14px;
-    font-weight: 500;
-    color: #1e293b;
-  }
-  
-  .employee_dashboard_panel_actions {
-    padding-top: 20px;
-    border-top: 1px solid #f1f5f9;
-  }
-  
-  .employee_dashboard_appraisal_btn {
-    width: 100%;
-    padding: 12px;
-    background-color: #f59e0b;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-  
-  .employee_dashboard_appraisal_btn:hover {
-    background-color: #d97706;
-  }
-  
-  .employee_dashboard_no_selection {
-    font-size: 14px;
-    color: #64748b;
-    text-align: center;
-    padding: 40px 20px;
-  }
-  
-  /* Modal styles */
-  .employee_dashboard_modal_overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 20px;
-  }
-  
-  .employee_dashboard_modal {
-    background-color: white;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  }
-  
-  .employee_dashboard_modal_header {
-    display: flex;
-    align-items: center;
+  .twgold_employee_dash_stats {
     justify-content: space-between;
-    padding: 24px;
-    border-bottom: 1px solid #e2e8f0;
   }
   
-  .employee_dashboard_modal_title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1e293b;
-  }
-  
-  .employee_dashboard_modal_close {
-    background: none;
-    border: none;
-    font-size: 16px;
-    color: #64748b;
-    cursor: pointer;
-    padding: 4px;
-  }
-  
-  .employee_dashboard_modal_close:hover {
-    color: #374151;
-  }
-  
-  .employee_dashboard_modal_content {
-    padding: 24px;
-  }
-  
-  .employee_dashboard_form_grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-  
-  .employee_dashboard_form_group {
-    display: flex;
+  .twgold_employee_dash_actions {
     flex-direction: column;
-    gap: 8px;
   }
   
-  .employee_dashboard_form_full {
-    grid-column: 1 / -1;
+  .twgold_employee_dash_detail_grid {
+    grid-template-columns: 1fr;
   }
-  
-  .employee_dashboard_form_label {
-    font-size: 12px;
-    color: #64748b;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .employee_dashboard_form_input,
-  .employee_dashboard_form_select {
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s ease;
-  }
-  
-  .employee_dashboard_form_input:focus,
-  .employee_dashboard_form_select:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-  
-  .employee_dashboard_modal_footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    padding: 24px;
-    border-top: 1px solid #e2e8f0;
-  }
-  
-  .employee_dashboard_cancel_btn {
-    padding: 10px 20px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    background-color: white;
-    color: #374151;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .employee_dashboard_cancel_btn:hover {
-    background-color: #f9fafb;
-  }
-  
-  .employee_dashboard_save_btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    background-color: #059669;
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-  
-  .employee_dashboard_save_btn:hover {
-    background-color: #047857;
-  }
-  
-  /* Loading state */
-  .employee_dashboard_loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    font-size: 16px;
-    color: #64748b;
-  }
-  
-  /* Responsive design */
-  @media (max-width: 1024px) {
-    .employee_dashboard_content {
-      grid-template-columns: 1fr;
-    }
-    
-    .employee_dashboard_sidebar {
-      display: none;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .employee_dashboard_main {
-      padding: 16px;
-    }
-    
-    .employee_dashboard_header {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    
-    .employee_dashboard_header_left,
-    .employee_dashboard_header_right {
-      justify-content: space-between;
-    }
-    
-    .employee_dashboard_search_input {
-      width: 100%;
-    }
-    
-    .employee_dashboard_form_grid {
-      grid-template-columns: 1fr;
-    }
-  }
+}

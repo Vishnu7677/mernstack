@@ -9,22 +9,22 @@ const goldRateSchema = new mongoose.Schema({
   type: {
     type: String,
     required: [true, 'Gold type is required'],
-    enum: ['24k', '22k', '18k', '14k']
+    enum: ['24K', '22K', '18K', '14K','other']
   },
   effectiveFrom: {
     type: Date,
-    required: [true, 'Effective from date is required']
+    default: Date.now
   },
   effectiveTo: Date,
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'TWgoldAdmin',
+    ref: 'TWgoldUser',
     required: true
   },
   branch: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'TWgoldBranch',
-    required: true
+    ref: 'TWGoldBranch',
+    default: null
   },
   isActive: {
     type: Boolean,
@@ -36,6 +36,6 @@ const goldRateSchema = new mongoose.Schema({
 });
 
 // Index to ensure only one active rate per branch and type
-goldRateSchema.index({ branch: 1, type: 1, isActive: 1 }, { unique: true, partialFilterExpression: { isActive: true } });
+goldRateSchema.index({ type: 1, isActive: 1 }, { unique: true, partialFilterExpression: { isActive: true } });
 
 module.exports = mongoose.model('GoldRate', goldRateSchema);

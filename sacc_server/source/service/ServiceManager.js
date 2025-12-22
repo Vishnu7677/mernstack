@@ -16,6 +16,9 @@ module.exports = {
 
     // TwGold links
     TWgoldLogin: require('./Twgold/Twgoldlogin'),
-
+    TWgoldBranches: require('./Twgold/TWGoldBranchController'),
+    TWgoldActivities: require('./Twgold/TWGoldActivities'),
+    TWgoldGoldRates: require('./Twgold/goldRateController'),
+    TWgoldLoans : require('./Twgold/goldloanController')
 
 }
