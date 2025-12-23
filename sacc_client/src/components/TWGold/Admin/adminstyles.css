@@ -241,7 +241,7 @@
   }
   
   .admin_gold_mobile_menu {
-    display: flex; /* Change from display: none to display: flex */
+    display: none; /* Change from display: none to display: flex */
     position: absolute;
     top: 100%;
     left: 0;
