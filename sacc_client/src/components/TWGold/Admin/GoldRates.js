@@ -30,19 +30,26 @@ const GoldRates = () => {
     try {
       setLoading(p => ({ ...p, current: true }));
       const res = await api.get('/twgoldrate/gold-rates/current');
-
+  
       if (res.data.success && res.data.data) {
-        setGoldRates(prev => ({
-          ...prev,
-          ...res.data.data
-        }));
+        const r = res.data.data.rates;
+
+setGoldRates({
+  '24K': r['24K'] ?? 0,
+  '22K': r['22K'] ?? 0,
+  '20K': r['20K'] ?? 0,
+  '18K': r['18K'] ?? 0,
+  'other': r['other'] ?? 0
+});
+
       }
-    } catch (err) {
+    } catch {
       alert('Failed to fetch current gold rates');
     } finally {
       setLoading(p => ({ ...p, current: false }));
     }
   };
+  
 
   /* ================= HISTORY (PAGINATED) ================= */
   const fetchRateHistory = async (pageNo = 1) => {
@@ -111,8 +118,15 @@ const GoldRates = () => {
     return (((today - yesterday) / yesterday) * 100).toFixed(2);
   };
 
-  const getYesterdayRate = (type) =>
-    history[1]?.rates?.[type] || goldRates[type];
+  const getYesterdayRate = (type) => {
+    if (!history[1]) return goldRates[type];
+    if (new Date(history[0].date).toDateString() ===
+        new Date(history[1].date).toDateString()) {
+      return goldRates[type];
+    }
+    return history[1].rates[type];
+  };
+  
 
   const goldTypeLabels = {
     '24K': '24K Gold',
@@ -142,7 +156,7 @@ const GoldRates = () => {
             </div>
 
             <div className="admin_gold_rates_grid">
-              {Object.keys(goldRates).map(type => (
+            {['24K', '22K', '20K', '18K', 'other'].map(type => (
                 <div key={type} className="admin_gold_rate_card">
                   <div className="admin_gold_rate_header">
                     <TrendingUp size={20} />
@@ -170,21 +184,20 @@ const GoldRates = () => {
                   {!loading.history && (
                     <div className="admin_gold_rate_change">
                       <span
-                        className={
-                          calculateChange(
-                            goldRates[type],
-                            getYesterdayRate(type)
-                          ) >= 0
-                            ? 'admin_gold_positive'
-                            : 'admin_gold_negative'
-                        }
-                      >
-                        {calculateChange(
-                          goldRates[type],
-                          getYesterdayRate(type)
-                        )}%
-                      </span>{' '}
-                      from yesterday
+  className={
+    calculateChange(
+      goldRates[type],
+      getYesterdayRate(type)
+    ) >= 0
+      ? 'admin_gold_positive'
+      : 'admin_gold_negative'
+  }
+>
+  {calculateChange(goldRates[type], getYesterdayRate(type)) === '0.00'
+    ? 'No change'
+    : `${calculateChange(goldRates[type], getYesterdayRate(type))}%`}
+</span>{' '}
+from yesterday
                     </div>
                   )}
                 </div>
@@ -242,7 +255,9 @@ const GoldRates = () => {
                       <th>22K</th>
                       <th>20K</th>
                       <th>18K</th>
-                      <th>Change %</th>
+<th>Other</th>
+<th>Change %</th>
+
                     </tr>
                   </thead>
                   <tbody>
@@ -260,6 +275,7 @@ const GoldRates = () => {
                           <td>₹{row.rates['22K']}</td>
                           <td>₹{row.rates['20K']}</td>
                           <td>₹{row.rates['18K']}</td>
+                          <td>₹{row.rates['other'] ?? '-'}</td>
                           <td
                             className={
                               today - prev >= 0
@@ -267,7 +283,9 @@ const GoldRates = () => {
                                 : 'admin_gold_negative'
                             }
                           >
-                            {calculateChange(today, prev)}%
+                           {calculateChange(today, prev) === '0.00'
+    ? 'No change'
+    : `${calculateChange(today, prev)}%`}
                           </td>
                         </tr>
                       );

@@ -42,14 +42,19 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const fetchGoldRates = async () => {
     try {
       const res = await api.get('/twgoldrate/gold-rates/current');
+      console.log(res.data)
+  
       if (res.data.success) {
-        setGoldRates(res.data.data);
-        setRateDate(res.data.data.date);
+        const { date, rates } = res.data.data;
+  
+        setGoldRates(rates);   // ✅ ONLY numeric rates
+        setRateDate(date);     // ✅ keep date separate
       }
     } catch (err) {
       console.error('Failed to fetch gold rates', err);
     }
   };
+  
 
   /* ================= CALCULATE LOAN ================= */
   const calculateLoan = useCallback(async () => {
@@ -209,21 +214,33 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
 
       {/* GOLD RATES */}
       <div className="twgold_gold_loan_rate-table">
-        <h4>HO Fixed Gold Rates (per gram)</h4>
-        {rateDate && <small>Effective Date: {new Date(rateDate).toDateString()}</small>}
-        <table>
-          <thead>
-            <tr>
-              {Object.keys(goldRates).map(k => <th key={k}>{k}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              {Object.values(goldRates).map((v, i) => <td key={i}>₹{v}</td>)}
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <h4>HO Fixed Gold Rates (per gram)</h4>
+
+  {rateDate && (
+    <small>
+      Effective Date: {new Date(rateDate).toDateString()}
+    </small>
+  )}
+
+  <table>
+    <thead>
+      <tr>
+        {Object.keys(goldRates).map(k => (
+          <th key={k}>{k}</th>
+        ))}
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr>
+        {Object.values(goldRates).map((v, i) => (
+          <td key={i}>₹{Number(v).toLocaleString()}</td>
+        ))}
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 
       {/* FORM */}
       <div className="twgold_gold_loan_form-grid">

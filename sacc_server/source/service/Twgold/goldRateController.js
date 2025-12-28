@@ -14,13 +14,20 @@ const normalizeDate = (date = new Date()) => {
 Controller.prototype.getCurrentRates = async (req, res) => {
   const today = normalizeDate();
 
-  const data = await DailyGoldRate.findOne({ date: today }).select('rates');
+  const record = await DailyGoldRate.findOne({
+    date: { $lte: today }
+  })
+    .sort({ date: -1 })
+    .select('rates date');
 
   res.json({
     success: true,
-    data: data?.rates || {}
+    data: record
+      ? { rates: record.rates, date: record.date }
+      : null
   });
 };
+
 
 
 
@@ -81,13 +88,19 @@ Controller.prototype.getRateHistory = async (req, res) => {
   const formatted = records.map((cur, i) => {
     const prev = records[i + 1];
 
-    const todayRate = cur.rates['24K'];
-    const prevRate = prev?.rates['24K'] || todayRate;
+    let changePercent = '0.00';
+
+    if (prev && normalizeDate(cur.date) > normalizeDate(prev.date)) {
+      const todayRate = cur.rates['24K'];
+      const prevRate = prev.rates['24K'];
+
+      changePercent = (((todayRate - prevRate) / prevRate) * 100).toFixed(2);
+    }
 
     return {
       date: cur.date,
       rates: cur.rates,
-      changePercent: (((todayRate - prevRate) / prevRate) * 100).toFixed(2)
+      changePercent
     };
   });
 
@@ -98,6 +111,7 @@ Controller.prototype.getRateHistory = async (req, res) => {
     data: formatted
   });
 };
+
 
 
 

@@ -159,7 +159,7 @@ Controller.prototype.sendTokenResponse = function(user, statusCode, res) {
 
   // Set cookies
   res.cookie('token', token, cookieOptions);
-  res.cookie('refreshToken', refreshToken, { ...cookieOptions, path: '/auth/refresh' });
+  res.cookie('refreshToken', refreshToken, { ...cookieOptions, path: '/' });
 
   res.status(statusCode).json({
     success: true,
@@ -225,7 +225,7 @@ Controller.prototype.refreshToken = async function(req, res) {
     };
 
     res.cookie('token', newToken, cookieOptions);
-    res.cookie('refreshToken', newRefreshToken, { ...cookieOptions, path: '/auth/refresh' });
+    res.cookie('refreshToken', newRefreshToken, { ...cookieOptions, path: '/' });
 
     res.json({
       success: true,
@@ -1049,25 +1049,33 @@ Controller.prototype.createUserWithAadhaar = async function(req, res) {
     };
 
     // Determine status based on role
-    const status = this.getDefaultStatusForRole(role);
+    const calculatedStatus = this.getDefaultStatusForRole(role);
 
     // Create employment profile
     const employmentProfile = new EmploymentProfile({
       user: user._id,
       employeeId: user.employeeId,
-      aadhaarDetails: aadhaarData,
+      aadhaarDetails: {
+        ...verifiedAadhaarDoc.data,
+        aadhaar_hash: crypto.createHash('sha256').update(aadhaar_number + process.env.AADHAAR_HASH_SALT).digest('hex')
+      },
       ...mappedProfileData,
-      status: this.getDefaultStatusForRole(role)
+      status: calculatedStatus
     });
     
 
     await employmentProfile.save();
+    await VerifiedAadhaar.deleteOne({ aadhaar_number });
 
     // Populate reportsTo if provided
-    let reportsToUser = null;
-    if (reportsTo) {
-      reportsToUser = await TWgoldUser.findById(reportsTo).select('name email role');
-    }
+   // Correct way to handle the reporting user lookup
+let reportsToUser = null;
+if (reportsTo && mongoose.Types.ObjectId.isValid(reportsTo)) {
+  reportsToUser = await TWgoldUser.findById(reportsTo).select('name email role');
+} else if (reportsTo === "") {
+    // If frontend sends empty string, ensure it doesn't break the logic
+    req.body.reportsTo = undefined; 
+}
 
     res.status(201).json({
       success: true,
@@ -1088,13 +1096,11 @@ Controller.prototype.createUserWithAadhaar = async function(req, res) {
         employmentProfile: {
           id: employmentProfile._id,
           aadhaarVerified: true,
-          status: status
+          status: calculatedStatus
         }
       },
       code: 'USER_CREATED_SUCCESS'
     });
-      // Clean up verified Aadhaar
-      await VerifiedAadhaar.deleteOne({ aadhaar_number });
 
   } catch (error) {
     console.error('Create user with Aadhaar error:', error);
@@ -1802,6 +1808,71 @@ Controller.prototype.updateUserPermissions = async function(req, res) {
       success: false,
       message: 'Failed to update permissions',
       code: 'PERMISSIONS_UPDATE_FAILED'
+    });
+  }
+};
+
+
+// Add this method to your Controller
+Controller.prototype.getVerifiedAadhaarDetails = async function(req, res) {
+  try {
+    const { aadhaar_number } = req.body;
+
+    if (!aadhaar_number) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aadhaar number is required',
+        code: 'MISSING_AADHAAR_NUMBER'
+      });
+    }
+
+    const verifiedData = await VerifiedAadhaar.findOne({ 
+      aadhaar_number: aadhaar_number 
+    });
+    
+    if (!verifiedData) {
+      return res.status(404).json({
+        success: false,
+        message: 'No verified Aadhaar data found',
+        code: 'AADHAAR_NOT_VERIFIED'
+      });
+    }
+
+    // Check if the session is still valid (within 7 days)
+    const sessionAge = Date.now() - new Date(verifiedData.timestamp).getTime();
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+    
+    if (sessionAge > SEVEN_DAYS) {
+      await VerifiedAadhaar.deleteOne({ aadhaar_number: aadhaar_number });
+      return res.status(404).json({
+        success: false,
+        message: 'Aadhaar verification session expired',
+        code: 'AADHAAR_SESSION_EXPIRED'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        is_verified: verifiedData.data.is_otp_verified,
+        name: verifiedData.data.name,
+        role: verifiedData.data.role,
+        dob: verifiedData.data.date_of_birth,
+        gender: verifiedData.data.gender,
+        full_address: verifiedData.data.full_address,
+        phone_number: verifiedData.data.phone_number,
+        email_id: verifiedData.data.email_id,
+        timestamp: verifiedData.timestamp
+      },
+      code: 'AADHAAR_DETAILS_RETRIEVED'
+    });
+
+  } catch (error) {
+    console.error('Error getting verified Aadhaar details:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to get verified Aadhaar details',
+      code: 'DETAILS_RETRIEVAL_FAILED'
     });
   }
 };

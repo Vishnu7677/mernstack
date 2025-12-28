@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../TWGLogin/axiosConfig';
 import './creating_employee.css';
 import Navbar from './Navbar';
-import { encryptData, decryptData, clearEncryptedData } from '../utils/encryption';
 
 const CreatingEmployee = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-
 
   // Step 1: Aadhaar Verification
   const [aadhaarData, setAadhaarData] = useState({
@@ -24,14 +22,12 @@ const CreatingEmployee = () => {
   const [timer, setTimer] = useState(0);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
 
-  // Step 2: Aadhaar Details (from verification)
+  // Step 2: Aadhaar Details (from API)
   const [aadhaarDetails, setAadhaarDetails] = useState(null);
   const [selectedRole, setSelectedRole] = useState('');
-  const lastSavedStepRef = useRef(null);
   const [createdUserRole, setCreatedUserRole] = useState('');
 
-
-  // Step 3: User Details with new fields
+  // Step 3: User Details
   const [userData, setUserData] = useState({
     // Basic Information
     email: '',
@@ -130,28 +126,12 @@ const CreatingEmployee = () => {
   // Form validation errors
   const [errors, setErrors] = useState({});
 
-  // New state for saved applications
-  const [savedApplications, setSavedApplications] = useState([]);
-  const [showSavedApplications, setShowSavedApplications] = useState(false);
-  const [applicationIdCounter, setApplicationIdCounter] = useState(1);
-  const [selectedApplicationId, setSelectedApplicationId] = useState(null);
-  const [hasAadhaarData, setHasAadhaarData] = useState(false);
+  // State for checking if Aadhaar is already verified
+  const [isCheckingAadhaar, setIsCheckingAadhaar] = useState(false);
+  const [isAadhaarAlreadyVerified, setIsAadhaarAlreadyVerified] = useState(false);
 
-  // Use refs for values that don't need to trigger re-renders
-  const savedApplicationsRef = useRef([]);
-  const selectedApplicationIdRef = useRef(null);
+  // PAN Regex
   const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-
-
-  // Time constants for 7-day storage
-  const SEVEN_DAYS = useMemo(() => 7 * 24 * 60 * 60 * 1000, []);
-
-  const STORAGE_KEYS = useMemo(() => ({
-    VERIFICATION_SESSION: 'aadhaar_verification_session',
-    USER_DATA: 'user_form_data',
-    SAVED_APPLICATIONS: 'user_saved_applications',
-    APPLICATION_ID_COUNTER: 'user_application_id_counter'
-  }), []);
 
   // Role definitions
   const ROLES = useMemo(() => [
@@ -168,8 +148,7 @@ const CreatingEmployee = () => {
     { value: 'rm', label: 'Regional Manager', requiresManager: false },
     { value: 'zm', label: 'Zone Manager', requiresManager: false },
     { value: 'employee', label: 'Employee', requiresManager: true },
-    { value: 'go&auditor', label: 'Grievance Officer & Auditor', requiresManager: false },
-
+    { value: 'go_auditor', label: 'Grievance Officer & Auditor', requiresManager: false },
   ], []);
 
   // Get role display name
@@ -198,12 +177,7 @@ const CreatingEmployee = () => {
     return designationMap[role] || 'Employee';
   };
 
-  // Clear all storage
-  const clearStorage = useCallback(() => {
-    clearEncryptedData(STORAGE_KEYS.VERIFICATION_SESSION);
-    clearEncryptedData(STORAGE_KEYS.USER_DATA);
-  }, [STORAGE_KEYS.VERIFICATION_SESSION, STORAGE_KEYS.USER_DATA]);
-
+  // Reset form function
   const resetForm = useCallback(() => {
     setCurrentStep(1);
     setAadhaarData({
@@ -219,6 +193,9 @@ const CreatingEmployee = () => {
     setIsOtpVerified(false);
     setAadhaarDetails(null);
     setSelectedRole('');
+    setIsAadhaarAlreadyVerified(false);
+    
+    // Reset userData
     setUserData({
       email: '',
       password: '',
@@ -300,333 +277,81 @@ const CreatingEmployee = () => {
       salary: '',
       joinDate: '',
     });
-    setSelectedApplicationId(null);
-    selectedApplicationIdRef.current = null;
-    setHasAadhaarData(false);
-    clearStorage();
+    
     setError('');
-    lastSavedStepRef.current = null;
-  }, [clearStorage]);
-
-  // Check if we have Aadhaar data
-  const checkForAadhaarData = useCallback(() => {
-    const hasData = !!(
-      aadhaarData.aadhaar_number ||
-      referenceId ||
-      otpSent ||
-      aadhaarDetails
-    );
-    if (hasData !== hasAadhaarData) {
-      setHasAadhaarData(hasData);
-    }
-  }, [aadhaarData.aadhaar_number, referenceId, otpSent, aadhaarDetails, hasAadhaarData]);
-
-  const loadSavedApplications = useCallback(() => {
-    try {
-      const savedApps = localStorage.getItem(STORAGE_KEYS.SAVED_APPLICATIONS);
-      if (savedApps) {
-        const parsed = JSON.parse(savedApps);
-        const validApps = parsed.filter(app => {
-          const appAge = Date.now() - (app.timestamp || 0);
-          return appAge < SEVEN_DAYS;
-        });
-        setSavedApplications(validApps);
-        savedApplicationsRef.current = validApps;
-
-        if (validApps.length !== parsed.length) {
-          localStorage.setItem(STORAGE_KEYS.SAVED_APPLICATIONS, JSON.stringify(validApps));
-        }
-      }
-
-      const counter = localStorage.getItem(STORAGE_KEYS.APPLICATION_ID_COUNTER);
-      if (counter) {
-        setApplicationIdCounter(parseInt(counter));
-      }
-    } catch (error) {
-      console.error('Error loading saved applications:', error);
-      setSavedApplications([]);
-      savedApplicationsRef.current = [];
-    }
-  }, [STORAGE_KEYS.SAVED_APPLICATIONS, STORAGE_KEYS.APPLICATION_ID_COUNTER, SEVEN_DAYS]);
-
-  // Save current application
-  const saveCurrentApplication = useCallback(() => {
-    if (!aadhaarDetails && !aadhaarData.aadhaar_number) return null;
-
-    // ⛔ Prevent duplicate saves for same step
-    if (lastSavedStepRef.current === currentStep) {
-      return selectedApplicationIdRef.current;
-    }
-
-    try {
-      const applicationId =
-        selectedApplicationIdRef.current || `app_${applicationIdCounter}`;
-
-      const applicationData = {
-        id: applicationId,
-        name: userData.name || aadhaarDetails?.name || 'Unnamed Application',
-        aadhaarNumber: aadhaarData.aadhaar_number,
-        role: userData.role || aadhaarData.role || selectedRole,
-        step: currentStep,
-        aadhaarData,
-        referenceId,
-        otpSent,
-        aadhaarDetails,
-        userData,
-        timestamp: Date.now(),
-        isOtpVerified
-      };
-
-      const updatedApplications = savedApplicationsRef.current.filter(
-        app => app.id !== applicationId
-      );
-
-      updatedApplications.push(applicationData);
-
-      setSavedApplications(updatedApplications);
-      savedApplicationsRef.current = updatedApplications;
-
-      localStorage.setItem(
-        STORAGE_KEYS.SAVED_APPLICATIONS,
-        JSON.stringify(updatedApplications)
-      );
-
-      if (!selectedApplicationIdRef.current) {
-        const newCounter = applicationIdCounter + 1;
-        setApplicationIdCounter(newCounter);
-        localStorage.setItem(
-          STORAGE_KEYS.APPLICATION_ID_COUNTER,
-          newCounter.toString()
-        );
-      }
-
-      selectedApplicationIdRef.current = applicationId;
-      setSelectedApplicationId(applicationId);
-      lastSavedStepRef.current = currentStep;
-
-      return applicationId;
-    } catch (error) {
-      console.error('Error saving application:', error);
-      return null;
-    }
-  }, [
-    aadhaarDetails,
-    aadhaarData,
-    userData,
-    currentStep,
-    referenceId,
-    otpSent,
-    applicationIdCounter,
-    isOtpVerified,
-    selectedRole,
-    STORAGE_KEYS.SAVED_APPLICATIONS,
-    STORAGE_KEYS.APPLICATION_ID_COUNTER
-  ]);
-
-
-  // Load saved application
-  const loadSavedApplication = useCallback((applicationId) => {
-    try {
-      const application = savedApplicationsRef.current.find(app => app.id === applicationId);
-      if (application) {
-        setAadhaarData(application.aadhaarData || {});
-        if (application.referenceId) setReferenceId(application.referenceId);
-        if (application.otpSent) setOtpSent(application.otpSent);
-        if (application.aadhaarDetails) {
-          setAadhaarDetails(application.aadhaarDetails);
-          if (application.role) setSelectedRole(application.role);
-        }
-        if (application.userData) setUserData(application.userData);
-        if (application.step) setCurrentStep(application.step);
-        if (application.isOtpVerified) setIsOtpVerified(application.isOtpVerified);
-        setSelectedApplicationId(applicationId);
-        selectedApplicationIdRef.current = applicationId;
-
-        if (application.otpSent && application.timestamp && !application.isOtpVerified) {
-          const elapsed = Math.floor((Date.now() - application.timestamp) / 1000);
-          if (elapsed < 60) {
-            setTimer(60 - elapsed);
-          }
-        }
-
-        setShowSavedApplications(false);
-        setError('');
-      }
-    } catch (error) {
-      console.error('Error loading application:', error);
-      setError('Failed to load application');
-    }
   }, []);
 
-  // Delete saved application
-  const deleteSavedApplication = useCallback((applicationId, e) => {
-    e.stopPropagation();
+  // API function to check Aadhaar verification status
+  const checkAadhaarVerificationStatus = useCallback(async (aadhaarNumber, role) => {
     try {
-      const updatedApplications = savedApplicationsRef.current.filter(app => app.id !== applicationId);
-      setSavedApplications(updatedApplications);
-      savedApplicationsRef.current = updatedApplications;
-      localStorage.setItem(STORAGE_KEYS.SAVED_APPLICATIONS, JSON.stringify(updatedApplications));
-
-      if (selectedApplicationIdRef.current === applicationId) {
-        resetForm();
+      setIsCheckingAadhaar(true);
+      const response = await api.get(`/twgoldlogin/user/aadhaar/status/${aadhaarNumber}`);
+      
+      if (response.data.success && response.data.data.is_verified) {
+        // Check if role matches
+        if (response.data.data.role === role) {
+          setIsAadhaarAlreadyVerified(true);
+          
+          // Fetch verified details
+          const verifiedResponse = await api.post('/twgoldlogin/user/aadhaar/get-verified-details', {
+            aadhaar_number: aadhaarNumber
+          });
+          
+          if (verifiedResponse.data.success) {
+            setAadhaarDetails(verifiedResponse.data.data);
+            setIsOtpVerified(true);
+            setSelectedRole(role);
+            
+            // Auto-populate user data from verified Aadhaar
+            setUserData(prev => ({
+              ...prev,
+              name: verifiedResponse.data.data.name || '',
+              contactNumber: aadhaarData.phone_number || '',
+              role: role
+            }));
+            
+            return true;
+          }
+        } else {
+          setError(`This Aadhaar was verified for role: ${response.data.data.role}. Please select the correct role.`);
+          return false;
+        }
       }
+      return false;
     } catch (error) {
-      console.error('Error deleting application:', error);
-      setError('Failed to delete application');
+      console.error('Error checking Aadhaar status:', error);
+      return false;
+    } finally {
+      setIsCheckingAadhaar(false);
     }
-  }, [STORAGE_KEYS.SAVED_APPLICATIONS, resetForm]);
+  }, [aadhaarData.phone_number]);
 
-  // Update refs when state changes
+  // Check Aadhaar when number is entered (only if not already verified)
   useEffect(() => {
-    savedApplicationsRef.current = savedApplications;
-  }, [savedApplications]);
-
-  useEffect(() => {
-    selectedApplicationIdRef.current = selectedApplicationId;
-  }, [selectedApplicationId]);
-
-  // Load saved data on component mount
-  useEffect(() => {
-    const loadSavedData = () => {
-      try {
-        loadSavedApplications();
-
-        // Check if there's any active session
-        const hasSavedSession = localStorage.getItem(STORAGE_KEYS.VERIFICATION_SESSION);
-
-        // If no saved session, show step 1 with saved applications if any
-        if (!hasSavedSession) {
-          setCurrentStep(1);
-          return;
+    const checkIfVerified = async () => {
+      if (aadhaarData.aadhaar_number && 
+          aadhaarData.aadhaar_number.length === 12 && 
+          selectedRole && 
+          !isOtpVerified &&
+          !isAadhaarAlreadyVerified) {
+        
+        const isVerified = await checkAadhaarVerificationStatus(
+          aadhaarData.aadhaar_number, 
+          selectedRole
+        );
+        
+        if (isVerified) {
+          setError('This Aadhaar is already verified. You can proceed to user details.');
         }
-
-        // Try to load saved session
-        const savedSession = localStorage.getItem(STORAGE_KEYS.VERIFICATION_SESSION);
-        if (savedSession) {
-          const decryptedSession = decryptData(savedSession);
-          if (decryptedSession) {
-            const sessionAge = Date.now() - (decryptedSession.timestamp || 0);
-
-            if (sessionAge < SEVEN_DAYS) {
-              if (decryptedSession.isOtpVerified) {
-                setAadhaarData(decryptedSession.aadhaarData || {});
-                if (decryptedSession.referenceId) setReferenceId(decryptedSession.referenceId);
-                if (decryptedSession.otpSent) setOtpSent(decryptedSession.otpSent);
-                if (decryptedSession.aadhaarDetails) {
-                  setAadhaarDetails(decryptedSession.aadhaarDetails);
-                  if (decryptedSession.role) setSelectedRole(decryptedSession.role);
-                }
-                setIsOtpVerified(decryptedSession.isOtpVerified);
-                if (decryptedSession.currentStep && decryptedSession.currentStep > 1) {
-                  setCurrentStep(decryptedSession.currentStep);
-                }
-              } else {
-                // OTP not verified, clear session and show step 1
-                clearEncryptedData(STORAGE_KEYS.VERIFICATION_SESSION);
-                setCurrentStep(1);
-                return;
-              }
-
-              if (decryptedSession.timerStart && !decryptedSession.isOtpVerified) {
-                const elapsed = Math.floor((Date.now() - decryptedSession.timerStart) / 1000);
-                if (elapsed < 60) {
-                  setTimer(60 - elapsed);
-                }
-              }
-            } else {
-              // Session expired
-              clearEncryptedData(STORAGE_KEYS.VERIFICATION_SESSION);
-              setCurrentStep(1);
-            }
-          } else {
-            // Failed to decrypt
-            setCurrentStep(1);
-          }
-        }
-
-        const savedUserData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
-        if (savedUserData) {
-          const decryptedData = decryptData(savedUserData);
-          if (decryptedData && decryptedData.timestamp) {
-            const dataAge = Date.now() - decryptedData.timestamp;
-
-            if (dataAge < SEVEN_DAYS) {
-              setUserData(prev => ({
-                ...prev,
-                ...decryptedData.userData
-              }));
-            } else {
-              clearEncryptedData(STORAGE_KEYS.USER_DATA);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error loading saved data:', error);
-        clearStorage();
-        setCurrentStep(1);
       }
     };
-
-    loadSavedData();
-  }, [SEVEN_DAYS, clearStorage, loadSavedApplications, STORAGE_KEYS.VERIFICATION_SESSION, STORAGE_KEYS.USER_DATA]);
-
-  // Check for Aadhaar data when relevant state changes
-  useEffect(() => {
-    checkForAadhaarData();
-  }, [checkForAadhaarData]);
-
-  const saveVerificationSession = useCallback(() => {
-    try {
-      const sessionData = {
-        aadhaarData,
-        referenceId,
-        otpSent,
-        aadhaarDetails,
-        role: selectedRole,
-        currentStep,
-        timerStart: otpSent ? Date.now() - (60 - timer) * 1000 : null,
-        timestamp: Date.now(),
-        isOtpVerified
-      };
-
-      const encrypted = encryptData(sessionData);
-      if (encrypted) {
-        localStorage.setItem(STORAGE_KEYS.VERIFICATION_SESSION, encrypted);
-      }
-    } catch (error) {
-      console.error('Error saving verification session:', error);
-    }
-  }, [aadhaarData, referenceId, otpSent, aadhaarDetails, selectedRole, currentStep, timer, isOtpVerified, STORAGE_KEYS.VERIFICATION_SESSION]);
-
-  const saveUserData = useCallback(() => {
-    try {
-      const dataToSave = {
-        userData,
-        timestamp: Date.now()
-      };
-
-      const encrypted = encryptData(dataToSave);
-      if (encrypted) {
-        localStorage.setItem(STORAGE_KEYS.USER_DATA, encrypted);
-      }
-    } catch (error) {
-      console.error('Error saving user data:', error);
-    }
-  }, [userData, STORAGE_KEYS.USER_DATA]);
-
-  // Save user data when step >= 3 and user has name
-  useEffect(() => {
-    if (currentStep >= 3 && userData.name) {
-      saveUserData();
-    }
-  }, [currentStep, userData.name, saveUserData]);
-
-  // Save verification session when relevant data changes
-  useEffect(() => {
-    if (currentStep > 1 && (isOtpVerified || otpSent)) {
-      saveVerificationSession();
-    }
-  }, [currentStep, aadhaarData, referenceId, otpSent, aadhaarDetails, selectedRole, timer, isOtpVerified, saveVerificationSession]);
+    
+    const timer = setTimeout(() => {
+      checkIfVerified();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [aadhaarData.aadhaar_number, selectedRole, isOtpVerified, isAadhaarAlreadyVerified, checkAadhaarVerificationStatus]);
 
   // Timer for OTP
   useEffect(() => {
@@ -639,44 +364,10 @@ const CreatingEmployee = () => {
     return () => clearInterval(interval);
   }, [timer]);
 
-  const handlePanChange = (e) => {
-    let value = e.target.value.toUpperCase();
-  
-    // Allow only A–Z and 0–9
-    value = value.replace(/[^A-Z0-9]/g, '');
-  
-    // Limit length to 10
-    if (value.length > 10) return;
-  
-    // Optional: Enforce structure while typing
-    // First 5 → letters, next 4 → digits, last → letter
-    if (
-      (value.length <= 5 && !/^[A-Z]*$/.test(value)) ||
-      (value.length > 5 && value.length <= 9 && !/^[A-Z]{5}[0-9]*$/.test(value)) ||
-      (value.length === 10 && !PAN_REGEX.test(value))
-    ) {
-      return;
-    }
-  
-    setUserData(prev => ({
-      ...prev,
-      panNumber: value
-    }));
-  
-    // Clear error while typing
-    setErrors(prev => ({
-      ...prev,
-      panNumber: ''
-    }));
-  };
-  
-
   // Fetch reporting users
   useEffect(() => {
     fetchReportingUsers();
   }, []);
-
-
 
   const fetchReportingUsers = async () => {
     try {
@@ -705,6 +396,13 @@ const CreatingEmployee = () => {
       setLoading(true);
       setError('');
 
+      // Check if Aadhaar is already verified
+      if (isAadhaarAlreadyVerified) {
+        // If already verified, skip OTP and go to step 2
+        setCurrentStep(2);
+        return;
+      }
+
       const response = await api.post('/twgoldlogin/user/aadhaar/generate-otp', {
         aadhaar_number: aadhaarData.aadhaar_number,
         phone_number: aadhaarData.phone_number,
@@ -718,7 +416,6 @@ const CreatingEmployee = () => {
         setTimer(60);
         setError('');
         setIsOtpVerified(false);
-        saveVerificationSession();
       }
     } catch (error) {
       console.log(error.response)
@@ -746,9 +443,14 @@ const CreatingEmployee = () => {
         setIsOtpVerified(true);
         setCurrentStep(2);
         setError('');
-
-        saveVerificationSession();
-        saveCurrentApplication();
+        
+        // Auto-populate user data
+        setUserData(prev => ({
+          ...prev,
+          name: response.data.aadhaar_data.name || '',
+          contactNumber: aadhaarData.phone_number || '',
+          role: selectedRole
+        }));
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to verify OTP');
@@ -766,9 +468,8 @@ const CreatingEmployee = () => {
 
       // Prepare data for backend
       const userPayload = {
-        // Basic info (at the end as requested)
+        // Basic info
         name: userData.name,
-
         role: userData.role || selectedRole,
         designation: userData.designation || getDefaultDesignation(userData.role || selectedRole),
         department: userData.department,
@@ -826,7 +527,7 @@ const CreatingEmployee = () => {
         join_date: userData.joinDate,
         permissions: userData.permissions,
 
-        // Email and password (at the end)
+        // Email and password
         email: userData.email,
         password: userData.password
       };
@@ -847,15 +548,9 @@ const CreatingEmployee = () => {
         setSuccess(true);
         setCurrentStep(5);
         setCreatedUserRole(userData.role || selectedRole);
-        clearStorage();
-        if (selectedApplicationIdRef.current) {
-          const updatedApplications = savedApplicationsRef.current.filter(app => app.id !== selectedApplicationIdRef.current);
-          setSavedApplications(updatedApplications);
-          savedApplicationsRef.current = updatedApplications;
-          localStorage.setItem(STORAGE_KEYS.SAVED_APPLICATIONS, JSON.stringify(updatedApplications));
-          setSelectedApplicationId(null);
-          selectedApplicationIdRef.current = null;
-        }
+        
+        // Reset form on success
+        resetForm();
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to create user');
@@ -889,17 +584,6 @@ const CreatingEmployee = () => {
     handleAadhaarInputChange('role', role);
   };
 
-  useEffect(() => {
-    if (isOtpVerified && aadhaarDetails) {
-      setUserData(prev => ({
-        ...prev,
-        name: prev.name || aadhaarDetails.name || '',
-        contactNumber: prev.contactNumber || aadhaarData.phone_number || '',
-      }));
-    }
-  }, [isOtpVerified, aadhaarDetails, aadhaarData.phone_number]);
-
-
   const handleEmergencyContactChange = (field, value) => {
     setUserData(prev => ({
       ...prev,
@@ -915,7 +599,36 @@ const CreatingEmployee = () => {
     d.setHours(0, 0, 0, 0);
     return d.toISOString().split('T')[0];
   }, []);
+
+  const handlePanChange = (e) => {
+    let value = e.target.value.toUpperCase();
   
+    // Allow only A–Z and 0–9
+    value = value.replace(/[^A-Z0-9]/g, '');
+  
+    // Limit length to 10
+    if (value.length > 10) return;
+  
+    // Optional: Enforce structure while typing
+    if (
+      (value.length <= 5 && !/^[A-Z]*$/.test(value)) ||
+      (value.length > 5 && value.length <= 9 && !/^[A-Z]{5}[0-9]*$/.test(value)) ||
+      (value.length === 10 && !PAN_REGEX.test(value))
+    ) {
+      return;
+    }
+  
+    setUserData(prev => ({
+      ...prev,
+      panNumber: value
+    }));
+  
+    // Clear error while typing
+    setErrors(prev => ({
+      ...prev,
+      panNumber: ''
+    }));
+  };
 
   const handleQualificationChange = (index, field, value) => {
     setUserData(prev => {
@@ -1021,7 +734,6 @@ const CreatingEmployee = () => {
         newErrors.joinDate = 'Joining date cannot be in the past';
       }
     }
-    
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -1030,19 +742,20 @@ const CreatingEmployee = () => {
   // Navigation functions
   const nextStep = () => {
     if (currentStep === 1 && validateStep1()) {
-      if (otpSent) {
-        verifyAadhaarOtp(); // OTP verify already saves once
+      if (isAadhaarAlreadyVerified) {
+        // If Aadhaar is already verified, skip to step 2
+        setCurrentStep(2);
+      } else if (otpSent) {
+        verifyAadhaarOtp();
       } else {
         generateAadhaarOtp();
       }
     }
     else if (currentStep === 2) {
       setCurrentStep(3);
-      saveCurrentApplication(); // ✅ OK (first transition)
     }
     else if (currentStep === 3 && validateStep3()) {
       setCurrentStep(4);
-      saveCurrentApplication(); // ✅ OK (final draft)
     }
     else if (currentStep === 4) {
       createUserWithAadhaar();
@@ -1068,133 +781,35 @@ const CreatingEmployee = () => {
     }
   };
 
-  // Save data and get back to add another user
-  const saveAndAddAnother = () => {
-    const appId = saveCurrentApplication();
-    if (appId) {
-      setSuccess(false);
-      resetForm();
-      setShowSavedApplications(true);
-    }
-  };
-
   // Clear all data and move to step 1
   const clearAllAndStartNew = () => {
-    if (selectedApplicationIdRef.current) {
-      const updatedApplications = savedApplicationsRef.current.filter(
-        app => app.id !== selectedApplicationIdRef.current
-      );
-      setSavedApplications(updatedApplications);
-      savedApplicationsRef.current = updatedApplications;
-      localStorage.setItem(
-        STORAGE_KEYS.SAVED_APPLICATIONS,
-        JSON.stringify(updatedApplications)
-      );
-    }
-
-    setSuccess(false);          // ✅ important
+    setSuccess(false);
     resetForm();
-    setCurrentStep(1);          // ✅ force step 1
-    setShowSavedApplications(false);
   };
 
-
-  // Render saved applications list - shown above step 1 form
-  const renderSavedApplicationsList = () => (
-    <div className="creating-employee-saved-applications-list">
-      <h3>Continue Existing Application</h3>
-      <p>Select an application to continue from where you left off:</p>
-
-      {savedApplications.length === 0 ? (
-        <div className="creating-employee-no-applications">
-          <p>No saved applications found.</p>
-        </div>
-      ) : (
-        <div className="creating-employee-applications-list">
-          {savedApplications.map(app => (
-            <div
-              key={app.id}
-              className="creating-employee-application-card"
-              onClick={() => loadSavedApplication(app.id)}
-            >
-              <div className="creating-employee-application-info">
-                <h4>{app.name}</h4>
-                <p>Role: {getRoleDisplayName(app.role)}</p>
-                <p>Aadhaar: {app.aadhaarNumber ? `${app.aadhaarNumber.substring(0, 4)}XXXX${app.aadhaarNumber.substring(8)}` : 'Not entered'}</p>
-                <p>Status: {app.isOtpVerified ? 'OTP Verified' : 'OTP Pending'}</p>
-                <p>Last saved: {new Date(app.timestamp).toLocaleString()}</p>
-                <p>Current step: {app.step === 1 ? 'Aadhaar Verification' :
-                  app.step === 2 ? 'Verified Details' :
-                    app.step === 3 ? 'User Details' :
-                      'Review & Submit'}</p>
-              </div>
-              <div className="creating-employee-application-actions">
-                <button
-                  className="creating-employee-button creating-employee-button-primary"
-                  onClick={() => loadSavedApplication(app.id)}
-                >
-                  Continue
-                </button>
-                <button
-                  className="creating-employee-button creating-employee-button-secondary"
-                  onClick={(e) => deleteSavedApplication(app.id, e)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  // Render Step 1 with saved applications shown above the form
+  // Render Step 1
   const renderStep1 = () => {
-    // If showing saved applications in full screen mode
-    if (showSavedApplications) {
-      return (
-        <div className="creating-employee-form-step">
-          {renderSavedApplicationsList()}
-          <div className="creating-employee-applications-footer">
-            <button
-              className="creating-employee-button creating-employee-button-secondary"
-              onClick={() => setShowSavedApplications(false)}
-            >
-              Start New Application
-            </button>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="creating-employee-form-step">
-        {/* Show saved applications list above the form only on fresh mount */}
-        {savedApplications.length > 0 && !hasAadhaarData && !otpSent && (
-          <div className="creating-employee-saved-applications-above">
-            {renderSavedApplicationsList()}
-            <div className="creating-employee-form-divider">
-              <span>OR</span>
-            </div>
-          </div>
-        )}
-
-
         <div className="creating-employee-form-section">
           <h3>Aadhaar Verification</h3>
           <p>Enter employee's Aadhaar details to verify identity</p>
 
-          {/* If we have saved applications and not showing them, show button */}
-          {savedApplications.length > 0 && !showSavedApplications && (
-            <button
-              className="creating-employee-button creating-employee-button-secondary"
-              onClick={() => setShowSavedApplications(true)}
-            >
-              Continue Existing Application ({savedApplications.length})
-            </button>
+          {/* Show status if Aadhaar is already verified */}
+          {isCheckingAadhaar && (
+            <div className="creating-employee-status-checking">
+              Checking Aadhaar verification status...
+            </div>
           )}
 
+          {isAadhaarAlreadyVerified && (
+            <div className="creating-employee-already-verified">
+              <div className="creating-employee-verified-badge">
+                ✓ Already Verified
+              </div>
+              <p>This Aadhaar number has already been verified. You can proceed to user details.</p>
+            </div>
+          )}
 
           {/* Role Selection */}
           <div className="creating-employee-form-group">
@@ -1203,7 +818,7 @@ const CreatingEmployee = () => {
               className={`creating-employee-form-select ${errors.role ? 'error' : ''}`}
               value={selectedRole}
               onChange={(e) => handleRoleChange(e.target.value)}
-              disabled={otpSent && !isOtpVerified}
+              disabled={(otpSent && !isOtpVerified) || isAadhaarAlreadyVerified}
             >
               <option value="">Select Role</option>
               {ROLES.map(role => (
@@ -1216,7 +831,7 @@ const CreatingEmployee = () => {
           </div>
 
           {/* If OTP is sent but NOT verified, show OTP section */}
-          {otpSent && !isOtpVerified ? (
+          {otpSent && !isOtpVerified && !isAadhaarAlreadyVerified ? (
             <div className="creating-employee-otp-section">
               <h4>Enter OTP</h4>
               <p>OTP sent to registered mobile number ending with {aadhaarData.phone_number.slice(-2)}</p>
@@ -1301,7 +916,7 @@ const CreatingEmployee = () => {
                 </button>
               </div>
             </div>
-          ) : (
+          ) : !isAadhaarAlreadyVerified ? (
             <>
               <div className="creating-employee-form-group">
                 <label className="creating-employee-form-label">Aadhaar Number *</label>
@@ -1344,7 +959,7 @@ const CreatingEmployee = () => {
                 {errors.email_id && <span className="creating-employee-form-error">{errors.email_id}</span>}
               </div>
             </>
-          )}
+          ) : null}
         </div>
       </div>
     );
@@ -1394,9 +1009,7 @@ const CreatingEmployee = () => {
     </div>
   );
 
-
   const renderStep3 = () => {
-    
     const selectedRoleObj = ROLES.find(r => r.value === userData.role);
 
     return (
@@ -1415,7 +1028,6 @@ const CreatingEmployee = () => {
                   disabled
                   className="creating-employee-form-input"
                 />
-
                 {errors.name && <span className="creating-employee-form-error">{errors.name}</span>}
               </div>
 
@@ -1427,7 +1039,6 @@ const CreatingEmployee = () => {
                   disabled
                   className="creating-employee-form-input"
                 />
-
                 {errors.contactNumber && <span className="creating-employee-form-error">{errors.contactNumber}</span>}
               </div>
             </div>
@@ -1462,14 +1073,13 @@ const CreatingEmployee = () => {
               <div className="creating-employee-form-group">
                 <label className="creating-employee-form-label">PAN Number *</label>
                 <input
-  type="text"
-  className={`creating-employee-form-input ${errors.panNumber ? 'error' : ''}`}
-  value={userData.panNumber}
-  onChange={handlePanChange}
-  placeholder="ABCDE1234F"
-  maxLength="10"
-/>
-
+                  type="text"
+                  className={`creating-employee-form-input ${errors.panNumber ? 'error' : ''}`}
+                  value={userData.panNumber}
+                  onChange={handlePanChange}
+                  placeholder="ABCDE1234F"
+                  maxLength="10"
+                />
                 {errors.panNumber && <span className="creating-employee-form-error">{errors.panNumber}</span>}
               </div>
 
@@ -2332,19 +1942,18 @@ const CreatingEmployee = () => {
               </div>
 
               <div className="creating-employee-form-group">
-  <label className="creating-employee-form-label">Join Date</label>
-  <input
-    type="date"
-    className={`creating-employee-form-input ${errors.joinDate ? 'error' : ''}`}
-    value={userData.joinDate}
-    min={today}
-    onChange={(e) => handleUserInputChange('joinDate', e.target.value)}
-  />
-  {errors.joinDate && (
-    <span className="creating-employee-form-error">{errors.joinDate}</span>
-  )}
-</div>
-
+                <label className="creating-employee-form-label">Join Date</label>
+                <input
+                  type="date"
+                  className={`creating-employee-form-input ${errors.joinDate ? 'error' : ''}`}
+                  value={userData.joinDate}
+                  min={today}
+                  onChange={(e) => handleUserInputChange('joinDate', e.target.value)}
+                />
+                {errors.joinDate && (
+                  <span className="creating-employee-form-error">{errors.joinDate}</span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -2666,14 +2275,6 @@ const CreatingEmployee = () => {
                 </button>
 
                 <button
-                  className="creating-employee-button creating-employee-button-secondary"
-                  onClick={saveAndAddAnother}
-                  disabled={(currentStep === 1&& otpSent && !otp )}
-                >
-                  Save Data & Add Another
-                </button>
-
-                <button
                   className={`creating-employee-button ${currentStep === 4
                     ? 'creating-employee-button-success'
                     : 'creating-employee-button-primary'
@@ -2681,9 +2282,9 @@ const CreatingEmployee = () => {
                   onClick={nextStep}
                   disabled={loading || (currentStep === 1 && otpSent && !otp)}
                 >
-                  {currentStep === 1 && !otpSent && 'Send OTP'}
+                  {currentStep === 1 && !otpSent && !isAadhaarAlreadyVerified && 'Send OTP'}
                   {currentStep === 1 && otpSent && !isOtpVerified && 'Verify OTP'}
-                  {currentStep === 1 && isOtpVerified && 'Continue to User Details'}
+                  {currentStep === 1 && isAadhaarAlreadyVerified && 'Continue to User Details'}
                   {currentStep === 2 && 'Continue to User Details'}
                   {currentStep === 3 && 'Continue to Review'}
                   {currentStep === 4 && `Create ${getRoleDisplayName(userData.role)}`}

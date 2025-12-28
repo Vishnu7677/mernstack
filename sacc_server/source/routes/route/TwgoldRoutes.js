@@ -38,6 +38,11 @@ router.post('/user/create-with-aadhaar',
   twgold_checkPermission('employee_management', 'write'),
   ServiceManager.TWgoldLogin.createUserWithAadhaar
 );
+// Add this route
+router.post('/user/aadhaar/get-verified-details',
+  twgold_checkPermission('employee_management', 'read'),
+  ServiceManager.TWgoldLogin.getVerifiedAadhaarDetails
+);
 
 // User creation without Aadhaar (for all roles except admin)
 router.post('/user/create',
