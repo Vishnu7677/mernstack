@@ -23,16 +23,30 @@ router.put('/profile', ServiceManager.TWgoldLogin.updateProfile);
 router.put('/change-password', ServiceManager.TWgoldLogin.changePassword);
 
 // Aadhaar Verification Routes for User Creation (all roles except admin)
-router.post('/user/aadhaar/generate-otp',
-  twgold_checkPermission('employee_management', 'write'),
+
+router.post('/aadhaar/generate-otp',
+  // Allow if user can manage either employees OR customers
+  (req, res, next) => {
+    const { target } = req.body;
+    if (target === 'employee') return twgold_checkPermission('employee_management', 'write')(req, res, next);
+    return twgold_checkPermission('customer_management', 'write')(req, res, next);
+  },
   ServiceManager.TWgoldLogin.generateUserAadhaarOtp
 );
 
-router.post('/user/aadhaar/verify-otp',
-  twgold_checkPermission('employee_management', 'write'),
+router.post('/aadhaar/verify-otp',
+  (req, res, next) => {
+    // Session look-up happens in controller, but we check base write permissions here
+    const { target } = req.body;
+    if (target === 'employee') return twgold_checkPermission('employee_management', 'write')(req, res, next);
+    return twgold_checkPermission('customer_management', 'write')(req, res, next);
+  },
   ServiceManager.TWgoldLogin.verifyUserAadhaarOtp
 );
-
+router.post('/customer/create-with-aadhaar',
+  twgold_checkPermission('customer_management', 'write'),
+  ServiceManager.TWgoldLogin.createCustomerWithAadhaar
+);
 // Unified user creation with Aadhaar (for all roles except admin)
 router.post('/user/create-with-aadhaar',
   twgold_checkPermission('employee_management', 'write'),
@@ -40,7 +54,6 @@ router.post('/user/create-with-aadhaar',
 );
 // Add this route
 router.post('/user/aadhaar/get-verified-details',
-  twgold_checkPermission('employee_management', 'read'),
   ServiceManager.TWgoldLogin.getVerifiedAadhaarDetails
 );
 

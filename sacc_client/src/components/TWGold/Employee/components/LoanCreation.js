@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../../TWGold/TWGLogin/axiosConfig';
 
 const MIN_INTEREST_RATE = 8.3;
+const MIN_LTV = 50;
 const MAX_LTV = 85;
+const CUSTOMER_ID_PREFIX = 'CRN200311';
 
 const LoanCreation = () => {
   /* ================= FORM STATE ================= */
@@ -25,14 +27,20 @@ const LoanCreation = () => {
     totalInterest: 0
   });
 
+  /* ================= CUSTOMER ================= */
+  const [customerIdSuffix, setCustomerIdSuffix] = useState('');
+  const [customerLoading, setCustomerLoading] = useState(false);
+  const [customerError, setCustomerError] = useState('');
+
+  const fullCustomerId =
+    customerIdSuffix ? `${CUSTOMER_ID_PREFIX}${customerIdSuffix}` : '';
+
   /* ================= GOLD RATES ================= */
   const [goldRates, setGoldRates] = useState({});
   const [rateDate, setRateDate] = useState(null);
 
   /* ================= VALIDATION ================= */
   const [validationError, setValidationError] = useState('');
-  // TEMP: until customer search is implemented
-const [selectedCustomerId, setSelectedCustomerId] = useState('');
 
   /* ================= FETCH GOLD RATES ================= */
   useEffect(() => {
@@ -42,19 +50,64 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const fetchGoldRates = async () => {
     try {
       const res = await api.get('/twgoldrate/gold-rates/current');
-      console.log(res.data)
-  
       if (res.data.success) {
-        const { date, rates } = res.data.data;
-  
-        setGoldRates(rates);   // ✅ ONLY numeric rates
-        setRateDate(date);     // ✅ keep date separate
+        setGoldRates(res.data.data.rates);
+        setRateDate(res.data.data.date);
       }
     } catch (err) {
       console.error('Failed to fetch gold rates', err);
     }
   };
-  
+
+  /* ================= FETCH CUSTOMER ================= */
+  const fetchCustomerById = async (customerId) => {
+    if (!customerId) return;
+
+    try {
+      setCustomerLoading(true);
+      setCustomerError('');
+
+      const res = await api.get(
+        `/twgoldcustomer/customers/by-customer-id/${customerId}`
+      );
+
+      const customer = res.data.data;
+
+      if (!customer.isKycVerified) {
+        setCustomerError('Customer KYC is not completed');
+      }
+
+      setLoanForm(prev => ({
+        ...prev,
+        custName: customer.name || '',
+        mobile: customer.phone || '',
+        aadhaar: customer.aadhaarDetails?.aadhaar_number || ''
+      }));
+    } catch (err) {
+      setCustomerError(err.response?.data?.message || 'Customer not found');
+      setLoanForm(prev => ({
+        ...prev,
+        custName: '',
+        mobile: '',
+        aadhaar: ''
+      }));
+    } finally {
+      setCustomerLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!customerIdSuffix || customerIdSuffix.length < 3) {
+      setCustomerError('');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetchCustomerById(fullCustomerId);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [customerIdSuffix, fullCustomerId]);
 
   /* ================= CALCULATE LOAN ================= */
   const calculateLoan = useCallback(async () => {
@@ -68,30 +121,24 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
         tenure: Number(loanForm.tenure)
       });
 
-      if (res.data.success) {
-        const data = res.data.data;
+      const data = res.data.data;
 
-        // 🔐 Frontend validations
-        if (data.ltv > MAX_LTV) {
-          setValidationError('LTV should not exceed 85%');
-        } else if (data.interestRate < MIN_INTEREST_RATE) {
-          setValidationError('Interest Rate should not be less than 8.3%');
-        }
-
-        setCalcResults(data);
+      if (data.ltv < MIN_LTV) {
+        setValidationError('LTV should not be less than 50%');
+      } else if (data.ltv > MAX_LTV) {
+        setValidationError('LTV should not exceed 85%');
+      } else if (data.interestRate < MIN_INTEREST_RATE) {
+        setValidationError('Interest Rate should not be less than 8.3%');
       }
+      
+
+      setCalcResults(data);
     } catch (err) {
-        console.error('Calculation Error:', err.response?.data || err);
-      
-        // ✅ Show backend validation message (LTV > 85)
-        if (err.response?.data?.message) {
-          setValidationError(err.response.data.message);
-        } else {
-          setValidationError('Unable to calculate loan. Please check inputs.');
-        }
-      
-        resetCalc();
-      }      
+      setValidationError(
+        err.response?.data?.message || 'Unable to calculate loan'
+      );
+      resetCalc();
+    }
   }, [loanForm]);
 
   /* ================= AUTO CALCULATE ================= */
@@ -108,10 +155,7 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
       return;
     }
 
-    const timer = setTimeout(() => {
-      calculateLoan();
-    }, 400);
-
+    const timer = setTimeout(calculateLoan, 400);
     return () => clearTimeout(timer);
   }, [loanForm, calculateLoan]);
 
@@ -136,27 +180,17 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
       reqAmount: '',
       tenure: '24'
     });
-    resetCalc();
+    setCustomerIdSuffix('');
+    setCustomerError('');
     setValidationError('');
+    resetCalc();
   };
 
   /* ================= CREATE LOAN ================= */
   const createLoan = async () => {
-    if (!selectedCustomerId) {
-      return alert('Customer ID is required');
-    }
-  
-    if (calcResults.ltv > 85) {
-      return alert('Cannot create loan. LTV exceeds 85%');
-    }
-  
-    if (calcResults.interestRate < 8.3) {
-      return alert('Invalid Interest Rate');
-    }
-  
     try {
       const res = await api.post('/twgoldloan/loans', {
-        customerId: selectedCustomerId,
+        customerId: fullCustomerId,
         goldItems: [
           {
             itemType: 'jewellery',
@@ -169,23 +203,18 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
         requestedAmount: Number(loanForm.reqAmount),
         tenure: Number(loanForm.tenure)
       });
-  
+
       alert(`Loan Created Successfully: ${res.data.data.loanId}`);
       resetForm();
-      setSelectedCustomerId('');
     } catch (err) {
       alert(err.response?.data?.message || 'Loan creation failed');
     }
   };
-  
 
   /* ================= INPUT HANDLER ================= */
   const handleInputChange = (e) => {
     const { id, value } = e.target;
-    setLoanForm(prev => ({
-      ...prev,
-      [id]: value
-    }));
+    setLoanForm(prev => ({ ...prev, [id]: value }));
   };
 
   /* ================= LTV GAUGE ================= */
@@ -202,8 +231,13 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
   };
 
   const isCreateDisabled =
+    !customerIdSuffix ||
+    customerLoading ||
+    !!customerError ||
     !calcResults.goldValue ||
+    calcResults.ltv < MIN_LTV ||
     calcResults.ltv > MAX_LTV ||
+    
     calcResults.interestRate < MIN_INTEREST_RATE ||
     !!validationError;
 
@@ -214,46 +248,46 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
 
       {/* GOLD RATES */}
       <div className="twgold_gold_loan_rate-table">
-  <h4>HO Fixed Gold Rates (per gram)</h4>
-
-  {rateDate && (
-    <small>
-      Effective Date: {new Date(rateDate).toDateString()}
-    </small>
-  )}
-
-  <table>
-    <thead>
-      <tr>
-        {Object.keys(goldRates).map(k => (
-          <th key={k}>{k}</th>
-        ))}
-      </tr>
-    </thead>
-
-    <tbody>
-      <tr>
-        {Object.values(goldRates).map((v, i) => (
-          <td key={i}>₹{Number(v).toLocaleString()}</td>
-        ))}
-      </tr>
-    </tbody>
-  </table>
-</div>
-
+        <h4>HO Fixed Gold Rates (per gram)</h4>
+        {rateDate && <small>Effective Date: {new Date(rateDate).toDateString()}</small>}
+        <table>
+          <thead>
+            <tr>
+              {Object.keys(goldRates).map(k => (
+                <th key={k}>{k}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {Object.values(goldRates).map((v, i) => (
+                <td key={i}>₹{Number(v).toLocaleString()}</td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       {/* FORM */}
       <div className="twgold_gold_loan_form-grid">
-      <div className="twgold_gold_loan_form-group">
-  <label>Customer ID</label>
-  <input
-    type="text"
-    value={selectedCustomerId}
-    onChange={(e) => setSelectedCustomerId(e.target.value)}
-    placeholder="Enter Customer ID"
-    required
-  />
-</div>
+
+        {/* CUSTOMER ID */}
+        <div className="twgold_gold_loan_form-group">
+          <label>Customer ID</label>
+          <div style={{ display: 'flex' }}>
+            <input value={CUSTOMER_ID_PREFIX} disabled style={{ width: 140 }} />
+            <input
+              value={customerIdSuffix}
+              maxLength={6}
+              placeholder="Enter suffix"
+              onChange={(e) =>
+                setCustomerIdSuffix(e.target.value.replace(/\D/g, ''))
+              }
+            />
+          </div>
+          {customerLoading && <small>Fetching customer...</small>}
+          {customerError && <small style={{ color: 'red' }}>⚠️ {customerError}</small>}
+        </div>
 
         <div className="twgold_gold_loan_form-group">
           <label>Customer Name</label>
@@ -262,12 +296,12 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
 
         <div className="twgold_gold_loan_form-group">
           <label>Aadhaar No</label>
-          <input id="aadhaar" maxLength="12" value={loanForm.aadhaar} onChange={handleInputChange} />
+          <input id="aadhaar" value={loanForm.aadhaar} />
         </div>
 
         <div className="twgold_gold_loan_form-group">
           <label>Mobile</label>
-          <input id="mobile" maxLength="10" value={loanForm.mobile} onChange={handleInputChange} />
+          <input id="mobile" value={loanForm.mobile} />
         </div>
 
         <div className="twgold_gold_loan_form-group">
@@ -281,7 +315,7 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
 
         <div className="twgold_gold_loan_form-group">
           <label>Gold Weight (gm)</label>
-          <input id="goldWeight" type="number" step="0.01" value={loanForm.goldWeight} onChange={handleInputChange} />
+          <input id="goldWeight" type="number" value={loanForm.goldWeight} onChange={handleInputChange} />
         </div>
 
         <div className="twgold_gold_loan_form-group">
@@ -338,12 +372,12 @@ const [selectedCustomerId, setSelectedCustomerId] = useState('');
       </div>
 
       {validationError && (
-        <div style={{ color: 'red', marginTop: '10px' }}>
+        <div style={{ color: 'red', marginTop: 10 }}>
           ⚠️ {validationError}
         </div>
       )}
 
-      <div style={{ marginTop: '20px' }}>
+      <div style={{ marginTop: 20 }}>
         <button
           className="twgold_gold_loan_btn twgold_gold_loan_success"
           disabled={isCreateDisabled}

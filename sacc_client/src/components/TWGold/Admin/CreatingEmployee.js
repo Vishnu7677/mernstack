@@ -14,7 +14,8 @@ const CreatingEmployee = () => {
     aadhaar_number: '',
     phone_number: '',
     email_id: '',
-    role: ''
+    role: '',
+    target: 'employee'
   });
   const [otp, setOtp] = useState('');
   const [referenceId, setReferenceId] = useState('');
@@ -407,7 +408,8 @@ const CreatingEmployee = () => {
         aadhaar_number: aadhaarData.aadhaar_number,
         phone_number: aadhaarData.phone_number,
         email_id: aadhaarData.email_id,
-        role: selectedRole
+        role: selectedRole,
+        target: 'employee'
       });
 
       if (response.data.success) {

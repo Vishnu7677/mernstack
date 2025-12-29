@@ -215,7 +215,7 @@ const loanSchema = new mongoose.Schema({
   repaymentType: {
     type: String,
     enum: ['bullet', 'interest_only', 'emi'],
-    default: 'bullet'
+    default: 'emi' // Changed default to 'emi' to match your UI
   },
   
   startDate: Date,
@@ -286,9 +286,7 @@ const loanSchema = new mongoose.Schema({
 
   // Remarks & Notes
   remarks: String
-}, {
-  timestamps: true
-});
+}, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
 // Indexes
 loanSchema.index({ loanAccountNumber: 1 });
@@ -327,46 +325,41 @@ loanSchema.virtual('emiAmount').get(function () {
 // Pre-save middleware
 loanSchema.pre('save', async function(next) {
   try {
-  // Generate loan account number
-  if (!this.loanAccountNumber && this.isNew) {
-    const year = new Date().getFullYear().toString().slice(-2);
-    const seq = await getNextSequence('loan_id');
-    this.loanAccountNumber = `GL${year}${String(seq).padStart(6, '0')}`;
-  }
-  if (this.disbursementDate && this.tenure) {
-    const endDate = new Date(this.disbursementDate);
-    endDate.setMonth(endDate.getMonth() + this.tenure);
-    this.endDate = endDate;
-  }
-  if (this.isNew) {
-    this.outstandingPrincipal = this.sanctionedAmount;
-  }
-  
-  // Calculate total gold value explicitly (DO NOT use virtual here)
-let totalGoldValue = 0;
+    // 1. Generate Loan ID
+    if (!this.loanAccountNumber && this.isNew) {
+      const year = new Date().getFullYear().toString().slice(-2);
+      const seq = await getNextSequence('loan_id');
+      this.loanAccountNumber = `GL${year}${String(seq).padStart(6, '0')}`;
+    }
 
-if (this.goldItems && this.goldItems.length > 0) {
-  totalGoldValue = this.goldItems.reduce((sum, item) => {
-    return sum + (item.approvedValue || 0);
-  }, 0);
-}
+    // 2. Calculate Totals
+    let totalValue = 0;
+    if (this.goldItems && this.goldItems.length > 0) {
+      totalValue = this.goldItems.reduce((sum, item) => sum + (item.approvedValue || 0), 0);
+    }
 
-// Calculate LTV
-if (totalGoldValue > 0 && this.requestedAmount) {
-  this.loanToValueRatio = (this.requestedAmount / totalGoldValue) * 100;
-}
+    // 3. Set LTV and Principal
+    if (totalValue > 0) {
+      this.loanToValueRatio = (this.requestedAmount / totalValue) * 100;
+    }
 
-  // Set end date based on start date and tenure
-  if (this.startDate && this.tenure) {
-    const endDate = new Date(this.startDate);
-    endDate.setMonth(endDate.getMonth() + this.tenure);
-    this.endDate = endDate;
+    if (this.isNew) {
+      this.sanctionedAmount = this.requestedAmount;
+      this.outstandingPrincipal = this.sanctionedAmount;
+      this.startDate = this.startDate || new Date();
+    }
+
+    // 4. Set End Date
+    if (this.startDate && this.tenure) {
+      const endDate = new Date(this.startDate);
+      endDate.setMonth(endDate.getMonth() + this.tenure);
+      this.endDate = endDate;
+    }
+
+    next();
+  } catch (err) {
+    next(err);
   }
-
-  next();
-}catch (err) {
-  next(err);
-}
 });
 
 

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTwgoldAuth } from './TwgoldAuthContext';
 import '../../../styles/TwgoldLogin.css';
+import { resolveDashboardPath } from '../../../config/routes';
+
 
 const TwgoldLogin = () => {
   const [email, setEmail] = useState('');
@@ -11,21 +13,23 @@ const TwgoldLogin = () => {
   const { twgold_login, user, isAuthenticated } = useTwgoldAuth();
   const navigate = useNavigate();
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      const routes = {
-        admin: '/twgl&articles/admin/dashboard',
-        manager: '/twgl&articles/manager/dashboard',
-        employee: '/twgl&articles/employee/dashboard',
-        grivirence: '/twgl&articles/grivirence/dashboard',
-        default: '/twgl&articles/home'
-      };
-      
-      const redirectPath = routes[user.role] || routes.default;
-      navigate(redirectPath);
+      const dashboard = resolveDashboardPath(user.role);
+  
+      console.info(
+        '[LOGIN REDIRECT]',
+        'Login successful → redirecting to dashboard',
+        {
+          role: user.role,
+          to: dashboard
+        }
+      );
+  
+      navigate(dashboard, { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();

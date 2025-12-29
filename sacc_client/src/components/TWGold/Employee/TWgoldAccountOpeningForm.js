@@ -1,31 +1,33 @@
 import React, { useState, useEffect } from "react";
-import apiList from "../../../lib/apiList";
+import { getAllBranches, generateUserAadhaarOtp, verifyUserAadhaarOtp, createCustomerWithAadhaar, getVerifiedAadhaarDetails } from '../TWGLogin/axiosConfig'
 import "./TWgoldAccountOpeningForm.css";
 import TwgoldEmployeeNav from "./TwgoldEmployeeNav";
 import { ToastContainer } from 'react-toastify';
 import showToast from "../../Toast";
-import Cookies from "js-cookie";
 
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const TWgoldAccountOpeningForm = () => {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [aadhaarLoading, setAadhaarLoading] = useState(false);
     const [otpLoading, setOtpLoading] = useState(false);
-    const [verificationStep, setVerificationStep] = useState('aadhaar_input'); // aadhaar_input, otp_verification, details_form
-    
+    const [verificationStep, setVerificationStep] = useState('aadhaar_input');
+
+    const [panError, setPanError] = useState('');
+
     const [aadhaarData, setAadhaarData] = useState({
         aadhaarNumber: "",
         otp: "",
         reference_id: "",
         verificationStatus: 'pending'
     });
-    
+
     const [formData, setFormData] = useState({
         // Basic Information
         name: "",
         email: "",
         phone: "",
-        
+
         // Aadhaar Details (pre-filled from verification)
         aadhaarDetails: {
             aadhaar_hash: "",
@@ -44,7 +46,7 @@ const TWgoldAccountOpeningForm = () => {
             timestamp: "",
             raw_response: {}
         },
-        
+
         // Personal Information
         personalInfo: {
             fatherName: "",
@@ -61,37 +63,43 @@ const TWgoldAccountOpeningForm = () => {
                 address: ""
             }
         },
-        
+
         // Address (legacy)
         address: {
+            house: "",
             street: "",
+            landmark: "",
             city: "",
+            district: "",
             state: "",
             pincode: "",
             country: "India"
         },
-        
+
         // Employment & Financial Details
         occupation: "",
         monthlyIncome: "",
-        
+
+        // PAN Number (added based on schema)
+        panNumber: "",
+
         // Credit Information
         creditScore: "",
         existingLoans: "",
-        
-        // Documents
+
+        // Documents - simplified to boolean values (no upload URLs)
         documents: {
-            aadhaarCard: { uploaded: false, url: "", verified: false },
-            panCard: { uploaded: false, url: "", verified: false },
-            addressProof: { uploaded: false, url: "", verified: false },
-            incomeProof: { uploaded: false, url: "", verified: false },
-            photo: { uploaded: false, url: "" },
-            signature: { uploaded: false, url: "" }
+            aadhaarCard: { hasDocument: true, verified: false },
+            panCard: { hasDocument: false, verified: false },
+            addressProof: { hasDocument: false, verified: false },
+            incomeProof: { hasDocument: false, verified: false },
+            photo: { hasDocument: false },
+            signature: { hasDocument: false }
         },
-        
+
         // References
         references: [],
-        
+
         // Banking Details
         bankDetails: {
             accountHolderName: "",
@@ -101,40 +109,33 @@ const TWgoldAccountOpeningForm = () => {
             branchName: "",
             accountType: ""
         },
-        
+
         // Status & Verification
         status: "under_verification",
         isKycVerified: false,
         isAadhaarVerified: false,
         isPhoneVerified: false,
         isEmailVerified: false,
-        
+
         // Risk Assessment
         riskCategory: "unknown",
         riskScore: 0,
-        
-        // Generated IDs
+
+        // Generated IDs (will be generated in backend)
         customerId: "",
-        accountNumber: "",
-        
+
         // Temporary reference
         referenceNumber: `TWGL${Math.floor(Math.random() * 1000000)}`
     });
-    
-    const [uploadedFiles, setUploadedFiles] = useState({
-        pan: null,
-        addressProof: null,
-        incomeProof: null,
-        photo: null,
-        signature: null
-    });
-    
+
     const [error, setError] = useState('');
     const [currentAddressVisible, setCurrentAddressVisible] = useState(false);
     const [showEmergencyContact, setShowEmergencyContact] = useState(false);
     const [branchOptions, setBranchOptions] = useState([]);
     const [primaryBranch, setPrimaryBranch] = useState("");
-    
+    const [isCheckingExisting, setIsCheckingExisting] = useState(false);
+    const [existingSessionFound, setExistingSessionFound] = useState(null);
+
     // New KYC Verification Checkboxes
     const [kycVerifications, setKycVerifications] = useState({
         isAadhaarVerified: false,
@@ -144,9 +145,6 @@ const TWgoldAccountOpeningForm = () => {
         isAddressVerified: false,
         isIncomeVerified: false
     });
-    
-    const token = Cookies.get('employee_token');
-    const userData = JSON.parse(Cookies.get('employee_data') || '{}');
 
     // Fetch branch options on component mount
     useEffect(() => {
@@ -155,98 +153,98 @@ const TWgoldAccountOpeningForm = () => {
 
     const fetchBranches = async () => {
         try {
-            const response = await fetch(apiList.branches, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            const response = await getAllBranches();
+
+            console.log(response?.data?.data?.branches);
+
+            if (
+                response?.data?.success &&
+                response?.data?.data?.branches &&
+                Array.isArray(response.data.data.branches)
+            ) {
+                const branches = response.data.data.branches;
+
+                setBranchOptions(branches);
+
+                // Optional: set default / primary branch
+                if (branches.length > 0) {
+                    setPrimaryBranch(branches[0]._id);
                 }
-            });
-            const data = await response.json();
-            if (data.success && data.branches) {
-                setBranchOptions(data.branches);
-                if (data.branches.length > 0) {
-                    setPrimaryBranch(data.branches[0]._id);
-                }
+            } else {
+                setBranchOptions([]);
             }
         } catch (error) {
             console.error('Error fetching branches:', error);
+            setBranchOptions([]);
             showToast('error', 'Failed to load branches');
-        }
-    };
-
-    // Handle KYC verification checkbox changes
-    const handleKycVerificationChange = (field, value) => {
-        setKycVerifications(prev => ({
-            ...prev,
-            [field]: value
-        }));
-
-        // Update formData based on KYC verifications
-        if (field === 'isAadhaarVerified') {
-            setFormData(prev => ({
-                ...prev,
-                isAadhaarVerified: value
-            }));
-        } else if (field === 'isPhoneVerified') {
-            setFormData(prev => ({
-                ...prev,
-                isPhoneVerified: value
-            }));
-        } else if (field === 'isEmailVerified') {
-            setFormData(prev => ({
-                ...prev,
-                isEmailVerified: value
-            }));
-        } else if (field === 'isPanVerified') {
-            setFormData(prev => ({
-                ...prev,
-                documents: {
-                    ...prev.documents,
-                    panCard: {
-                        ...prev.documents.panCard,
-                        verified: value
-                    }
-                }
-            }));
-        } else if (field === 'isAddressVerified') {
-            setFormData(prev => ({
-                ...prev,
-                documents: {
-                    ...prev.documents,
-                    addressProof: {
-                        ...prev.documents.addressProof,
-                        verified: value
-                    }
-                }
-            }));
-        } else if (field === 'isIncomeVerified') {
-            setFormData(prev => ({
-                ...prev,
-                documents: {
-                    ...prev.documents,
-                    incomeProof: {
-                        ...prev.documents.incomeProof,
-                        verified: value
-                    }
-                }
-            }));
         }
     };
 
     // Update isKycVerified based on other verification statuses
     useEffect(() => {
-        const allVerified = 
-            kycVerifications.isAadhaarVerified &&
-            kycVerifications.isPhoneVerified &&
-            kycVerifications.isEmailVerified &&
-            kycVerifications.isPanVerified &&
-            kycVerifications.isAddressVerified;
-
+        const isAadhaarVerified = formData.isAadhaarVerified;
+      
+        const isPanVerified =
+          !!formData.panNumber &&
+          PAN_REGEX.test(formData.panNumber) &&
+          formData.documents.panCard.hasDocument;
+      
+        const isPhoneVerified = /^[6-9]\d{9}$/.test(formData.phone);
+      
+        const isEmailVerified = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
+      
+        const isAddressVerified = isAadhaarVerified;
+      
+        const isIncomeVerified = formData.documents.incomeProof.hasDocument;
+      
+        const isKycVerified =
+          isAadhaarVerified &&
+          isPanVerified &&
+          isPhoneVerified &&
+          isEmailVerified &&
+          isAddressVerified;
+      
+        setKycVerifications({
+          isAadhaarVerified,
+          isPanVerified,
+          isPhoneVerified,
+          isEmailVerified,
+          isAddressVerified,
+          isIncomeVerified
+        });
+      
         setFormData(prev => ({
-            ...prev,
-            isKycVerified: allVerified,
-            status: allVerified ? 'active' : 'under_verification'
+          ...prev,
+          isPhoneVerified,
+          isEmailVerified,
+          isKycVerified,
+          status: isKycVerified ? 'active' : 'under_verification',
+          documents: {
+            ...prev.documents,
+            panCard: {
+              ...prev.documents.panCard,
+              verified: isPanVerified
+            },
+            addressProof: {
+              ...prev.documents.addressProof,
+              verified: isAddressVerified
+            },
+            incomeProof: {
+              ...prev.documents.incomeProof,
+              verified: isIncomeVerified
+            }
+          }
         }));
-    }, [kycVerifications]);
+      }, [
+        formData.isAadhaarVerified,
+        formData.panNumber,
+        formData.phone,
+        formData.email,
+        formData.documents.panCard.hasDocument,
+        formData.documents.incomeProof.hasDocument
+      ]);
+      
+      
 
     // Step 1: Aadhaar Verification Functions
     const handleAadhaarInput = async (e) => {
@@ -261,26 +259,20 @@ const TWgoldAccountOpeningForm = () => {
                 throw new Error('Please enter a valid 12-digit Aadhaar number');
             }
 
-            // Call Aadhaar OTP API
-            const response = await fetch(apiList.aadhaarSendOTP, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ aadhaar_number: aadhaarData.aadhaarNumber })
+            // Call Aadhaar OTP API using axios config
+            const response = await generateUserAadhaarOtp({
+                aadhaar_number: aadhaarData.aadhaarNumber,
+                target: 'customer'
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to send OTP');
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to send OTP');
             }
 
             // Store reference_id for verification
             setAadhaarData(prev => ({
                 ...prev,
-                reference_id: data.reference_id,
+                reference_id: response.data.reference_id,
                 verificationStatus: 'otp_sent'
             }));
 
@@ -289,7 +281,7 @@ const TWgoldAccountOpeningForm = () => {
 
         } catch (error) {
             console.error('Aadhaar OTP error:', error);
-            showToast('error', error.message);
+            showToast('error', error.response?.data?.message || error.message || 'Failed to send OTP');
         } finally {
             setAadhaarLoading(false);
         }
@@ -301,122 +293,172 @@ const TWgoldAccountOpeningForm = () => {
         setError('');
 
         try {
-            // Validate OTP
             if (!aadhaarData.otp || aadhaarData.otp.length !== 6) {
                 throw new Error('Please enter a valid 6-digit OTP');
             }
 
-            // Call Aadhaar OTP verification API
-            const response = await fetch(apiList.aadhaarVerifyOTP, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    otp: aadhaarData.otp,
-                    reference_id: aadhaarData.reference_id
-                })
+            const response = await verifyUserAadhaarOtp({
+                aadhaar_number: aadhaarData.aadhaarNumber,
+                otp: aadhaarData.otp,
+                reference_id: aadhaarData.reference_id,
+                target: 'customer'
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'OTP verification failed');
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'OTP verification failed');
             }
 
-            // Update aadhaar data with verified information
+            const verifiedInfo = response.data.aadhaar_data || {};
+
             setAadhaarData(prev => ({
                 ...prev,
-                verificationStatus: 'verified',
-                ...data.aadhaarData
+                verificationStatus: 'verified'
             }));
 
-            // Pre-fill form data from Aadhaar verification
+            console.log(verifiedInfo)
+            const address = verifiedInfo.address || {};
+
             setFormData(prev => ({
                 ...prev,
-                name: data.aadhaarData.name || "",
-                phone: data.aadhaarData.phone || "",
+
+                // Basic
+                name: verifiedInfo.name || prev.name,
+
                 aadhaarDetails: {
                     ...prev.aadhaarDetails,
-                    aadhaar_hash: data.aadhaarData.aadhaar_hash || "",
-                    aadhaar_number: data.aadhaarData.aadhaar_number || "",
-                    name_on_aadhaar: data.aadhaarData.name || "",
-                    care_of: data.aadhaarData.care_of || "",
-                    father_name: data.aadhaarData.father_name || "",
-                    mother_name: data.aadhaarData.mother_name || "",
-                    dob: data.aadhaarData.dob || "",
-                    year_of_birth: data.aadhaarData.year_of_birth || "",
-                    gender: data.aadhaarData.gender || "",
-                    full_address: data.aadhaarData.full_address || "",
-                    photo_base64: data.aadhaarData.photo_base64 || "",
+
+                    // 🔑 CRITICAL IDENTIFIERS
+                    aadhaar_number: verifiedInfo.aadhaar_number || aadhaarData.aadhaarNumber,
+                    aadhaar_hash: verifiedInfo.aadhaar_hash || "",
+
+                    // PERSONAL
+                    name_on_aadhaar: verifiedInfo.name || "",
+                    care_of: verifiedInfo.care_of || "",
+                    father_name: verifiedInfo.care_of || "",
+                    dob: verifiedInfo.date_of_birth || verifiedInfo.dob || "",
+                    year_of_birth: verifiedInfo.year_of_birth || "",
+                    gender: verifiedInfo.gender || "",
+
+                    // ADDRESS
+                    full_address: verifiedInfo.full_address || "",
+
+                    // BIOMETRIC
+                    photo_base64: verifiedInfo.photo || "",
+
+                    // META
                     is_otp_verified: true,
-                    reference_id: data.reference_id || "",
-                    timestamp: Date.now(),
-                    raw_response: data
+                    reference_id: verifiedInfo.reference_id || aadhaarData.reference_id,
+                    timestamp: new Date().toISOString(),
+
+                    // 🧾 STORE ENTIRE RAW RESPONSE (VERY IMPORTANT)
+                    raw_response: verifiedInfo
                 },
-                personalInfo: {
-                    ...prev.personalInfo,
-                    fatherName: data.aadhaarData.father_name || "",
-                    motherName: data.aadhaarData.mother_name || ""
-                },
+
+                // Structured Address (for UI usage)
                 address: {
-                    ...prev.address,
-                    street: data.aadhaarData.full_address || "",
-                    city: "",
-                    state: "",
-                    pincode: "",
-                    country: "India"
+                    house: address.house || "",
+                    street: address.street || "",
+                    landmark: address.landmark || "",
+                    city: address.vtc || address.district || "",
+                    district: address.district || "",
+                    state: address.state || "",
+                    pincode: address.pincode || "",
+                    country: address.country || "India"
                 },
+
                 isAadhaarVerified: true
             }));
 
-            // Automatically check Aadhaar verified when OTP is verified
-            handleKycVerificationChange('isAadhaarVerified', true);
-
-            // Generate customer ID and account number
-            const customerSequence = await getNextSequence('customer_id');
-            const accountSequence = await getNextSequence('account_number');
-            
-            setFormData(prev => ({
-                ...prev,
-                customerId: `TWGL${String(customerSequence).padStart(6, '0')}`,
-                accountNumber: `101712${String(accountSequence).padStart(6, '0')}`
-            }));
 
             setVerificationStep('details_form');
             showToast('success', 'Aadhaar verified successfully!');
 
         } catch (error) {
             console.error('OTP verification error:', error);
-            showToast('error', error.message);
+            showToast('error', error.response?.data?.message || error.message || 'OTP verification failed');
         } finally {
             setOtpLoading(false);
         }
     };
 
-    const getNextSequence = async (sequenceName) => {
-        try {
-            const response = await fetch(`${apiList.getSequence}?name=${sequenceName}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            const data = await response.json();
-            return data.sequence || 1;
-        } catch (error) {
-            console.error('Error getting sequence:', error);
-            return 1;
+    const handleCheckExistingApplication = async () => {
+        if (!aadhaarData.aadhaarNumber || aadhaarData.aadhaarNumber.length !== 12) {
+            showToast('error', 'Please enter a valid 12-digit Aadhaar number first');
+            return;
         }
+
+        setIsCheckingExisting(true);
+        try {
+            const response = await getVerifiedAadhaarDetails({
+                aadhaar_number: aadhaarData.aadhaarNumber
+            });
+
+            if (response.data.success) {
+                const data = response.data.data;
+                console.log(data)
+                setExistingSessionFound(data);
+                showToast('success', 'Verified application found! You can continue.');
+            } else {
+                showToast('info', 'No verified session found for this Aadhaar.');
+            }
+        } catch (err) {
+            console.error("Check error:", err);
+            showToast('info', 'No active verified session found. Please proceed with OTP.');
+        } finally {
+            setIsCheckingExisting(false);
+        }
+    };
+
+    // Function to populate the form from the found session
+    const resumeApplication = () => {
+        if (!existingSessionFound) return;
+
+        console.log(existingSessionFound)
+        // Extract address if it exists in the raw_response or top level
+        const addr = existingSessionFound.aadhaar_data.address || {};
+
+        setFormData(prev => ({
+            ...prev,
+            name: existingSessionFound.name || "",
+            email: existingSessionFound.email_id || "",
+            phone: existingSessionFound.phone_number || "",
+
+            // Map address so Step 2 inputs show the data
+            address: {
+                house: addr.house || "",
+                street: addr.street || "",
+                landmark: addr.landmark || "",
+                city: addr.vtc || addr.district || "",
+                district: addr.district || "",
+                state: addr.state || "",
+                pincode: addr.pincode || "",
+                country: addr.country || "India"
+            },
+
+            aadhaarDetails: {
+                ...prev.aadhaarDetails,
+                aadhaar_number: aadhaarData.aadhaarNumber,
+                name_on_aadhaar: existingSessionFound.name || "",
+                dob: existingSessionFound.dob || "",
+                gender: existingSessionFound.gender || "",
+                full_address: existingSessionFound.aadhaar_data.full_address || "",
+                is_otp_verified: true,
+                timestamp: existingSessionFound.timestamp
+            },
+            isAadhaarVerified: true
+        }));
+
+        setVerificationStep('details_form');
+        setStep(2);
     };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        
+
         // Handle nested form data
         if (name.includes('.')) {
             const [parent, child, subChild] = name.split('.');
-            
+
             if (subChild) {
                 // Three levels deep (e.g., personalInfo.emergencyContact.name)
                 setFormData(prev => ({
@@ -460,90 +502,18 @@ const TWgoldAccountOpeningForm = () => {
         }
     };
 
-    const handleFileUpload = (fileType, event) => {
-        const file = event.target.files[0];
-        if (file) {
-            const allowedTypes = ['image/png', 'image/jpeg', 'application/pdf'];
-            if (!allowedTypes.includes(file.type)) {
-                setError(`Invalid file type for ${fileType}. Please upload an image or PDF.`);
-                showToast('error', `Invalid file type for ${fileType}. Please upload an image or PDF.`);
-                return;
-            }
-
-            if (file.size > 2 * 1024 * 1024) { // 2MB limit
-                setError(`File size too large for ${fileType}. Max 2MB allowed.`);
-                showToast('error', `File size too large for ${fileType}. Max 2MB allowed.`);
-                return;
-            }
-
-            setError('');
-            setUploadedFiles(prev => ({
-                ...prev,
-                [fileType]: file
-            }));
-
-            // Update form data documents status
-            const docMapping = {
-                'pan': 'panCard',
-                'addressProof': 'addressProof',
-                'incomeProof': 'incomeProof',
-                'photo': 'photo',
-                'signature': 'signature'
-            };
-
-            if (docMapping[fileType]) {
-                setFormData(prev => ({
-                    ...prev,
-                    documents: {
-                        ...prev.documents,
-                        [docMapping[fileType]]: {
-                            ...prev.documents[docMapping[fileType]],
-                            uploaded: true
-                        }
-                    }
-                }));
-            }
-        }
-    };
-
-    const handleRemoveFile = (fileType) => {
-        setUploadedFiles(prev => ({
+    // Handle document checkbox changes
+    const handleDocumentCheck = (docType, value) => {
+        setFormData(prev => ({
             ...prev,
-            [fileType]: null
-        }));
-
-        // Update form data documents status
-        const docMapping = {
-            'pan': 'panCard',
-            'addressProof': 'addressProof',
-            'incomeProof': 'incomeProof',
-            'photo': 'photo',
-            'signature': 'signature'
-        };
-
-        if (docMapping[fileType]) {
-            setFormData(prev => ({
-                ...prev,
-                documents: {
-                    ...prev.documents,
-                    [docMapping[fileType]]: {
-                        ...prev.documents[docMapping[fileType]],
-                        uploaded: false,
-                        url: "",
-                        verified: false
-                    }
+            documents: {
+                ...prev.documents,
+                [docType]: {
+                    ...prev.documents[docType],
+                    hasDocument: value
                 }
-            }));
-
-            // Also uncheck the verification checkbox
-            if (fileType === 'pan') {
-                handleKycVerificationChange('isPanVerified', false);
-            } else if (fileType === 'addressProof') {
-                handleKycVerificationChange('isAddressVerified', false);
-            } else if (fileType === 'incomeProof') {
-                handleKycVerificationChange('isIncomeVerified', false);
             }
-        }
+        }));
     };
 
     const addReference = () => {
@@ -584,12 +554,10 @@ const TWgoldAccountOpeningForm = () => {
         try {
             // Validate required fields
             const requiredFields = [
-                'name', 'email', 'phone', 'occupation', 'monthlyIncome',
-                'primaryBranch'
+                'name', 'email', 'phone', 'occupation', 'monthlyIncome', 'panNumber'
             ];
 
             const missingFields = requiredFields.filter(field => {
-                if (field === 'primaryBranch') return !primaryBranch;
                 return !formData[field];
             });
 
@@ -597,63 +565,79 @@ const TWgoldAccountOpeningForm = () => {
                 throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
             }
 
-            // Validate documents
-            const requiredDocs = ['pan', 'addressProof', 'photo', 'signature'];
-            const missingDocs = requiredDocs.filter(doc => !uploadedFiles[doc]);
+            if (!primaryBranch) {
+                throw new Error('Please select a primary branch');
+            }
+
+            // Validate documents - check if they have the documents
+            const requiredDocs = ['panCard', 'addressProof'];
+            const missingDocs = requiredDocs.filter(doc => !formData.documents[doc].hasDocument);
             if (missingDocs.length > 0) {
-                throw new Error(`Please upload all required documents: ${missingDocs.join(', ')}`);
+                throw new Error(`Please confirm that all required documents are provided: ${missingDocs.map(doc => doc.replace('Card', '')).join(', ')}`);
+            }
+
+            // Validate PAN number format
+            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+            if (formData.panNumber && !panRegex.test(formData.panNumber)) {
+                throw new Error('Please enter a valid PAN number (format: ABCDE1234F)');
             }
 
             // Prepare form data
-            const formDataToSend = new FormData();
-
-            // Append form data
-            const customerData = {
+            const payload = {
                 ...formData,
+                aadhaar_number: aadhaarData.aadhaarNumber, // 👈 CRITICAL: Backend needs this to find VerifiedAadhaar
                 primaryBranch: primaryBranch,
-                createdBy: userData._id,
-                updatedBy: userData._id,
-                lastVerifiedBy: userData._id,
-                lastVerifiedAt: new Date().toISOString()
             };
 
-            // Remove temporary fields
-            delete customerData.referenceNumber;
+            const response = await createCustomerWithAadhaar(payload);
 
-            formDataToSend.append('customerData', JSON.stringify(customerData));
-
-            // Append uploaded files
-            Object.keys(uploadedFiles).forEach(key => {
-                if (uploadedFiles[key]) {
-                    formDataToSend.append(key, uploadedFiles[key]);
-                }
-            });
-
-            // Submit to API
-            const response = await fetch(apiList.createCustomer, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formDataToSend,
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to create customer account');
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to create customer account');
             }
 
+            // Update with backend generated IDs
+            setFormData(prev => ({
+                ...prev,
+                customerId: response.data.data.customerId || "",
+            }));
+
             showToast('success', 'Customer account created successfully!');
-            setStep(4); // Move to success step
+            setStep(5); // Move to success step
 
         } catch (error) {
             console.error('Error submitting form:', error);
-            showToast('error', error.message);
+            showToast('error', error.response?.data?.message || error.message || 'Failed to create customer account');
         } finally {
             setLoading(false);
         }
     };
+    const handlePanChange = (e) => {
+        let value = e.target.value.toUpperCase();
+
+        // Allow only A–Z and 0–9
+        value = value.replace(/[^A-Z0-9]/g, '');
+
+        // Limit length to 10
+        if (value.length > 10) return;
+
+        // Enforce PAN structure while typing
+        if (
+            (value.length <= 5 && !/^[A-Z]*$/.test(value)) ||
+            (value.length > 5 && value.length <= 9 && !/^[A-Z]{5}[0-9]*$/.test(value)) ||
+            (value.length === 10 && !PAN_REGEX.test(value))
+        ) {
+            return;
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            panNumber: value
+        }));
+
+        // Clear error while typing
+        setPanError('');
+    };
+
 
     const renderStepIndicator = () => {
         const steps = [
@@ -693,36 +677,58 @@ const TWgoldAccountOpeningForm = () => {
                         {verificationStep === 'aadhaar_input' && (
                             <div className="aadhaar-verification-section">
                                 <h3>Aadhaar Verification</h3>
+                                {/* Check Existing Section */}
+                                {existingSessionFound ? (
+                                    <div className="existing-session-alert">
+                                        <p>✅ <strong>Verified session found for {existingSessionFound.name}</strong></p>
+                                        <button
+                                            type="button"
+                                            className="account-primary-button"
+                                            onClick={resumeApplication}
+                                            style={{ backgroundColor: '#28a745', marginBottom: '20px' }}
+                                        >
+                                            Continue Existing Application
+                                        </button>
+                                        <p style={{ fontSize: '0.8rem' }}>Or verify again below:</p>
+                                    </div>
+                                ) : null}
                                 <form onSubmit={handleAadhaarInput}>
                                     <div className="account-form-group">
                                         <label htmlFor="aadhaarNumber">Enter Aadhaar Number <span className="required">*</span></label>
-                                        <input
-                                            type="text"
-                                            id="aadhaarNumber"
-                                            name="aadhaarNumber"
-                                            value={aadhaarData.aadhaarNumber}
-                                            onChange={(e) => setAadhaarData(prev => ({...prev, aadhaarNumber: e.target.value}))}
-                                            placeholder="Enter 12-digit Aadhaar number"
-                                            required
-                                            maxLength="12"
-                                            pattern="\d{12}"
-                                        />
-                                        <small className="form-hint">Enter the 12-digit Aadhaar number without spaces</small>
+                                        <div className="aadhaar-input-wrapper">
+                                            <input
+                                                type="text"
+                                                id="aadhaarNumber"
+                                                name="aadhaarNumber"
+                                                value={aadhaarData.aadhaarNumber}
+                                                onChange={(e) => {
+                                                    setAadhaarData(prev => ({ ...prev, aadhaarNumber: e.target.value }));
+                                                    if (existingSessionFound) setExistingSessionFound(null);
+                                                }}
+                                                placeholder="Enter 12-digit Aadhaar number"
+                                                required
+                                                maxLength="12"
+                                                pattern="\d{12}"
+                                            />
+                                            <small className="form-hint">Enter the 12-digit Aadhaar number without spaces</small>
+                                        </div>
                                     </div>
 
                                     <div className="account-button-group">
+                                        <button
+                                            type="button"
+                                            className="account-primary-button"
+                                            onClick={handleCheckExistingApplication}
+                                            disabled={isCheckingExisting || aadhaarData.aadhaarNumber.length !== 12}
+                                        >
+                                            {isCheckingExisting ? '...' : 'Check Saved'}
+                                        </button>
                                         <button
                                             type="submit"
                                             className="account-primary-button"
                                             disabled={aadhaarLoading}
                                         >
-                                            {aadhaarLoading ? (
-                                                <>
-                                                    <span className="account-spinner"></span> Sending OTP...
-                                                </>
-                                            ) : (
-                                                "Send OTP"
-                                            )}
+                                            {aadhaarLoading ? "Sending OTP..." : "Send OTP"}
                                         </button>
                                     </div>
                                 </form>
@@ -736,7 +742,7 @@ const TWgoldAccountOpeningForm = () => {
                                     OTP has been sent to the mobile number registered with Aadhaar.
                                     Please enter the 6-digit OTP below.
                                 </p>
-                                
+
                                 <form onSubmit={handleOTPVerification}>
                                     <div className="account-form-group">
                                         <label htmlFor="otp">Enter OTP <span className="required">*</span></label>
@@ -745,7 +751,7 @@ const TWgoldAccountOpeningForm = () => {
                                             id="otp"
                                             name="otp"
                                             value={aadhaarData.otp}
-                                            onChange={(e) => setAadhaarData(prev => ({...prev, otp: e.target.value}))}
+                                            onChange={(e) => setAadhaarData(prev => ({ ...prev, otp: e.target.value }))}
                                             placeholder="Enter 6-digit OTP"
                                             required
                                             maxLength="6"
@@ -790,12 +796,10 @@ const TWgoldAccountOpeningForm = () => {
                                 </div>
                                 <h3>Aadhaar Verified Successfully!</h3>
                                 <p className="verification-details">
-                                    Aadhaar Number: {aadhaarData.aadhaarNumber}<br/>
-                                    Name: {formData.name}<br/>
-                                    Customer ID: {formData.customerId}<br/>
-                                    Account Number: {formData.accountNumber}
+                                    Aadhaar Number: {aadhaarData.aadhaarNumber}<br />
+                                    Name: {formData.name}<br />
                                 </p>
-                                
+
                                 <div className="account-button-group">
                                     <button
                                         type="button"
@@ -865,9 +869,48 @@ const TWgoldAccountOpeningForm = () => {
                                     id="phone"
                                     name="phone"
                                     value={formData.phone}
-                                    onChange={handleChange}
+                                    onChange={(e) => {
+                                        let value = e.target.value.replace(/\D/g, ''); // remove non-digits
+
+                                        // ❌ remove leading zero explicitly
+                                        if (value.startsWith('0')) {
+                                            value = value.replace(/^0+/, '');
+                                        }
+
+                                        // limit to 10 digits
+                                        value = value.slice(0, 10);
+
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            phone: value
+                                        }));
+                                    }}
+                                    maxLength={10}
                                     required
+                                    placeholder="10-digit mobile number"
                                 />
+
+
+                            </div>
+
+                            <div className="account-form-group">
+                                <label htmlFor="panNumber">PAN Number <span className="required">*</span></label>
+                                <input
+                                    type="text"
+                                    id="panNumber"
+                                    name="panNumber"
+                                    value={formData.panNumber}
+                                    onChange={handlePanChange}
+                                    maxLength={10}
+                                    required
+                                    placeholder="ABCDE1234F"
+                                />
+
+                                {panError && (
+                                    <small className="account-error-message">{panError}</small>
+                                )}
+
+
                             </div>
 
                             {/* Branch Selection */}
@@ -1242,7 +1285,7 @@ const TWgoldAccountOpeningForm = () => {
                                     name="bankDetails.ifscCode"
                                     value={formData.bankDetails.ifscCode}
                                     onChange={handleChange}
-                                    style={{textTransform: 'uppercase'}}
+                                    style={{ textTransform: 'uppercase' }}
                                 />
                             </div>
 
@@ -1263,7 +1306,7 @@ const TWgoldAccountOpeningForm = () => {
 
                             {/* References */}
                             <div className="account-form-section-title">References</div>
-                            
+
                             <div className="account-form-group account-full-width">
                                 <button
                                     type="button"
@@ -1286,7 +1329,7 @@ const TWgoldAccountOpeningForm = () => {
                                             × Remove
                                         </button>
                                     </div>
-                                    
+
                                     <div className="account-form-grid">
                                         <div className="account-form-group">
                                             <label htmlFor={`ref_name_${index}`}>Name</label>
@@ -1297,7 +1340,7 @@ const TWgoldAccountOpeningForm = () => {
                                                 onChange={(e) => updateReference(index, 'name', e.target.value)}
                                             />
                                         </div>
-                                        
+
                                         <div className="account-form-group">
                                             <label htmlFor={`ref_relationship_${index}`}>Relationship</label>
                                             <input
@@ -1307,7 +1350,7 @@ const TWgoldAccountOpeningForm = () => {
                                                 onChange={(e) => updateReference(index, 'relationship', e.target.value)}
                                             />
                                         </div>
-                                        
+
                                         <div className="account-form-group">
                                             <label htmlFor={`ref_contact_${index}`}>Contact</label>
                                             <input
@@ -1317,7 +1360,7 @@ const TWgoldAccountOpeningForm = () => {
                                                 onChange={(e) => updateReference(index, 'contact', e.target.value)}
                                             />
                                         </div>
-                                        
+
                                         <div className="account-form-group">
                                             <label htmlFor={`ref_address_${index}`}>Address</label>
                                             <input
@@ -1331,157 +1374,67 @@ const TWgoldAccountOpeningForm = () => {
                                 </div>
                             ))}
 
-                            {/* Document Uploads */}
-                            <div className="account-form-section-title">Document Uploads</div>
+                            {/* Document Status - Checkboxes for document availability */}
+                            <div className="account-form-section-title">Document Status</div>
 
                             <div className="account-form-group account-full-width">
-                                <label htmlFor="pan">PAN Card (Max 2MB) <span className="required">*</span></label>
-                                <div className="account-file-upload-wrapper">
-                                    <label className="account-file-upload-button">
-                                        <span>Choose File</span>
-                                        <input
-                                            type="file"
-                                            id="pan"
-                                            onChange={(e) => handleFileUpload('pan', e)}
-                                            accept="image/*,.pdf"
-                                            style={{ display: 'none' }}
-                                        />
-                                    </label>
-                                    {uploadedFiles.pan ? (
-                                        <div className="account-file-preview">
-                                            <span>{uploadedFiles.pan.name}</span>
-                                            <button
-                                                type="button"
-                                                className="account-remove-file-button"
-                                                onClick={() => handleRemoveFile('pan')}
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="account-file-hint">No file chosen</div>
-                                    )}
-                                </div>
+                                <label className="account-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.documents.panCard.hasDocument}
+                                        onChange={(e) => handleDocumentCheck('panCard', e.target.checked)}
+                                    />
+                                    <span className="account-checkbox-custom"></span>
+                                    PAN Card Document Provided <span className="required">*</span>
+                                </label>
                             </div>
 
                             <div className="account-form-group account-full-width">
-                                <label htmlFor="addressProof">Proof of Address (Max 2MB) <span className="required">*</span></label>
-                                <div className="account-file-upload-wrapper">
-                                    <label className="account-file-upload-button">
-                                        <span>Choose File</span>
-                                        <input
-                                            type="file"
-                                            id="addressProof"
-                                            onChange={(e) => handleFileUpload('addressProof', e)}
-                                            accept="image/*,.pdf"
-                                            style={{ display: 'none' }}
-                                        />
-                                    </label>
-                                    {uploadedFiles.addressProof ? (
-                                        <div className="account-file-preview">
-                                            <span>{uploadedFiles.addressProof.name}</span>
-                                            <button
-                                                type="button"
-                                                className="account-remove-file-button"
-                                                onClick={() => handleRemoveFile('addressProof')}
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="account-file-hint">No file chosen</div>
-                                    )}
-                                </div>
+                                <label className="account-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.documents.addressProof.hasDocument}
+                                        onChange={(e) => handleDocumentCheck('addressProof', e.target.checked)}
+                                    />
+                                    <span className="account-checkbox-custom"></span>
+                                    Address Proof Document Provided <span className="required">*</span>
+                                </label>
                             </div>
 
                             <div className="account-form-group account-full-width">
-                                <label htmlFor="incomeProof">Income Proof (Max 2MB)</label>
-                                <div className="account-file-upload-wrapper">
-                                    <label className="account-file-upload-button">
-                                        <span>Choose File</span>
-                                        <input
-                                            type="file"
-                                            id="incomeProof"
-                                            onChange={(e) => handleFileUpload('incomeProof', e)}
-                                            accept="image/*,.pdf"
-                                            style={{ display: 'none' }}
-                                        />
-                                    </label>
-                                    {uploadedFiles.incomeProof ? (
-                                        <div className="account-file-preview">
-                                            <span>{uploadedFiles.incomeProof.name}</span>
-                                            <button
-                                                type="button"
-                                                className="account-remove-file-button"
-                                                onClick={() => handleRemoveFile('incomeProof')}
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="account-file-hint">No file chosen</div>
-                                    )}
-                                </div>
+                                <label className="account-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.documents.incomeProof.hasDocument}
+                                        onChange={(e) => handleDocumentCheck('incomeProof', e.target.checked)}
+                                    />
+                                    <span className="account-checkbox-custom"></span>
+                                    Income Proof Document Provided
+                                </label>
                             </div>
 
                             <div className="account-form-group account-full-width">
-                                <label htmlFor="photo">Passport Photo (Max 2MB) <span className="required">*</span></label>
-                                <div className="account-file-upload-wrapper">
-                                    <label className="account-file-upload-button">
-                                        <span>Choose File</span>
-                                        <input
-                                            type="file"
-                                            id="photo"
-                                            onChange={(e) => handleFileUpload('photo', e)}
-                                            accept="image/*"
-                                            style={{ display: 'none' }}
-                                        />
-                                    </label>
-                                    {uploadedFiles.photo ? (
-                                        <div className="account-file-preview">
-                                            <span>{uploadedFiles.photo.name}</span>
-                                            <button
-                                                type="button"
-                                                className="account-remove-file-button"
-                                                onClick={() => handleRemoveFile('photo')}
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="account-file-hint">No file chosen</div>
-                                    )}
-                                </div>
+                                <label className="account-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.documents.photo.hasDocument}
+                                        onChange={(e) => handleDocumentCheck('photo', e.target.checked)}
+                                    />
+                                    <span className="account-checkbox-custom"></span>
+                                    Passport Photo Provided <span className="required">*</span>
+                                </label>
                             </div>
 
                             <div className="account-form-group account-full-width">
-                                <label htmlFor="signature">Signature (Max 2MB) <span className="required">*</span></label>
-                                <div className="account-file-upload-wrapper">
-                                    <label className="account-file-upload-button">
-                                        <span>Choose File</span>
-                                        <input
-                                            type="file"
-                                            id="signature"
-                                            onChange={(e) => handleFileUpload('signature', e)}
-                                            accept="image/*,.pdf"
-                                            style={{ display: 'none' }}
-                                        />
-                                    </label>
-                                    {uploadedFiles.signature ? (
-                                        <div className="account-file-preview">
-                                            <span>{uploadedFiles.signature.name}</span>
-                                            <button
-                                                type="button"
-                                                className="account-remove-file-button"
-                                                onClick={() => handleRemoveFile('signature')}
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="account-file-hint">No file chosen</div>
-                                    )}
-                                </div>
+                                <label className="account-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.documents.signature.hasDocument}
+                                        onChange={(e) => handleDocumentCheck('signature', e.target.checked)}
+                                    />
+                                    <span className="account-checkbox-custom"></span>
+                                    Signature Provided <span className="required">*</span>
+                                </label>
                             </div>
                         </div>
 
@@ -1514,7 +1467,7 @@ const TWgoldAccountOpeningForm = () => {
                         <div className="kyc-verification-container">
                             <div className="kyc-verification-section">
                                 <h3>Identity Verification</h3>
-                                
+
                                 <div className="kyc-verification-item">
                                     <div className="kyc-verification-info">
                                         <h4>Aadhaar Verification</h4>
@@ -1522,11 +1475,7 @@ const TWgoldAccountOpeningForm = () => {
                                     </div>
                                     <div className="kyc-verification-status">
                                         <label className="kyc-checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={kycVerifications.isAadhaarVerified}
-                                                onChange={(e) => handleKycVerificationChange('isAadhaarVerified', e.target.checked)}
-                                            />
+                                        <input type="checkbox" checked={kycVerifications.isAadhaarVerified} disabled />
                                             <span className="kyc-checkbox-custom"></span>
                                             Mark as Verified
                                         </label>
@@ -1536,18 +1485,19 @@ const TWgoldAccountOpeningForm = () => {
                                 <div className="kyc-verification-item">
                                     <div className="kyc-verification-info">
                                         <h4>PAN Card Verification</h4>
-                                        <p>Document uploaded: {uploadedFiles.pan ? uploadedFiles.pan.name : 'Not uploaded'}</p>
+                                        <p>Document provided: {formData.documents.panCard.hasDocument ? 'Yes' : 'No'}</p>
+                                        <p>PAN Number: {formData.panNumber || 'Not provided'}</p>
                                     </div>
                                     <div className="kyc-verification-status">
                                         <label className="kyc-checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={kycVerifications.isPanVerified}
-                                                onChange={(e) => handleKycVerificationChange('isPanVerified', e.target.checked)}
-                                                disabled={!uploadedFiles.pan}
-                                            />
+                                        <input
+  type="checkbox"
+  checked={kycVerifications.isPanVerified}
+  disabled
+/>
+
                                             <span className="kyc-checkbox-custom"></span>
-                                            {uploadedFiles.pan ? 'Mark as Verified' : 'Upload document first'}
+                                            {formData.documents.panCard.hasDocument ? 'Mark as Verified' : 'Document not provided'}
                                         </label>
                                     </div>
                                 </div>
@@ -1555,7 +1505,7 @@ const TWgoldAccountOpeningForm = () => {
 
                             <div className="kyc-verification-section">
                                 <h3>Contact Verification</h3>
-                                
+
                                 <div className="kyc-verification-item">
                                     <div className="kyc-verification-info">
                                         <h4>Phone Verification</h4>
@@ -1563,11 +1513,7 @@ const TWgoldAccountOpeningForm = () => {
                                     </div>
                                     <div className="kyc-verification-status">
                                         <label className="kyc-checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={kycVerifications.isPhoneVerified}
-                                                onChange={(e) => handleKycVerificationChange('isPhoneVerified', e.target.checked)}
-                                            />
+                                        <input type="checkbox" checked={kycVerifications.isPhoneVerified} disabled />
                                             <span className="kyc-checkbox-custom"></span>
                                             Mark as Verified
                                         </label>
@@ -1581,11 +1527,7 @@ const TWgoldAccountOpeningForm = () => {
                                     </div>
                                     <div className="kyc-verification-status">
                                         <label className="kyc-checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={kycVerifications.isEmailVerified}
-                                                onChange={(e) => handleKycVerificationChange('isEmailVerified', e.target.checked)}
-                                            />
+                                        <input type="checkbox" checked={kycVerifications.isEmailVerified} disabled />
                                             <span className="kyc-checkbox-custom"></span>
                                             Mark as Verified
                                         </label>
@@ -1595,22 +1537,17 @@ const TWgoldAccountOpeningForm = () => {
 
                             <div className="kyc-verification-section">
                                 <h3>Address & Income Verification</h3>
-                                
+
                                 <div className="kyc-verification-item">
                                     <div className="kyc-verification-info">
                                         <h4>Address Proof Verification</h4>
-                                        <p>Document uploaded: {uploadedFiles.addressProof ? uploadedFiles.addressProof.name : 'Not uploaded'}</p>
+                                        <p>Document provided: {formData.documents.addressProof.hasDocument ? 'Yes' : 'No'}</p>
                                     </div>
                                     <div className="kyc-verification-status">
                                         <label className="kyc-checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={kycVerifications.isAddressVerified}
-                                                onChange={(e) => handleKycVerificationChange('isAddressVerified', e.target.checked)}
-                                                disabled={!uploadedFiles.addressProof}
-                                            />
+                                        <input type="checkbox" checked={kycVerifications.isAddressVerified} disabled />
                                             <span className="kyc-checkbox-custom"></span>
-                                            {uploadedFiles.addressProof ? 'Mark as Verified' : 'Upload document first'}
+                                            {formData.documents.addressProof.hasDocument ? 'Mark as Verified' : 'Document not provided'}
                                         </label>
                                     </div>
                                 </div>
@@ -1618,18 +1555,13 @@ const TWgoldAccountOpeningForm = () => {
                                 <div className="kyc-verification-item">
                                     <div className="kyc-verification-info">
                                         <h4>Income Proof Verification</h4>
-                                        <p>Document uploaded: {uploadedFiles.incomeProof ? uploadedFiles.incomeProof.name : 'Not uploaded'}</p>
+                                        <p>Document provided: {formData.documents.incomeProof.hasDocument ? 'Yes' : 'No'}</p>
                                     </div>
                                     <div className="kyc-verification-status">
                                         <label className="kyc-checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={kycVerifications.isIncomeVerified}
-                                                onChange={(e) => handleKycVerificationChange('isIncomeVerified', e.target.checked)}
-                                                disabled={!uploadedFiles.incomeProof}
-                                            />
+                                        <input type="checkbox" checked={kycVerifications.isIncomeVerified} disabled />
                                             <span className="kyc-checkbox-custom"></span>
-                                            {uploadedFiles.incomeProof ? 'Mark as Verified' : 'Optional - mark if uploaded'}
+                                            {formData.documents.incomeProof.hasDocument ? 'Mark as Verified' : 'Optional - mark if provided'}
                                         </label>
                                     </div>
                                 </div>
@@ -1675,7 +1607,7 @@ const TWgoldAccountOpeningForm = () => {
                                         </span>
                                     </div>
                                 </div>
-                                
+
                                 {!formData.isKycVerified && (
                                     <div className="kyc-warning">
                                         <p>⚠️ All required KYC components must be verified to complete the KYC process.</p>
@@ -1709,24 +1641,6 @@ const TWgoldAccountOpeningForm = () => {
                         <p className="account-review-intro">Please review all information before submission</p>
 
                         <div className="account-review-section">
-                            <h3>Customer IDs</h3>
-                            <div className="account-review-grid">
-                                <div className="account-review-item">
-                                    <span className="account-review-label">Customer ID:</span>
-                                    <span className="account-review-value">{formData.customerId}</span>
-                                </div>
-                                <div className="account-review-item">
-                                    <span className="account-review-label">Account Number:</span>
-                                    <span className="account-review-value">{formData.accountNumber}</span>
-                                </div>
-                                <div className="account-review-item">
-                                    <span className="account-review-label">Reference Number:</span>
-                                    <span className="account-review-value">{formData.referenceNumber}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="account-review-section">
                             <h3>Basic Information</h3>
                             <div className="account-review-grid">
                                 <div className="account-review-item">
@@ -1742,9 +1656,19 @@ const TWgoldAccountOpeningForm = () => {
                                     <span className="account-review-value">{formData.phone}</span>
                                 </div>
                                 <div className="account-review-item">
+                                    <span className="account-review-label">PAN Number:</span>
+                                    <span className="account-review-value">{formData.panNumber}</span>
+                                </div>
+                                <div className="account-review-item">
                                     <span className="account-review-label">Aadhaar Verified:</span>
                                     <span className={`account-review-value ${formData.isAadhaarVerified ? 'account-verified' : 'account-pending'}`}>
                                         {formData.isAadhaarVerified ? '✓ Verified' : '✗ Not Verified'}
+                                    </span>
+                                </div>
+                                <div className="account-review-item">
+                                    <span className="account-review-label">Primary Branch:</span>
+                                    <span className="account-review-value">
+                                        {branchOptions.find(b => b._id === primaryBranch)?.branchName || 'Not selected'}
                                     </span>
                                 </div>
                             </div>
@@ -1892,6 +1816,42 @@ const TWgoldAccountOpeningForm = () => {
                             </div>
                         </div>
 
+                        <div className="account-review-section">
+                            <h3>Document Status</h3>
+                            <div className="account-review-grid">
+                                <div className="account-review-item">
+                                    <span className="account-review-label">PAN Card Provided:</span>
+                                    <span className={`account-review-value ${formData.documents.panCard.hasDocument ? 'account-verified' : 'account-pending'}`}>
+                                        {formData.documents.panCard.hasDocument ? '✓ Yes' : '✗ No'}
+                                    </span>
+                                </div>
+                                <div className="account-review-item">
+                                    <span className="account-review-label">Address Proof Provided:</span>
+                                    <span className={`account-review-value ${formData.documents.addressProof.hasDocument ? 'account-verified' : 'account-pending'}`}>
+                                        {formData.documents.addressProof.hasDocument ? '✓ Yes' : '✗ No'}
+                                    </span>
+                                </div>
+                                <div className="account-review-item">
+                                    <span className="account-review-label">Income Proof Provided:</span>
+                                    <span className={`account-review-value ${formData.documents.incomeProof.hasDocument ? 'account-verified' : 'account-pending'}`}>
+                                        {formData.documents.incomeProof.hasDocument ? '✓ Yes' : '✗ No'}
+                                    </span>
+                                </div>
+                                <div className="account-review-item">
+                                    <span className="account-review-label">Photo Provided:</span>
+                                    <span className={`account-review-value ${formData.documents.photo.hasDocument ? 'account-verified' : 'account-pending'}`}>
+                                        {formData.documents.photo.hasDocument ? '✓ Yes' : '✗ No'}
+                                    </span>
+                                </div>
+                                <div className="account-review-item">
+                                    <span className="account-review-label">Signature Provided:</span>
+                                    <span className={`account-review-value ${formData.documents.signature.hasDocument ? 'account-verified' : 'account-pending'}`}>
+                                        {formData.documents.signature.hasDocument ? '✓ Yes' : '✗ No'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
                         {formData.references.length > 0 && (
                             <div className="account-review-section">
                                 <h3>References ({formData.references.length})</h3>
@@ -1920,97 +1880,6 @@ const TWgoldAccountOpeningForm = () => {
                                 ))}
                             </div>
                         )}
-
-                        <div className="account-review-section">
-                            <h3>Uploaded Documents</h3>
-                            <div className="account-document-grid">
-                                {uploadedFiles.pan && (
-                                    <div className="account-document-item">
-                                        <div className="account-document-preview">
-                                            {uploadedFiles.pan.type.startsWith('image/') ? (
-                                                <img 
-                                                    src={URL.createObjectURL(uploadedFiles.pan)} 
-                                                    alt="PAN Card"
-                                                    className="account-document-image"
-                                                />
-                                            ) : (
-                                                <div className="account-document-icon">📄</div>
-                                            )}
-                                        </div>
-                                        <div className="account-document-info">
-                                            <span className="account-document-label">PAN Card</span>
-                                            <span className={`account-document-status ${formData.documents.panCard.verified ? 'document-verified' : 'document-pending'}`}>
-                                                {formData.documents.panCard.verified ? '✓ Verified' : '✗ Not Verified'}
-                                            </span>
-                                            <span className="account-document-name">{uploadedFiles.pan.name}</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {uploadedFiles.addressProof && (
-                                    <div className="account-document-item">
-                                        <div className="account-document-preview">
-                                            {uploadedFiles.addressProof.type.startsWith('image/') ? (
-                                                <img 
-                                                    src={URL.createObjectURL(uploadedFiles.addressProof)} 
-                                                    alt="Address Proof"
-                                                    className="account-document-image"
-                                                />
-                                            ) : (
-                                                <div className="account-document-icon">📄</div>
-                                            )}
-                                        </div>
-                                        <div className="account-document-info">
-                                            <span className="account-document-label">Address Proof</span>
-                                            <span className={`account-document-status ${formData.documents.addressProof.verified ? 'document-verified' : 'document-pending'}`}>
-                                                {formData.documents.addressProof.verified ? '✓ Verified' : '✗ Not Verified'}
-                                            </span>
-                                            <span className="account-document-name">{uploadedFiles.addressProof.name}</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {uploadedFiles.photo && (
-                                    <div className="account-document-item">
-                                        <div className="account-document-preview">
-                                            {uploadedFiles.photo.type.startsWith('image/') ? (
-                                                <img 
-                                                    src={URL.createObjectURL(uploadedFiles.photo)} 
-                                                    alt="Photo"
-                                                    className="account-document-image"
-                                                />
-                                            ) : (
-                                                <div className="account-document-icon">📄</div>
-                                            )}
-                                        </div>
-                                        <div className="account-document-info">
-                                            <span className="account-document-label">Passport Photo</span>
-                                            <span className="account-document-name">{uploadedFiles.photo.name}</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {uploadedFiles.signature && (
-                                    <div className="account-document-item">
-                                        <div className="account-document-preview">
-                                            {uploadedFiles.signature.type.startsWith('image/') ? (
-                                                <img 
-                                                    src={URL.createObjectURL(uploadedFiles.signature)} 
-                                                    alt="Signature"
-                                                    className="account-document-image"
-                                                />
-                                            ) : (
-                                                <div className="account-document-icon">📄</div>
-                                            )}
-                                        </div>
-                                        <div className="account-document-info">
-                                            <span className="account-document-label">Signature</span>
-                                            <span className="account-document-name">{uploadedFiles.signature.name}</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
 
                         <div className="account-declaration">
                             <h3>Declaration</h3>
@@ -2060,16 +1929,11 @@ const TWgoldAccountOpeningForm = () => {
                         </div>
                         <h2>Customer Account Created Successfully!</h2>
                         <div className="account-success-message">
-                            <p>The customer account has been created successfully.</p>
                             <p>Customer Details:</p>
                             <div className="account-success-details">
                                 <div className="account-success-detail">
                                     <span className="account-success-label">Customer ID:</span>
                                     <span className="account-success-value">{formData.customerId}</span>
-                                </div>
-                                <div className="account-success-detail">
-                                    <span className="account-success-label">Account Number:</span>
-                                    <span className="account-success-value">{formData.accountNumber}</span>
                                 </div>
                                 <div className="account-success-detail">
                                     <span className="account-success-label">Customer Name:</span>
@@ -2078,6 +1942,10 @@ const TWgoldAccountOpeningForm = () => {
                                 <div className="account-success-detail">
                                     <span className="account-success-label">Phone Number:</span>
                                     <span className="account-success-value">{formData.phone}</span>
+                                </div>
+                                <div className="account-success-detail">
+                                    <span className="account-success-label">PAN Number:</span>
+                                    <span className="account-success-value">{formData.panNumber}</span>
                                 </div>
                                 <div className="account-success-detail">
                                     <span className="account-success-label">KYC Status:</span>
@@ -2109,6 +1977,7 @@ const TWgoldAccountOpeningForm = () => {
                                         name: "",
                                         email: "",
                                         phone: "",
+                                        panNumber: "",
                                         aadhaarDetails: {
                                             aadhaar_hash: "",
                                             aadhaar_number: "",
@@ -2153,12 +2022,12 @@ const TWgoldAccountOpeningForm = () => {
                                         creditScore: "",
                                         existingLoans: "",
                                         documents: {
-                                            aadhaarCard: { uploaded: false, url: "", verified: false },
-                                            panCard: { uploaded: false, url: "", verified: false },
-                                            addressProof: { uploaded: false, url: "", verified: false },
-                                            incomeProof: { uploaded: false, url: "", verified: false },
-                                            photo: { uploaded: false, url: "" },
-                                            signature: { uploaded: false, url: "" }
+                                            aadhaarCard: { hasDocument: true, verified: false },
+                                            panCard: { hasDocument: false, verified: false },
+                                            addressProof: { hasDocument: false, verified: false },
+                                            incomeProof: { hasDocument: false, verified: false },
+                                            photo: { hasDocument: false },
+                                            signature: { hasDocument: false }
                                         },
                                         references: [],
                                         bankDetails: {
@@ -2177,15 +2046,7 @@ const TWgoldAccountOpeningForm = () => {
                                         riskCategory: "unknown",
                                         riskScore: 0,
                                         customerId: "",
-                                        accountNumber: "",
                                         referenceNumber: `TWGL${Math.floor(Math.random() * 1000000)}`
-                                    });
-                                    setUploadedFiles({
-                                        pan: null,
-                                        addressProof: null,
-                                        incomeProof: null,
-                                        photo: null,
-                                        signature: null
                                     });
                                     setKycVerifications({
                                         isAadhaarVerified: false,

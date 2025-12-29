@@ -244,24 +244,34 @@ function App() {
             </TwgoldProtectedRoute>
           } />
           
-          <Route path="/twgl&articles/manager/dashboard" element={
-            <TwgoldProtectedRoute allowedRoles={['manager']}>
-              <TwgoldManagerDashboard />
-            </TwgoldProtectedRoute>
-          } />
+          <Route
+  path="/twgl&articles/manager/dashboard"
+  element={
+    <TwgoldProtectedRoute allowedRoles={['manager', 'rm', 'zm']}>
+      <TwgoldManagerDashboard />
+    </TwgoldProtectedRoute>
+  }
+/>
+
           
-          <Route path="/twgl&articles/employee/dashboard" element={
-            <TwgoldProtectedRoute allowedRoles={['employee']}>
-              <TwgoldEmployeeDashboard />
-            </TwgoldProtectedRoute>
-          } />
+<Route
+  path="/twgl&articles/employee/dashboard"
+  element={
+    <TwgoldProtectedRoute
+      allowedRoles={['employee', 'cashier', 'accountant', 'sales_marketing']}
+    >
+      <TwgoldEmployeeDashboard />
+    </TwgoldProtectedRoute>
+  }
+/>
+
           <Route path="/twgl&articles/employee/customer/create" element={
-            <TwgoldProtectedRoute allowedRoles={['employee']}>
+            <TwgoldProtectedRoute allowedRoles={['employee', 'cashier', 'accountant', 'sales_marketing']}>
               <TWgoldAccountOpeningForm />
             </TwgoldProtectedRoute>
           } />
           <Route path="/twgl&articles/employee/goldloan" element={
-            <TwgoldProtectedRoute allowedRoles={['employee']}>
+            <TwgoldProtectedRoute allowedRoles={['employee', 'cashier', 'accountant', 'sales_marketing']}>
               <Twgoldemployeeloan />
             </TwgoldProtectedRoute>
           } />

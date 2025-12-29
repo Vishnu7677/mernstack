@@ -60,7 +60,7 @@ branch: {
   reportsTo: { type: mongoose.Schema.Types.ObjectId, ref: 'TWgoldUser' },
 
   // --- Permissions (RBAC) ---
-  // Kept in User Schema for fast middleware checking
+  // Kept in User Schema for fast middleware checkin
   permissions: [{
     module: {
       type: String,
@@ -168,12 +168,82 @@ userSchema.methods.hasPermission = function(module, access = 'read') {
 
 userSchema.methods.getDefaultPermissions = function() {
   const roleMap = {
-    admin: [{ module: 'system_admin', access: 'manage', scope: 'all' }],
-    manager: [{ module: 'loan_management', access: 'approve', scope: 'branch' }],
-    hr: [{ module: 'employee_management', access: 'manage', scope: 'branch' }],
-    // Add other defaults as needed
-    default: [{ module: 'customer_management', access: 'read', scope: 'self' }]
+    admin: [
+      { module: 'system_admin', access: 'manage', scope: 'all' },
+      { module: 'employee_management', access: 'manage', scope: 'all' }
+    ],
+    manager: [
+      { module: 'loan_management', access: 'approve', scope: 'branch' },
+      { module: 'customer_management', access: 'manage', scope: 'branch' },
+      { module: 'gold_management', access: 'write', scope: 'branch' },
+      { module: 'reporting', access: 'read', scope: 'branch' }
+    ],
+    asst_manager: [
+      { module: 'loan_management', access: 'write', scope: 'branch' },
+      { module: 'customer_management', access: 'write', scope: 'branch' },
+      { module: 'gold_management', access: 'write', scope: 'branch' }
+    ],
+    cashier: [
+      { module: 'finance', access: 'write', scope: 'branch' },
+      { module: 'loan_management', access: 'read', scope: 'branch' },
+      { module: 'customer_management', access: 'read', scope: 'branch' }
+    ],
+    accountant: [
+      { module: 'finance', access: 'manage', scope: 'branch' },
+      { module: 'reporting', access: 'write', scope: 'branch' },
+      { module: 'inventory', access: 'read', scope: 'branch' }
+    ],
+    recovery_agent: [
+      { module: 'customer_management', access: 'write', scope: 'branch' },
+      { module: 'loan_management', access: 'read', scope: 'self' },
+      { module: 'reporting', access: 'read', scope: 'self' }
+    ],
+    grivirence: [
+      { module: 'customer_management', access: 'read', scope: 'branch' },
+      { module: 'reporting', access: 'write', scope: 'branch' }
+    ],
+    auditor: [
+      { module: 'gold_management', access: 'read', scope: 'all' },
+      { module: 'loan_management', access: 'read', scope: 'all' },
+      { module: 'finance', access: 'read', scope: 'all' },
+      { module: 'reporting', access: 'read', scope: 'all' }
+    ],
+    go_auditor: [
+      { module: 'gold_management', access: 'manage', scope: 'all' },
+      { module: 'inventory', access: 'manage', scope: 'all' }
+    ],
+    hr: [
+      { module: 'employee_management', access: 'manage', scope: 'branch' },
+      { module: 'reporting', access: 'read', scope: 'branch' }
+    ],
+    administration: [
+      { module: 'employee_management', access: 'read', scope: 'branch' },
+      { module: 'inventory', access: 'write', scope: 'branch' },
+      { module: 'system_admin', access: 'read', scope: 'branch' }
+    ],
+    sales_marketing: [
+      { module: 'customer_management', access: 'write', scope: 'branch' },
+      { module: 'reporting', access: 'read', scope: 'self' }
+    ],
+    rm: [ // Regional Manager
+      { module: 'loan_management', access: 'approve', scope: 'region' },
+      { module: 'reporting', access: 'read', scope: 'region' },
+      { module: 'employee_management', access: 'read', scope: 'region' }
+    ],
+    zm: [ // Zone Manager
+      { module: 'loan_management', access: 'approve', scope: 'all' },
+      { module: 'reporting', access: 'manage', scope: 'all' },
+      { module: 'employee_management', access: 'manage', scope: 'region' }
+    ],
+    employee: [
+      { module: 'customer_management', access: 'write', scope: 'self' },
+      { module: 'loan_management', access: 'read', scope: 'self' }
+    ],
+    default: [
+      { module: 'customer_management', access: 'read', scope: 'self' }
+    ]
   };
+
   return roleMap[this.role] || roleMap['default'];
 };
 

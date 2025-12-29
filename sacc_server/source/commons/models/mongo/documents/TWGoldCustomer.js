@@ -48,6 +48,12 @@ const customerSchema = new mongoose.Schema({
     required: [true, 'Phone number is required'],
     trim: true
   },
+  panNumber: { // ADDED THIS FIELD
+    type: String,
+    required: [true, 'PAN Number is required'],
+    trim: true,
+    uppercase: true
+  },
   
   // Aadhaar Verification (enhanced like employee schema)
   aadhaarDetails: AadhaarDataSchema,
@@ -97,33 +103,40 @@ const customerSchema = new mongoose.Schema({
   existingLoans: Number,
   
   // Enhanced Documents Management (similar to employee schema)
+  // Updated to include 'hasDocument' to match frontend state
   documents: {
     aadhaarCard: {
       uploaded: { type: Boolean, default: false },
+      hasDocument: { type: Boolean, default: false }, // Added
       url: { type: String, default: null },
       verified: { type: Boolean, default: false }
     },
     panCard: {
       uploaded: { type: Boolean, default: false },
+      hasDocument: { type: Boolean, default: false }, // Added
       url: { type: String, default: null },
       verified: { type: Boolean, default: false }
     },
     addressProof: {
       uploaded: { type: Boolean, default: false },
+      hasDocument: { type: Boolean, default: false }, // Added
       url: { type: String, default: null },
       verified: { type: Boolean, default: false }
     },
     incomeProof: {
       uploaded: { type: Boolean, default: false },
+      hasDocument: { type: Boolean, default: false }, // Added
       url: { type: String, default: null },
       verified: { type: Boolean, default: false }
     },
     photo: {
       uploaded: { type: Boolean, default: false },
+      hasDocument: { type: Boolean, default: false }, // Added
       url: { type: String, default: null }
     },
     signature: {
       uploaded: { type: Boolean, default: false },
+      hasDocument: { type: Boolean, default: false }, // Added
       url: { type: String, default: null }
     }
   },
@@ -145,11 +158,14 @@ const customerSchema = new mongoose.Schema({
     branchName: String,
     accountType: { 
       type: String, 
-      enum: ['Savings', 'Current', 'Salary', null],
+      enum: ['Savings', 'Current', 'Salary', null, ''],
       default: null
     }
   },
   
+  loanAccountnumber:{
+    type: Number,
+  },
   // Customer Statistics
   activeLoanCount: { 
     type: Number, 
@@ -250,33 +266,62 @@ customerSchema.virtual('customerType').get(function() {
 });
 
 // Pre-save middleware for customerId generation
-customerSchema.pre('save', async function(next) {
-  if (!this.customerId && this.isNew) {
-    const year = new Date().getFullYear().toString().slice(-2);
-    const seq = await getNextSequence('customer_id');
-    this.customerId = `CUST${year}${String(seq).padStart(6, '0')}`;
-  }
-  
-  // Automatically update verification status based on aadhaar verification
-  if (this.aadhaarDetails && this.aadhaarDetails.is_otp_verified) {
-    this.isAadhaarVerified = true;
-  }
-  
-  // Update KYC status if all required documents are uploaded and verified
-  if (this.documents) {
+customerSchema.pre('save', async function (next) {
+  try {
+    /* =========================
+       CUSTOMER ID (CRN)
+       ========================= */
+    if (this.isNew && !this.customerId) {
+      const seq = await getNextSequence('customer_crn');
+      this.customerId = `CRN200311${String(seq).padStart(6, '0')}`;
+    }
+
+    /* =========================
+       LOAN ACCOUNT NUMBER
+       ========================= */
+    if (this.isNew && !this.loanAccountnumber) {
+      const seq = await getNextSequence('loan_account');
+      this.loanAccountnumber = Number(`197801${String(seq).padStart(5, '0')}`);
+    }
+
+    /* =========================
+   Aadhaar verification
+   ========================= */
+if (this.aadhaarDetails?.is_otp_verified) {
+  this.isAadhaarVerified = true;
+}
+
+/* =========================
+   KYC completion logic
+   ========================= */
+   if (this.isNew && this.isAadhaarVerified) {
+    this.isKycVerified = true;
+    this.status = 'active';
+  } else {
     const requiredDocs = ['aadhaarCard', 'panCard', 'addressProof'];
-    const allVerified = requiredDocs.every(doc => 
-      this.documents[doc] && this.documents[doc].uploaded && this.documents[doc].verified
+  
+    const allDocsVerified = requiredDocs.every(doc =>
+      this.documents?.[doc]?.hasDocument &&
+      this.documents?.[doc]?.verified
     );
-    
-    if (allVerified && this.isPhoneVerified && this.isAadhaarVerified) {
+  
+    if (
+      allDocsVerified &&
+      this.isPhoneVerified &&
+      this.isEmailVerified &&
+      this.isAadhaarVerified
+    ) {
       this.isKycVerified = true;
       this.status = 'active';
     }
   }
   
-  next();
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
+
 
 // Indexes for better query performance
 customerSchema.index({ 'aadhaarDetails.aadhaar_hash': 1 });

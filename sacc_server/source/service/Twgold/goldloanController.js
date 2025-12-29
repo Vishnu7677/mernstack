@@ -22,6 +22,22 @@ const calculateInterestRate = (ltv) => {
 
 const normalizeCarat = (carat) => carat.toUpperCase();
 
+const getLatestGoldRate = async () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return DailyGoldRate.findOne({
+    date: { $lte: today }
+  })
+    .sort({ date: -1 })
+    .select('rates date');
+};
+const getPurityPercentage = (carat) => {
+  const k = parseInt(carat);
+  if (isNaN(k)) return 0;
+  return parseFloat(((k / 24) * 100).toFixed(2));
+};
+
 function Controller() {}
 
 // Create new loan (clerk)
@@ -29,27 +45,20 @@ Controller.prototype.createLoan = async function (req, res) {
   try {
     const { customerId, goldItems, requestedAmount, tenure } = req.body;
 
-    const customer = await Customer.findById(customerId);
+    const customer = await Customer.findOne({ customerId });
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
 
-    // 🔥 Fetch today’s gold rate
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const dailyRate = await DailyGoldRate.findOne({ date: today });
+    const dailyRate = await getLatestGoldRate();
     if (!dailyRate) {
-      return res.status(404).json({
-        success: false,
-        message: 'Today gold rate not available'
-      });
+      return res.status(404).json({ success: false, message: 'Gold rate not available' });
     }
 
     let totalGoldValue = 0;
 
     const processedItems = goldItems.map(item => {
-      const caratKey = normalizeCarat(item.carat); // "22k" → "22K"
+      const caratKey = normalizeCarat(item.carat);
       const ratePerGram = dailyRate.rates[caratKey];
 
       if (!ratePerGram) {
@@ -61,41 +70,52 @@ Controller.prototype.createLoan = async function (req, res) {
 
       return {
         ...item,
+        purity: getPurityPercentage(item.carat), // Converts '18K' -> 75
         approvedValue: value,
-        estimatedValue: value
+        estimatedValue: value,
+        ratePerGram,
+        rateDate: dailyRate.date
       };
     });
 
     const ltv = (requestedAmount / totalGoldValue) * 100;
 
-    if (ltv > 85) {
+    // Hard Validations
+    if (ltv < 50 || ltv > 85) {
       return res.status(400).json({
         success: false,
-        message: 'Loan cannot be created. LTV exceeds maximum allowed limit of 85%'
+        message: `Invalid LTV: ${ltv.toFixed(2)}%. Must be between 50% and 85%.`
       });
-    }    
+    }
 
     const loan = new Loan({
-      customer: customerId,
+      customer: customer._id,
       branch: req.user.branch,
       createdBy: req.user.id,
       goldItems: processedItems,
       totalGoldWeight: goldItems.reduce((s, i) => s + i.weight, 0),
       requestedAmount,
-      sanctionedAmount: requestedAmount,
+      sanctionedAmount: requestedAmount, // Initially requested
       loanToValueRatio: ltv,
       interestRate: calculateInterestRate(ltv),
       tenure,
+      repaymentType: 'emi', // Ensures EMI virtuals work
       status: 'pending_approval',
-      startDate: new Date()
+      startDate: new Date(),
+      goldRateUsed: {
+        carat: goldItems[0].carat,
+        rate: dailyRate.rates[normalizeCarat(goldItems[0].carat)],
+        goldRateId: dailyRate._id
+      }
     });
 
     await loan.save();
 
     res.status(201).json({
       success: true,
-      data: { loanId: loan.loanAccountNumber }
+      data: { loanId: loan.loanAccountNumber, rateDate: dailyRate.date }
     });
+
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -123,17 +143,26 @@ Controller.prototype.calculateLoan = async function (req, res) {
     let { carat, weight, requestedAmount, tenure } = req.body;
 
     if (!carat || !weight || !requestedAmount) {
-      return res.status(400).json({ success: false, message: 'Invalid input' });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid input'
+      });
     }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const dailyRate = await DailyGoldRate.findOne({ date: today });
+    // ✅ Fetch LAST UPDATED gold rate (not strictly today)
+    const dailyRate = await DailyGoldRate.findOne({
+      date: { $lte: today }
+    })
+      .sort({ date: -1 })
+      .select('rates date');
+
     if (!dailyRate) {
       return res.status(404).json({
         success: false,
-        message: 'Today gold rate not available'
+        message: 'Gold rate not available'
       });
     }
 
@@ -150,16 +179,25 @@ Controller.prototype.calculateLoan = async function (req, res) {
     const goldValue = weight * ratePerGram;
     const ltv = (requestedAmount / goldValue) * 100;
 
-// ✅ Block invalid LTV in preview itself
-if (ltv > 85) {
-  return res.status(400).json({
-    success: false,
-    message: 'Requested amount exceeds maximum permissible LTV of 85%'
-  });
-}
-    const interestRate = calculateInterestRate(ltv);
+    // ✅ Block invalid LTV in preview
+    if (ltv < 50) {
+      return res.status(400).json({
+        success: false,
+        message: 'Requested amount should be at least 50% of gold value'
+      });
+    }
+    
+    if (ltv > 85) {
+      return res.status(400).json({
+        success: false,
+        message: 'Requested amount exceeds maximum permissible LTV of 85%'
+      });
+    }
+    
 
+    const interestRate = calculateInterestRate(ltv);
     const monthlyRate = interestRate / 12 / 100;
+
     const emi =
       requestedAmount *
       monthlyRate *
@@ -173,13 +211,19 @@ if (ltv > 85) {
         ltv,
         interestRate,
         emiAmount: Math.round(emi),
-        totalInterest: Math.round(emi * tenure - requestedAmount)
+        totalInterest: Math.round(emi * tenure - requestedAmount),
+        rateDate: dailyRate.date // ✅ helpful for UI
       }
     });
+
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
+
 
 
 
@@ -249,102 +293,78 @@ Controller.prototype.collectEMI = async function (req, res) {
 };
 
 
+// 1. Get all loans waiting for Manager Approval
 Controller.prototype.getPendingLoans = async function (req, res) {
   try {
-    const loans = await Loan.find({
-      branch: req.user.branch,
-      status: 'pending_approval'
+    const loans = await Loan.find({ 
+      branch: req.user.branch, 
+      status: 'pending_approval' 
     })
-      .populate('customer', 'name phone')
-      .populate('createdBy', 'name employeeId')
-      .sort({ createdAt: -1 });
+    .populate('customer', 'name phone')
+    .populate('createdBy', 'name employeeId')
+    .sort({ createdAt: -1 });
 
-    res.json({
-      success: true,
-      data: loans
-    });
+    res.json({ success: true, data: loans });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
+// 2. Approve or Reject a Loan
 Controller.prototype.approveOrRejectLoan = async function (req, res) {
   try {
-    const { loanId } = req.params;
-    const { decision, remarks } = req.body;
+    const { loanId } = req.params; // This is the loanAccountNumber
+    const { decision, remarks, finalSanctionedAmount } = req.body;
 
     if (!['approve', 'reject'].includes(decision)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Decision must be approve or reject'
-      });
+      return res.status(400).json({ success: false, message: 'Invalid decision' });
     }
 
-    const loan = await Loan.findOne({
-      loanAccountNumber: loanId,
-      branch: req.user.branch,
-      status: 'pending_approval'
+    const loan = await Loan.findOne({ 
+      loanAccountNumber: loanId, 
+      branch: req.user.branch 
     });
 
     if (!loan) {
-      return res.status(404).json({
-        success: false,
-        message: 'Loan not found or not pending approval'
-      });
+      return res.status(404).json({ success: false, message: 'Loan account not found' });
+    }
+
+    if (loan.status !== 'pending_approval') {
+      return res.status(400).json({ success: false, message: 'Loan is not in pending state' });
     }
 
     if (decision === 'approve') {
       loan.status = 'approved';
       loan.approvedBy = req.user.id;
-      loan.sanctionedAmount = loan.requestedAmount;
+      // Manager can override the sanctioned amount if needed
+      loan.sanctionedAmount = finalSanctionedAmount || loan.requestedAmount;
       loan.disbursementDate = new Date();
+      loan.outstandingPrincipal = loan.sanctionedAmount; // Update principal based on final sanction
+      loan.remarks = remarks || 'Approved by Manager';
     } else {
       loan.status = 'rejected';
-      loan.remarks = remarks || 'Rejected by manager';
+      loan.remarks = remarks || 'Rejected by Manager';
     }
 
     await loan.save();
 
+    // Log the activity
     await ActivityLog.logActivity({
       action: `Loan ${decision}d`,
       module: 'loan',
       user: req.user.id,
-      roleAtThatTime: req.user.role,
       branch: req.user.branch,
-      targetEntity: {
-        entityId: loan._id,
-        modelName: 'TWGoldLoan'
-      },
-      details: {
-        loanAccountNumber: loan.loanAccountNumber,
-        decision,
-        remarks
-      }
+      details: { loanAccountNumber: loanId, remarks }
     });
 
-    res.json({
-      success: true,
-      message: `Loan ${decision}d successfully`
+    res.json({ 
+      success: true, 
+      message: `Loan has been ${decision}d successfully`,
+      data: { status: loan.status }
     });
 
   } catch (err) {
-    await ActivityLog.logActivity({
-      action: 'Loan approval/rejection failed',
-      module: 'loan',
-      user: req.user.id,
-      roleAtThatTime: req.user.role,
-      branch: req.user.branch,
-      status: 'failure',
-      errorMessage: err.message
-    });
-
-    res.status(500).json({
-      success: false,
-      message: err.message
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 

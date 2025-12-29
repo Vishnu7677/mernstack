@@ -145,13 +145,62 @@ export const clearAuthData = () => {
   });
 };
 
-// Endpoints
+// =========================================================
+// AUTHENTICATION ENDPOINTS
+// =========================================================
+export const login = (data) => api.post('/twgoldlogin/login', data);
+export const logout = () => api.post('/twgoldlogin/logout');
+export const refreshToken = () => api.post('/twgoldlogin/refresh-token');
+
+// =========================================================
+// PROFILE ENDPOINTS
+// =========================================================
+
+export const getProfile = () => api.get('/twgoldlogin/profile');
+export const updateProfile = (data) => api.put('/twgoldlogin/profile', data);
+export const changePassword = (data) => api.put('/twgoldlogin/change-password', data);
+// =========================================================
+// AADHAAR VERIFICATION ENDPOINTS
+// =========================================================
+
+export const generateUserAadhaarOtp = (data) => api.post('/twgoldlogin/aadhaar/generate-otp', data);
+export const verifyUserAadhaarOtp = (data) => api.post('/twgoldlogin/aadhaar/verify-otp', data);
+export const createCustomerWithAadhaar = (data) => api.post('/twgoldlogin/customer/create-with-aadhaar', data);
 export const createUserWithAadhaar = (data) => api.post('/twgoldlogin/user/create-with-aadhaar', data);
-export const generateUserAadhaarOtp = (data) => api.post('/twgoldlogin/user/aadhaar/generate-otp', data);
-export const verifyUserAadhaarOtp = (data) => api.post('/twgoldlogin/user/aadhaar/verify-otp', data);
-export const getUsers = () => api.get('/twgoldlogin/users');
+export const getVerifiedAadhaarDetails = (data) => api.post('/twgoldlogin/user/aadhaar/get-verified-details', data);
+export const getAadhaarVerificationStatus = (aadhaarNumber) => api.get(`/twgoldlogin/user/aadhaar/status/${aadhaarNumber}`);
+// =========================================================
+// USER MANAGEMENT ENDPOINTS
+// =========================================================
+
+export const createUser = (data) => api.post('/twgoldlogin/user/create', data);
+export const getAllAdmins = () => api.get('/twgoldlogin/admins');
+export const getAllUsers = () => api.get('/twgoldlogin/users');
 export const getUsersByRole = (role) => api.get(`/twgoldlogin/users/role/${role}`);
 export const getUsersByBranch = (branch) => api.get(`/twgoldlogin/branch/${branch}/users`);
 export const getUsersByDepartment = (department) => api.get(`/twgoldlogin/department/${department}/users`);
+export const updateUserStatus = (id, data) => api.put(`/twgoldlogin/user/${id}/status`, data);
+export const updateUserPermissions = (id, data) => api.put(`/twgoldlogin/user/${id}/permissions`, data);
+
+
+// =========================================================
+// BRANCH MANAGEMENT ENDPOINTS
+// =========================================================
+
+export const createBranch = (data) => api.post('/twgoldbranch/branches', data);
+export const getAllBranches = () => api.get('/twgoldbranch/branches');
+export const getBranchById = (id) => api.get(`/twgoldbranch/branches/${id}`);
+export const updateBranch = (id, data) => api.put(`/twgoldbranch/branches/${id}`, data);
+export const getBranchPerformance = () => api.get('/twgoldbranch/branches-performance');
+export const addEmployeeToBranch = (branchId, employeeId) => api.post(`/twgoldbranch/branches/${branchId}/employees/${employeeId}`);
+
+// =========================================================
+// ACTIVITY LOG ENDPOINTS
+// =========================================================
+
+export const getRecentActivities = () => api.get('/twgoldbranch/activities/recent');
+export const getActivitiesByDateRange = (params) => api.get('/twgoldbranch/activities/date-range', { params });
+export const getUserActivities = (userId) => api.get(`/twgoldbranch/activities/user/${userId}`);
+
 
 export default api;

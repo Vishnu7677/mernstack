@@ -1,0 +1,234 @@
+.twgold_manager_container {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f6f9;
+    min-height: 100vh;
+  }
+  
+  /* NAVBAR */
+  .twgold_manager_navbar {
+    background: #8b5a2b;
+    color: #fff;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 70px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  .twgold_manager_nav_left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .twgold_manager_logo {
+    height: 45px;
+    width: auto;
+    background: #fff; /* placeholder for visibility */
+    border-radius: 4px;
+  }
+  
+  .twgold_manager_nav_title {
+    font-size: 1.2rem;
+    margin: 0;
+  }
+  
+  .twgold_manager_nav_links {
+    display: flex;
+    gap: 5px;
+  }
+  
+  .twgold_manager_nav_btn {
+    background: transparent;
+    border: none;
+    color: #f0e6d8;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: 0.3s;
+    border-radius: 4px;
+  }
+  
+  .twgold_manager_nav_btn:hover, 
+  .twgold_manager_nav_btn.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+  }
+  
+  .twgold_manager_logout {
+    color: #ffb3b3;
+    margin-left: 10px;
+  }
+  
+  /* CONTENT AREA */
+  .twgold_manager_content {
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .twgold_manager_card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  }
+  
+  .twgold_manager_cards_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  
+  .twgold_manager_card h3 {
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+    color: #666;
+  }
+  
+  .twgold_manager_card p {
+    font-size: 1.8rem;
+    margin: 0;
+    font-weight: 700;
+    color: #8b5a2b;
+  }
+  
+  .twgold_manager_info {
+    font-size: 1rem !important;
+    color: #333 !important;
+    margin-bottom: 10px !important;
+  }
+  
+  /* FORM ELEMENTS */
+  .twgold_manager_input, 
+  .twgold_manager_select {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+  }
+  
+  .twgold_manager_button {
+    background: #8b5a2b;
+    color: white;
+    padding: 14px;
+    border: none;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    width: 100%;
+  }
+  
+  .twgold_manager_button:hover {
+    background: #6f431d;
+  }
+  
+  /* TABLE */
+  .twgold_manager_table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+  
+  .twgold_manager_table th {
+    background: #f8f1e9;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #8b5a2b;
+    border-bottom: 2px solid #e0d0c0;
+  }
+  
+  .twgold_manager_table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+  }
+  /* Previous styles included + these additions */
+
+.twgold_manager_header_row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .twgold_manager_badge {
+    background: #e74c3c;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+  }
+  
+  .twgold_manager_breadcrumb {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 15px;
+  }
+  
+  .twgold_manager_inventory_stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .inv_stat_item {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+  }
+  
+  .twgold_manager_button_secondary {
+    background: #2c2c2c;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .twgold_manager_action_btn.approve {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 6px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .status_active { color: #27ae60; font-weight: bold; }
+  .status_overdue { color: #e74c3c; font-weight: bold; }
+  
+  .twgold_manager_button_group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+  
+  .twgold_manager_report_btn {
+    background: #f8f1e9;
+    border: 1px solid #8b5a2b;
+    color: #8b5a2b;
+    padding: 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  
+  .twgold_manager_report_btn:hover {
+    background: #8b5a2b;
+    color: white;
+  }
+  
+  .twgold_manager_form_row {
+    display: flex;
+    gap: 10px;
+  }

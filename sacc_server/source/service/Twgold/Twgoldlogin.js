@@ -15,33 +15,35 @@ const AadhaarSessionSchema = new mongoose.Schema({
   aadhaar_number: { type: String, required: true, index: true },
   reference_id: { type: String, required: true, index: true },
   authorization_token: { type: String, required: true },
-  phone_number: { type: String, required: true },
+  phone_number: { type: String},
   email_id: String,
-
+  target: { type: String, enum: ['employee', 'customer'], required: true },
   role: {
     type: String,
-    required: true,
+    required: true, // Make sure this is required
     enum: [
       'manager', 'asst_manager', 'cashier', 'accountant',
       'recovery_agent', 'grivirence', 'auditor', 'hr',
-      'administration', 'sales_marketing', 'rm', 'zm', 'employee'
+      'administration', 'sales_marketing', 'rm', 'zm', 'employee', 
+      'go_auditor', 'customer' // 👈 Added 'customer' here
     ]
   },
-
   admin_id: { type: mongoose.Schema.Types.ObjectId, required: true },
   timestamp: { type: Date, default: Date.now, expires: 600 }
 });
 
-
+// Update VerifiedAadhaarSchema similarly
 const VerifiedAadhaarSchema = new mongoose.Schema({
   aadhaar_number: { type: String, required: true, unique: true, index: true },
+  target: { type: String, enum: ['employee', 'customer'], required: true },
   role: {
     type: String,
     required: true,
     enum: [
       'manager', 'asst_manager', 'cashier', 'accountant',
       'recovery_agent', 'grivirence', 'auditor', 'hr',
-      'administration', 'sales_marketing', 'rm', 'zm', 'employee'
+      'administration', 'sales_marketing', 'rm', 'zm', 'employee', 
+      'go_auditor', 'customer' // 👈 Added 'customer' here
     ]
   },
   data: { type: Object, required: true },
@@ -74,7 +76,40 @@ function Controller() {
   this.getUsersByDepartment = this.getUsersByDepartment.bind(this);
   this.updateUserStatus = this.updateUserStatus.bind(this);
   this.updateUserPermissions = this.updateUserPermissions.bind(this);
+  this.createCustomerWithAadhaar =this.createCustomerWithAadhaar.bind(this);
+  this.logActivity= this.logActivity.bind(this)
 }
+
+Controller.prototype.logActivity = async function ({
+  action,
+  module,
+  user,
+  branch,
+  targetEntity,
+  details = {},
+  status = 'success',
+  errorMessage = null,
+  req
+}) {
+  try {
+    await ActivityLog.create({
+      action,
+      module,
+      user,
+      roleAtThatTime: req?.user?.role,
+      branch,
+      targetEntity,
+      details,
+      status,
+      errorMessage,
+      ipAddress: req?.ip,
+      userAgent: req?.headers['user-agent']
+    });
+  } catch (err) {
+    // ⚠️ Never block main flow because of logging
+    console.error('Activity log failed:', err.message);
+  }
+};
 
 
 // =====================
@@ -536,395 +571,287 @@ Controller.prototype.changePassword = async function(req, res) {
   }
 };
 
-// ========================
-// Aadhaar OTP Generation (for all roles except admin)
-// ========================
+// ==========================================
+// 1. Unified Aadhaar OTP Generation
+// ==========================================
 Controller.prototype.generateUserAadhaarOtp = async function(req, res) {
   try {
-    const { aadhaar_number, phone_number, email_id, role } = req.body;
+    const { aadhaar_number, phone_number, email_id, target, role } = req.body;
 
-    // Validate role - admin cannot be created through this route
-    if (role === 'admin') {
-      return res.status(400).json({
-        success: false,
-        message: 'Admin users cannot be created through this route. Use admin registration endpoint.',
-        code: 'INVALID_ROLE_FOR_AADHAAR'
-      });
+    // 1. VALIDATION: Check Target & Roles
+    if (!target || !['employee', 'customer'].includes(target)) {
+      return res.status(400).json({ success: false, message: "Invalid target. Must be 'employee' or 'customer'." });
     }
 
-    // Validate role exists in enum
-    const validRoles = [
-      'manager', 'asst_manager', 'cashier', 'accountant', 
-      'recovery_agent', 'grivirence', 'auditor', 'hr', 
-      'administration', 'sales_marketing', 'rm', 'zm', 'employee','go_auditor'
-    ];
-    
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid role. Must be one of: ${validRoles.join(', ')}`,
-        code: 'INVALID_ROLE'
-      });
+    let sessionRole;
+    if (target === 'customer') {
+      sessionRole = 'customer';
+    } else {
+      const validRoles = [
+        'manager', 'asst_manager', 'cashier', 'accountant', 'recovery_agent', 
+        'grivirence', 'auditor', 'hr', 'administration', 'sales_marketing', 
+        'rm', 'zm', 'employee', 'go_auditor'
+      ];
+      if (!role || !validRoles.includes(role)) {
+        return res.status(400).json({ success: false, message: "A valid employee role is mandatory." });
+      }
+      sessionRole = role;
     }
 
-    // Basic validation
-    if (!aadhaar_number || !phone_number || !role) {
-      return res.status(400).json({
-        success: false,
-        message: "Aadhaar number, phone number, and role are required",
-        code: 'MISSING_AADHAAR_DETAILS'
-      });
+    // 2. Format Validation
+    if (!/^\d{12}$/.test(aadhaar_number)) {
+      return res.status(400).json({ success: false, message: "Invalid 12-digit Aadhaar number." });
     }
 
-    // Aadhaar format: 12 digits
-    const aadhaarRegex = /^\d{12}$/;
-    if (!aadhaarRegex.test(aadhaar_number)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Aadhaar number format. Must be 12 digits.",
-        code: 'INVALID_AADHAAR_FORMAT'
-      });
+    // 3. Duplicate Check
+    const existingEmployee = await EmploymentProfile.findOne({ 'aadhaarDetails.aadhaar_number': aadhaar_number });
+    // Note: Customer schema uses 'aadhaarDetails.aadhaar_number' per your schema definition
+    const existingCustomer = await mongoose.model('TWgoldCustomer').findOne({ 'aadhaarDetails.aadhaar_number': aadhaar_number });
+
+    if (existingEmployee || existingCustomer) {
+      return res.status(409).json({ success: false, message: "Aadhaar already registered in the system." });
     }
 
-    // Phone format: 10 digits
-    const phoneRegex = /^\d{10}$/;
-    if (!phoneRegex.test(phone_number)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid phone number format. Must be 10 digits.",
-        code: 'INVALID_PHONE_FORMAT'
-      });
-    }
-
-    // Check if user already exists with this Aadhaar
-    const existingProfile = await EmploymentProfile.findOne({ 
-      'aadhaarDetails.aadhaar_number': aadhaar_number 
-    });
-
-    if (existingProfile) {
-      return res.status(409).json({
-        success: false,
-        message: "A user with this Aadhaar number already exists",
-        code: 'DUPLICATE_AADHAAR'
-      });
-    }
-
-    // Authenticate with Sandbox API
+    // 4. API Authentication & Call
     const authToken = await this.authenticate();
-    if (!authToken) {
-      throw new Error("Failed to authenticate with API");
-    }
-
     const authorizedToken = await this.authorizeApi(authToken);
-    if (!authorizedToken) {
-      throw new Error("Failed to authorize with API");
-    }
 
-    // Payload per v2.0 spec
     const payload = {
       "@entity": "in.co.sandbox.kyc.aadhaar.okyc.otp.request",
-      aadhaar_number: aadhaar_number,
+      aadhaar_number,
       consent: "Y",
-      reason: "Employee KYC Verification for Gold Loan Business",
+      reason: `${target.toUpperCase()} KYC Verification for Gold Loan Business`,
     };
 
-    const headers = {
-      accept: "application/json",
-      Authorization: authorizedToken,
-      "x-api-key": process.env.API_KEY,
-      "x-api-version": "2.0",
-      "content-type": "application/json",
-    };
+    // Sandbox Delay for rate limiting compliance
+    await new Promise(resolve => setTimeout(resolve, 8000 + Math.random() * 2000));
 
-    // Optional delay for rate limiting
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-    await delay(8000 + Math.random() * 4000);
-
-    const response = await axios.post(
-      "https://api.sandbox.co.in/kyc/aadhaar/okyc/otp",
-      payload,
-      { 
-        headers,
-        timeout: 45000 
-      }
-    );
+    const response = await axios.post("https://api.sandbox.co.in/kyc/aadhaar/okyc/otp", payload, {
+      headers: { 
+        Authorization: authorizedToken, 
+        'x-api-key': process.env.API_KEY, 
+        'x-api-version': '2.0',
+        'content-type': 'application/json'
+      },
+      timeout: 45000
+    });
 
     const apiData = response?.data?.data;
 
     if (!apiData?.reference_id) {
-      return res.status(200).json({
-        success: true,
-        sandbox: true,
-        message: 'Sandbox OTP simulated',
-        reference_id: crypto.randomUUID(),
-        aadhaar_number: aadhaar_number.slice(0,4) + 'XXXX' + aadhaar_number.slice(8),
-        role,
-        code: 'SANDBOX_OTP_SIMULATED'
-      });
+       return res.status(200).json({ success: true, sandbox: true, message: 'Sandbox OTP simulated', reference_id: crypto.randomUUID() });
     }
-    
 
-    // Store the Aadhaar verification session with role
-    const aadhaarSession = {
-      aadhaar_number: aadhaar_number,
-      phone_number: phone_number,
-      email_id: email_id,
-      role: role, // Store role for later use
+    // 5. Store Session
+    await AadhaarSession.create({
+      aadhaar_number,
+      phone_number,
+      email_id,
+      target,
+      role: sessionRole, 
       reference_id: apiData.reference_id,
       authorization_token: authorizedToken,
-      admin_id: req.user._id,
-      timestamp: new Date()
-    };
-
-    await AadhaarSession.create(aadhaarSession);
+      admin_id: req.user._id // Tracking which employee initiated this
+    });
 
     return res.status(200).json({
       success: true,
-      message: apiData.message || "OTP sent successfully to registered mobile number!",
+      message: "OTP sent successfully!",
       reference_id: apiData.reference_id,
-      aadhaar_number: aadhaar_number.substring(0, 4) + 'XXXX' + aadhaar_number.substring(8),
-      role: role,
-      code: 'OTP_SENT_SUCCESS'
+      masked_aadhaar: aadhaar_number.substring(0, 4) + 'XXXX' + aadhaar_number.substring(8)
     });
 
   } catch (err) {
-    console.log(err)
-    console.error("Error generating Aadhaar OTP:", {
-      message: err.message,
-      response: err.response?.data,
-      stack: err.stack
-    });
-    
-    if (err.response?.data) {
-      const apiError = err.response.data;
-      console.log(apiError)
-      return res.status(err.response.status || 400).json({
-        success: false,
-        message: apiError.message || "Aadhaar OTP generation failed",
-        error: apiError.errors || apiError.message,
-        code: 'AADHAAR_API_ERROR'
-      });
-    }
-
-    if (err.code === 'ECONNABORTED') {
-      return res.status(408).json({
-        success: false,
-        message: "Aadhaar service timeout. Please try again.",
-        code: 'AADHAAR_SERVICE_TIMEOUT'
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      message: "Failed to generate Aadhaar OTP",
-      error: err.message,
-      code: 'INTERNAL_SERVER_ERROR'
+    console.error("Aadhaar OTP Error:", err.response?.data || err.message);
+    res.status(err.response?.status || 500).json({ 
+      success: false, 
+      message: err.response?.data?.message || "Failed to generate OTP" 
     });
   }
 };
 
-// ========================
-// Verify Aadhaar OTP (for all roles except admin)
-// ========================
+// ==========================================
+// 2. Unified Aadhaar Verification
+// ==========================================
 Controller.prototype.verifyUserAadhaarOtp = async function(req, res) {
   try {
-    const { aadhaar_number, otp, reference_id, role } = req.body;
+    const { aadhaar_number, otp, reference_id } = req.body;
 
-    if (!aadhaar_number || !otp || !reference_id || !role) {
-      return res.status(400).json({
-        success: false,
-        message: "Aadhaar number, OTP, reference ID, and role are required",
-        code: 'MISSING_VERIFICATION_DETAILS'
-      });
+    if (!aadhaar_number || !otp || !reference_id) {
+      return res.status(400).json({ success: false, message: "Missing verification details" });
     }
 
-    // Validate role - admin cannot be created through this route
-    if (role === 'admin') {
-      return res.status(400).json({
-        success: false,
-        message: 'Admin users cannot be created through this route',
-        code: 'INVALID_ROLE_FOR_AADHAAR'
-      });
-    }
+    const session = await AadhaarSession.findOne({ aadhaar_number, reference_id: String(reference_id) });
+    if (!session) return res.status(404).json({ success: false, message: "Session expired or invalid" });
 
-    // OTP must be 6 digits
-    const otpRegex = /^\d{6}$/;
-    if (!otpRegex.test(otp)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid OTP format. Must be 6 digits.",
-        code: 'INVALID_OTP_FORMAT'
-      });
-    }
-
-    // Retrieve stored session
-    const aadhaarSession = await AadhaarSession.findOne({ 
-      aadhaar_number: aadhaar_number, 
-      reference_id: String(reference_id),
-      role: role // Ensure role matches
-    });
-
-    if (!aadhaarSession) {
-      return res.status(404).json({
-        success: false,
-        message: 'OTP session not found or expired. Please generate OTP again.',
-        code: 'OTP_SESSION_EXPIRED'
-      });
-    }
-
-    // Payload per v2.0 Verify API
-    const payload = {
-      '@entity': 'in.co.sandbox.kyc.aadhaar.okyc.request',
-      reference_id: String(reference_id),
-      otp: otp
-    };
-
-    const headers = {
-      accept: 'application/json',
-      Authorization: aadhaarSession.authorization_token,
-      'x-api-key': process.env.API_KEY,
-      'x-api-version': '2.0',
-      'content-type': 'application/json'
-    };
-
-    const response = await axios.post(
-      'https://api.sandbox.co.in/kyc/aadhaar/okyc/otp/verify',
-      payload,
+    const response = await axios.post('https://api.sandbox.co.in/kyc/aadhaar/okyc/otp/verify', 
+      { '@entity': 'in.co.sandbox.kyc.aadhaar.okyc.request', reference_id: String(reference_id), otp },
       { 
-        headers,
-        timeout: 45000 
+        headers: { 
+          Authorization: session.authorization_token, 
+          'x-api-key': process.env.API_KEY, 
+          'x-api-version': '2.0' 
+        },
+        timeout: 45000
       }
     );
 
     const apiData = response?.data?.data;
 
-    if (!apiData) {
-      await AadhaarSession.deleteOne({ aadhaar_number, reference_id });
-      return res.status(502).json({
-        success: false,
-        message: 'Invalid Aadhaar verification response',
-        code: 'AADHAAR_INVALID_RESPONSE'
-      });
-    }
+    if (apiData && apiData.status === "VALID") {
+      const aadhaar_hash = crypto.createHash('sha256').update(aadhaar_number + process.env.AADHAAR_HASH_SALT).digest('hex');
 
-    if (apiData.status === "VALID") {
-      // Create Aadhaar hash for security
-      const aadhaar_hash = crypto
-        .createHash('sha256')
-        .update(aadhaar_number + process.env.AADHAAR_HASH_SALT)
-        .digest('hex');
-
-      // Prepare verified Aadhaar data with role
-      const verifiedAadhaarData = {
-        aadhaar_number: aadhaar_number,
-        aadhaar_hash: aadhaar_hash,
-        reference_id: apiData.reference_id,
-        authorization_token: aadhaarSession.authorization_token,
-        name: apiData.name || '',
-        care_of: apiData.care_of || '',
-        full_address: apiData.full_address || '',
-        date_of_birth: apiData.date_of_birth || '',
-        gender: apiData.gender || '',
-        phone_number: aadhaarSession.phone_number,
-        email_id: aadhaarSession.email_id || '',
-        photo: apiData.photo || null,
-        is_otp_verified: true,
-        permanent_address: apiData.address || null,
-        year_of_birth: apiData.year_of_birth || null,
-        status: apiData.status,
-        message: apiData.message || '',
-        timestamp: response.data.timestamp,
-        isDeleted: false,
-        role: aadhaarSession.role // Store role with Aadhaar data
+      const verifiedData = {
+        ...apiData,
+        aadhaar_number,
+        aadhaar_hash,
+        phone_number: session.phone_number,
+        email_id: session.email_id,
+        is_otp_verified: true
       };
 
-      // Store verified data temporarily
       await VerifiedAadhaar.findOneAndUpdate(
-        { aadhaar_number: aadhaar_number },
+        { aadhaar_number },
         { 
-          data: verifiedAadhaarData,
+          target: session.target,
+          role: session.role,
+          data: verifiedData,
           timestamp: new Date()
         },
-        { upsert: true, new: true }
+        { upsert: true }
       );
 
-      // Clean up the OTP session
-      await AadhaarSession.deleteOne({ 
-        aadhaar_number: aadhaar_number, 
-        reference_id: reference_id 
-      });
+      await AadhaarSession.deleteOne({ _id: session._id });
 
-      return res.status(200).json({
+      res.status(200).json({ 
         success: true,
-        message: 'Aadhaar verified successfully',
-        aadhaar_data: {
-          name: apiData.name,
-          masked_aadhaar: aadhaar_number.slice(0, 4) + 'XXXX' + aadhaar_number.slice(8),
-          dob: apiData.date_of_birth,
-          gender: apiData.gender,
-          full_address: apiData.full_address
-        },
-        role: aadhaarSession.role,
-        code: 'AADHAAR_VERIFIED'
+        message: "Aadhaar Verified Successfully",
+        target: session.target,
+      
+        // quick UI fields
+        name: verifiedData.name,
+        dob: verifiedData.date_of_birth,
+        gender: verifiedData.gender,
+      
+        // full payload
+        aadhaar_data: verifiedData
       });
+      
     } else {
-      // Wrong OTP / INVALID status -> cleanup
-      await AadhaarSession.deleteOne({ 
-        aadhaar_number: aadhaar_number, 
-        reference_id: reference_id 
-      });
-
-      return res.status(400).json({
-        success: false,
-        message: apiData.message || 'Aadhaar OTP verification failed',
-        code: 'OTP_VERIFICATION_FAILED'
-      });
+      res.status(400).json({ success: false, message: apiData?.message || "Invalid OTP" });
     }
   } catch (err) {
-    console.error('Error verifying Aadhaar OTP:', {
-      message: err.message,
-      response: err.response?.data,
-      stack: err.stack
+    res.status(500).json({ success: false, message: err.response?.data?.message || err.message });
+  }
+};
+
+// ==========================================
+// 3. Create Customer (Initiated by Employee)
+// ==========================================
+Controller.prototype.createCustomerWithAadhaar = async function(req, res) {
+  try {
+    const { aadhaar_number, primaryBranch, phone, email } = req.body;
+
+    // 1. Verify Aadhaar session
+    const verifiedDoc = await VerifiedAadhaar.findOne({
+      aadhaar_number,
+      target: 'customer'
     });
 
-    if (req.body.aadhaar_number && req.body.reference_id) {
-      await AadhaarSession.deleteOne({ 
-        aadhaar_number: req.body.aadhaar_number, 
-        reference_id: req.body.reference_id 
-      });
-    }
-    
-    if (err.response?.data) {
-      const apiError = err.response.data;
-      return res.status(err.response.status || 400).json({
+    if (!verifiedDoc) {
+      return res.status(400).json({
         success: false,
-        message: apiError.message || "Aadhaar verification failed",
-        error: apiError.errors || apiError.message,
-        code: 'AADHAAR_VERIFICATION_FAILED'
+        message: "Aadhaar verification required first."
       });
     }
 
-    if (err.code === 'ECONNABORTED') {
-      return res.status(408).json({
-        success: false,
-        message: "Aadhaar service timeout. Please try again.",
-        code: 'AADHAAR_SERVICE_TIMEOUT'
-      });
+    // Sanitize enum
+    if (req.body.bankDetails?.accountType === '') {
+      req.body.bankDetails.accountType = null;
     }
 
-    return res.status(500).json({
+    const Customer = mongoose.model('TWgoldCustomer');
+
+    const newCustomer = new Customer({
+      ...req.body,
+
+      name: verifiedDoc.data.name,
+      primaryBranch,
+      createdBy: req.user._id,
+
+      /* =====================
+         VERIFICATION FLAGS
+         ===================== */
+      isAadhaarVerified: true,
+      isPhoneVerified: !!phone,
+      isEmailVerified: !!email,
+      isKycVerified: true,
+      status: 'active',
+
+      aadhaarDetails: {
+        aadhaar_hash: verifiedDoc.data.aadhaar_hash,
+        aadhaar_number: aadhaar_number.slice(-4),
+        name_on_aadhaar: verifiedDoc.data.name,
+        dob: verifiedDoc.data.date_of_birth,
+        gender: verifiedDoc.data.gender,
+        full_address: verifiedDoc.data.full_address,
+        photo_base64: verifiedDoc.data.photo,
+        is_otp_verified: true,
+        reference_id: verifiedDoc.data.reference_id,
+        raw_response: verifiedDoc.data
+      }
+    });
+
+    await newCustomer.save();
+
+    await this.logActivity({
+      action: 'Customer created using Aadhaar',
+      module: 'customer',
+      user: req.user._id,
+      branch: primaryBranch,
+      targetEntity: {
+        entityId: newCustomer._id,
+        modelName: 'TWGoldCustomer'
+      },
+      details: {
+        customerId: newCustomer.customerId,
+        name: newCustomer.name
+      },
+      req
+    });
+
+    await VerifiedAadhaar.deleteOne({ aadhaar_number });
+
+    res.status(201).json({
+      success: true,
+      message: "Customer created",
+      data: newCustomer
+    });
+
+  } catch (error) {
+    await this.logActivity({
+      action: 'Customer creation failed',
+      module: 'customer',
+      user: req.user._id,
+      branch: req.body.primaryBranch,
+      status: 'failure',
+      errorMessage: error.message,
+      req
+    });
+
+    res.status(500).json({
       success: false,
-      message: "Failed to verify Aadhaar OTP",
-      error: err.message,
-      code: 'INTERNAL_SERVER_ERROR'
+      message: error.message
     });
   }
 };
+
 
 // ===============================
 // Create User with Aadhaar (for all roles except admin)
 // ===============================
 Controller.prototype.createUserWithAadhaar = async function(req, res) {
-  let user = null;
+  let createdUser = null; // Track user for cleanup on error
   
   try {
     const { 
@@ -940,10 +867,7 @@ Controller.prototype.createUserWithAadhaar = async function(req, res) {
       permissions 
     } = req.body;
 
-    const mappedProfileData = mapEmployeePayload(req.body);
-
-
-    // Validate required fields
+    // 1. Basic field validation
     const requiredFields = ['email', 'password', 'name', 'role', 'aadhaar_number'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
     if (missingFields.length > 0) {
@@ -954,33 +878,25 @@ Controller.prototype.createUserWithAadhaar = async function(req, res) {
       });
     }
 
-    // Validate role - admin cannot be created through this route
-    if (role === 'admin') {
-      return res.status(400).json({
-        success: false,
-        message: 'Admin users cannot be created through this route. Use admin registration endpoint.',
-        code: 'INVALID_ROLE_FOR_AADHAAR'
-      });
-    }
-
-    // Validate role exists in enum
+    // 2. Role Validation
     const validRoles = [
       'manager', 'asst_manager', 'cashier', 'accountant', 
       'recovery_agent', 'grivirence', 'auditor', 'hr', 
-      'administration', 'sales_marketing', 'rm', 'zm', 'employee','go_auditor'
+      'administration', 'sales_marketing', 'rm', 'zm', 'employee', 'go_auditor'
     ];
     
-    if (!validRoles.includes(role)) {
+    if (role === 'admin' || !validRoles.includes(role)) {
       return res.status(400).json({
         success: false,
-        message: `Invalid role. Must be one of: ${validRoles.join(', ')}`,
+        message: 'Invalid role or unauthorized role for this endpoint.',
         code: 'INVALID_ROLE'
       });
     }
 
-    // Check Aadhaar verification
+    // 3. Verify Aadhaar Session exists and matches target role
     const verifiedAadhaarDoc = await VerifiedAadhaar.findOne({
-      'data.aadhaar_number': aadhaar_number
+      'data.aadhaar_number': aadhaar_number,
+      'target': 'employee' // Safety check to ensure we aren't using a customer verification
     });
     
     if (!verifiedAadhaarDoc || !verifiedAadhaarDoc.data.is_otp_verified) {
@@ -991,31 +907,28 @@ Controller.prototype.createUserWithAadhaar = async function(req, res) {
       });
     }
 
-    // Ensure role matches the one used during Aadhaar verification
-    if (verifiedAadhaarDoc.data.role !== role) {
+    if (verifiedAadhaarDoc.role !== role) {
       return res.status(400).json({
         success: false,
-        message: `Aadhaar was verified for role: ${verifiedAadhaarDoc.data.role}. Please use the correct role.`,
+        message: `Aadhaar was verified for role: ${verifiedAadhaarDoc.role}. Mismatch with provided role.`,
         code: 'ROLE_MISMATCH'
       });
     }
-    
 
-    // Check if user exists
+    // 4. Check for duplicate Email
     const existingUser = await TWgoldUser.findOne({ email });
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: 'User already exists',
+        message: 'User with this email already exists',
         code: 'USER_EXISTS'
       });
     }
 
-    // Get default permissions based on role
-    const defaultPermissions = this.getDefaultPermissionsForRole(role, branch);
-
-    // Create user
-    user = new TWgoldUser({
+    // 5. Create the Base User
+    // Note: getDefaultPermissions() is handled in the schema pre-save hook, 
+    // but we pass manual permissions if provided by admin.
+    createdUser = new TWgoldUser({
       email,
       password,
       name,
@@ -1023,120 +936,109 @@ Controller.prototype.createUserWithAadhaar = async function(req, res) {
       department,
       branch: branch || undefined,
       designation: designation || this.getDefaultDesignationForRole(role),
-      reportsTo,
-      permissions: permissions || defaultPermissions
+      reportsTo: (reportsTo && mongoose.Types.ObjectId.isValid(reportsTo)) ? reportsTo : undefined,
+      permissions: permissions || undefined // Schema will handle defaults if undefined
     });
 
-    await user.save();
+    await createdUser.save(); // employeeId is generated here via schema hooks
 
-    // Prepare Aadhaar data for employment profile
-    const aadhaarData = {
-      aadhaar_number: aadhaar_number,
-      aadhaar_hash: crypto
-        .createHash('sha256')
-        .update(aadhaar_number + process.env.AADHAAR_HASH_SALT)
-        .digest('hex'),
-      name_on_aadhaar: verifiedAadhaarDoc.data.name || '',
-      dob: verifiedAadhaarDoc.data.date_of_birth || '',
-      year_of_birth: verifiedAadhaarDoc.data.year_of_birth || null,
-      gender: verifiedAadhaarDoc.data.gender || '',
-      full_address: verifiedAadhaarDoc.data.full_address || '',
-      photo_base64: verifiedAadhaarDoc.data.photo || null,
-      is_otp_verified: true,
-      reference_id: verifiedAadhaarDoc.data.reference_id,
-      raw_response: { ...verifiedAadhaarDoc.data },
-      timestamp: Date.now()
-    };
+    // 6. Map and Create the Employment Profile
+    const mappedProfileData = mapEmployeePayload(req.body);
+    const aadhaarHash = crypto
+      .createHash('sha256')
+      .update(aadhaar_number + process.env.AADHAAR_HASH_SALT)
+      .digest('hex');
 
-    // Determine status based on role
-    const calculatedStatus = this.getDefaultStatusForRole(role);
-
-    // Create employment profile
     const employmentProfile = new EmploymentProfile({
-      user: user._id,
-      employeeId: user.employeeId,
+      user: createdUser._id,
+      employeeId: createdUser.employeeId,
       aadhaarDetails: {
         ...verifiedAadhaarDoc.data,
-        aadhaar_hash: crypto.createHash('sha256').update(aadhaar_number + process.env.AADHAAR_HASH_SALT).digest('hex')
+        aadhaar_hash: aadhaarHash
       },
       ...mappedProfileData,
-      status: calculatedStatus
+      status: this.getDefaultStatusForRole(role)
+    });
+
+    await employmentProfile.save();
+    await this.logActivity({
+      action: `User created with Aadhaar (${role})`,
+      module: 'employee',
+      user: req.user._id,
+      branch: createdUser.branch,
+      targetEntity: {
+        entityId: createdUser._id,
+        modelName: 'TWgoldUser'
+      },
+      details: {
+        employeeId: createdUser.employeeId,
+        role
+      },
+      req
     });
     
 
-    await employmentProfile.save();
-    await VerifiedAadhaar.deleteOne({ aadhaar_number });
+    // 7. Cleanup & Final Response
+    await VerifiedAadhaar.deleteOne({ _id: verifiedAadhaarDoc._id });
 
-    // Populate reportsTo if provided
-   // Correct way to handle the reporting user lookup
-let reportsToUser = null;
-if (reportsTo && mongoose.Types.ObjectId.isValid(reportsTo)) {
-  reportsToUser = await TWgoldUser.findById(reportsTo).select('name email role');
-} else if (reportsTo === "") {
-    // If frontend sends empty string, ensure it doesn't break the logic
-    req.body.reportsTo = undefined; 
-}
+    // Lookup reportsTo for the response payload
+    let reportsToUser = null;
+    if (createdUser.reportsTo) {
+      reportsToUser = await TWgoldUser.findById(createdUser.reportsTo).select('name email role');
+    }
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: `${this.getRoleDisplayName(role)} created successfully with Aadhaar verification`,
+      message: `${this.getRoleDisplayName(role)} created successfully`,
       data: {
         user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          roleDisplay: this.getRoleDisplayName(role),
-          department: user.department,
-          branch: user.branch,
-          designation: user.designation,
-          employeeId: user.employeeId
+          id: createdUser._id,
+          name: createdUser.name,
+          email: createdUser.email,
+          role: createdUser.role,
+          employeeId: createdUser.employeeId,
+          branch: createdUser.branch,
+          designation: createdUser.designation
         },
         reportsTo: reportsToUser,
-        employmentProfile: {
-          id: employmentProfile._id,
-          aadhaarVerified: true,
-          status: calculatedStatus
-        }
+        employmentProfileId: employmentProfile._id
       },
       code: 'USER_CREATED_SUCCESS'
     });
 
   } catch (error) {
-    console.error('Create user with Aadhaar error:', error);
+    console.error('User Creation Error:', error);
+    await this.logActivity({
+      action: 'User creation with Aadhaar failed',
+      module: 'employee',
+      user: req.user._id,
+      branch: req.user.branch,
+      status: 'failure',
+      errorMessage: error.message,
+      req
+    });
     
-    // Cleanup user if created
-    if (user && user._id) {
-      await TWgoldUser.findByIdAndDelete(user._id);
+    
+    // Cleanup: Rollback User creation if Profile failed
+    if (createdUser && createdUser._id) {
+      await TWgoldUser.findByIdAndDelete(createdUser._id);
     }
 
+    // Handle Duplicate Key Errors
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
-      const friendlyField = field.includes('aadhaarDetails.aadhaar_number') ? 'Aadhaar number' : field;
-      
       return res.status(409).json({
         success: false,
-        message: `${friendlyField} already exists`,
-        code: 'DUPLICATE_ENTRY',
-        field: friendlyField
-      });
-    }
-
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: messages,
-        code: 'VALIDATION_ERROR'
+        message: `Duplicate entry detected: ${field}`,
+        code: 'DUPLICATE_ENTRY'
       });
     }
 
     return res.status(500).json({
       success: false,
-      message: 'User creation failed',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-      code: 'USER_CREATION_FAILED'
+      message: 'Failed to create user and profile.',
+      error: error.message,
+      code: 'INTERNAL_SERVER_ERROR'
     });
   }
 };
@@ -1218,6 +1120,22 @@ Controller.prototype.createUser = async function(req, res) {
     });
 
     await user.save();
+    await this.logActivity({
+      action: `User created (${role})`,
+      module: 'employee',
+      user: req.user._id,
+      branch: user.branch,
+      targetEntity: {
+        entityId: user._id,
+        modelName: 'TWgoldUser'
+      },
+      details: {
+        employeeId: user.employeeId,
+        role
+      },
+      req
+    });
+    
 
     // Determine status based on role
     const status = this.getDefaultStatusForRole(role);
@@ -1730,6 +1648,23 @@ Controller.prototype.updateUserStatus = async function(req, res) {
 
     await user.save();
 
+    await this.logActivity({
+      action: `User status updated`,
+      module: 'employee',
+      user: req.user._id,
+      branch: user.branch,
+      targetEntity: {
+        entityId: user._id,
+        modelName: 'TWgoldUser'
+      },
+      details: {
+        isActive: user.isActive,
+        employmentStatus: status
+      },
+      req
+    });
+    
+
     res.status(200).json({
       success: true,
       message: 'User status updated successfully',
@@ -1788,6 +1723,22 @@ Controller.prototype.updateUserPermissions = async function(req, res) {
 
     user.permissions = permissions;
     await user.save();
+
+    await this.logActivity({
+      action: 'User permissions updated',
+      module: 'compliance',
+      user: req.user._id,
+      branch: user.branch,
+      targetEntity: {
+        entityId: user._id,
+        modelName: 'TWgoldUser'
+      },
+      details: {
+        permissions
+      },
+      req
+    });
+    
 
     res.status(200).json({
       success: true,
@@ -1855,17 +1806,21 @@ Controller.prototype.getVerifiedAadhaarDetails = async function(req, res) {
       success: true,
       data: {
         is_verified: verifiedData.data.is_otp_verified,
+        timestamp: verifiedData.timestamp,
+    
+        // Quick access fields
         name: verifiedData.data.name,
-        role: verifiedData.data.role,
         dob: verifiedData.data.date_of_birth,
         gender: verifiedData.data.gender,
-        full_address: verifiedData.data.full_address,
         phone_number: verifiedData.data.phone_number,
         email_id: verifiedData.data.email_id,
-        timestamp: verifiedData.timestamp
+    
+        // FULL RAW DATA
+        aadhaar_data: verifiedData.data
       },
       code: 'AADHAAR_DETAILS_RETRIEVED'
     });
+    
 
   } catch (error) {
     console.error('Error getting verified Aadhaar details:', error);

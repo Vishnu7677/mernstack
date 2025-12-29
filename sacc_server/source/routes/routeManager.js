@@ -24,6 +24,8 @@ const TwGoldLogin = require('./route/TwgoldRoutes')
 const TWGoldBranch = require('./route/TWGoldBranch');
 const TWGoldRate = require('./route/TWGoldRate')
 const TWGoldLoan = require ('./route/TWGoldLoan')
+const TWGoldCustomer = require ('./route/TWGoldcustomerRoutes')
+
 
 
 
@@ -45,6 +47,8 @@ router.use('/api/twgoldlogin',TwGoldLogin)
 router.use('/api/twgoldbranch',TWGoldBranch)
 router.use('/api/twgoldrate',TWGoldRate)
 router.use('/api/twgoldloan',TWGoldLoan)
+router.use('/api/twgoldcustomer',TWGoldCustomer)
+
 
 
 
