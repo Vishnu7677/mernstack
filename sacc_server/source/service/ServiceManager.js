@@ -20,6 +20,6 @@ module.exports = {
     TWgoldActivities: require('./Twgold/TWGoldActivities'),
     TWgoldGoldRates: require('./Twgold/goldRateController'),
     TWgoldLoans : require('./Twgold/goldloanController'),
-    TWgoldCustomers: require('./TWGold/CustomerController'),
+    TWgoldCustomers: require('./Twgold/TwgoldCustomerController')
 
 }
