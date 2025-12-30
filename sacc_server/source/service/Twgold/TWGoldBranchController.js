@@ -228,5 +228,276 @@ Controller.prototype.addEmployeeToBranch = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+/* =========================================================
+   ADD MULTIPLE EMPLOYEES (BULK)
+========================================================= */
+Controller.prototype.addEmployeesToBranch = async (req, res) => {
+  try {
+    const { branchId } = req.params;
+    const { employees = [] } = req.body;
+
+    if (!Array.isArray(employees) || employees.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employees array is required'
+      });
+    }
+
+    const branch = await Branch.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({
+        success: false,
+        message: 'Branch not found'
+      });
+    }
+
+    const users = await User.find({ _id: { $in: employees } });
+
+    if (!users.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'No valid employees found'
+      });
+    }
+
+    await Promise.all(
+      users.map(async user => {
+        user.branch = branch._id;
+        await user.save();
+
+        await ActivityLog.logActivity({
+          action: 'ADD_EMPLOYEE_TO_BRANCH',
+          module: 'branch',
+          user: req.user._id,
+          roleAtThatTime: req.user.role,
+          branch: branch._id,
+          targetEntity: {
+            modelName: 'TWgoldUser',
+            entityId: user._id
+          },
+          details: {
+            employeeName: user.name,
+            branchName: branch.branchName
+          },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent')
+        });
+      })
+    );
+
+    res.json({
+      success: true,
+      message: 'Employees assigned to branch successfully',
+      count: users.length
+    });
+
+  } catch (error) {
+    console.error('Bulk employee assignment error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to assign employees to branch'
+    });
+  }
+};
+
+
+/* =========================================================
+   🔍 SEARCH EMPLOYEES (FOR UI)
+========================================================= */
+Controller.prototype.searchEmployees = async (req, res) => {
+  try {
+    const { q = '', role, branch, limit = 20 } = req.query;
+
+    const query = {};
+
+    if (q) {
+      query.name = new RegExp(q, 'i');
+    }
+
+    if (role) {
+      query.role = role;
+    }
+
+    if (branch) {
+      query.branch = branch;
+    }
+
+    const users = await User.find(query)
+      .select('name employeeId role branch')
+      .limit(Math.min(Number(limit), 100)) // safety cap
+      .sort({ name: 1 });
+
+    res.json({
+      success: true,
+      data: users
+    });
+
+  } catch (error) {
+    console.error('Employee search error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search employees'
+    });
+  }
+};
+
+/* =========================================================
+   REMOVE EMPLOYEE FROM BRANCH
+========================================================= */
+Controller.prototype.removeEmployeeFromBranch = async (req, res) => {
+  try {
+    const { branchId, employeeId } = req.params;
+
+    const branch = await Branch.findById(branchId);
+    const user = await User.findById(employeeId);
+
+    if (!branch || !user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Branch or employee not found'
+      });
+    }
+
+    if (!user.branch || user.branch.toString() !== branchId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee does not belong to this branch'
+      });
+    }
+
+    user.branch = null;
+    await user.save();
+
+    await ActivityLog.logActivity({
+      action: 'REMOVE_EMPLOYEE_FROM_BRANCH',
+      module: 'branch',
+      user: req.user._id,
+      roleAtThatTime: req.user.role,
+      branch: branch._id,
+      targetEntity: {
+        modelName: 'TWgoldUser',
+        entityId: user._id
+      },
+      details: {
+        employeeName: user.name,
+        branchName: branch.branchName
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    res.json({
+      success: true,
+      message: 'Employee removed from branch successfully'
+    });
+
+  } catch (error) {
+    console.error('Remove employee error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to remove employee from branch'
+    });
+  }
+};
+
+/* =========================================================
+   TRANSFER EMPLOYEE BETWEEN BRANCHES
+========================================================= */
+Controller.prototype.transferEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { toBranchId } = req.body;
+
+    if (!toBranchId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Target branch is required'
+      });
+    }
+
+    const user = await User.findById(employeeId);
+    const newBranch = await Branch.findById(toBranchId);
+
+    if (!user || !newBranch) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee or target branch not found'
+      });
+    }
+
+    const fromBranchId = user.branch;
+
+    user.branch = newBranch._id;
+    await user.save();
+
+    await ActivityLog.logActivity({
+      action: 'TRANSFER_EMPLOYEE',
+      module: 'branch',
+      user: req.user._id,
+      roleAtThatTime: req.user.role,
+      branch: newBranch._id,
+      targetEntity: {
+        modelName: 'TWgoldUser',
+        entityId: user._id
+      },
+      details: {
+        employeeName: user.name,
+        fromBranch: fromBranchId,
+        toBranch: newBranch.branchName
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    res.json({
+      success: true,
+      message: 'Employee transferred successfully'
+    });
+
+  } catch (error) {
+    console.error('Transfer employee error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to transfer employee'
+    });
+  }
+};
+
+/* =========================================================
+   EMPLOYEE BRANCH ASSIGNMENT HISTORY
+========================================================= */
+Controller.prototype.getEmployeeBranchHistory = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const logs = await ActivityLog.find({
+      'targetEntity.entityId': employeeId,
+      action: {
+        $in: [
+          'ADD_EMPLOYEE_TO_BRANCH',
+          'REMOVE_EMPLOYEE_FROM_BRANCH',
+          'TRANSFER_EMPLOYEE'
+        ]
+      }
+    })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.json({
+      success: true,
+      data: logs
+    });
+
+  } catch (error) {
+    console.error('Employee history error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch employee branch history'
+    });
+  }
+};
+
 
 module.exports = new Controller();

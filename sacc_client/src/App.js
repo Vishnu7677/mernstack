@@ -40,7 +40,7 @@ import { TwgoldAuthProvider } from './components/TWGold/TWGLogin/TwgoldAuthConte
 import TwgoldLogin from './components/TWGold/TWGLogin/TwgoldLogin';
 import { TwgoldProtectedRoute } from './components/TWGold/TWGLogin/TwgoldProtectedRoute';
 import TwgoldAdminDashboard from './components/TWGold/Admin/TwgoldAdminDashboard';
-import TwgoldManagerDashboard from './components/TWGold/Manager/TwgoldManagerDashboard';
+// import TwgoldManagerDashboard from './components/TWGold/Manager/TwgoldManagerDashboard';
 import TwgoldEmployeeDashboard from './components/TWGold/Employee/EmployeeDashboard';
 import TwgoldGrivirenceDashboard from './components/TWGold/Grivirence/TwgoldGrivirenceDashboard';
 import GoldRates from './components/TWGold/Admin/GoldRates';
@@ -50,7 +50,19 @@ import TwgoldHome from './components/TWGold/Home/TwgoldHome';
 import Twgoldemployeeloan from './components/TWGold/Employee/Twgoldemployeeloan';
 import ManageBranches from './components/TWGold/Admin/ManageBranches';
 import EditBranch from './components/TWGold/Admin/EditBranch';
-import TWgoldAccountOpeningForm from './components/TWGold/Employee/TWgoldAccountOpeningForm'
+import TWgoldAccountOpeningForm from './components/TWGold/Employee/TWgoldAccountOpeningForm';
+import ManagerLayout from './components/TWGold/Manager/layout/ManagerLayout';
+import DashboardContainer from './components/TWGold/Manager/containers/DashboardContainer';
+import NewLoanContainer from './components/TWGold/Manager/containers/NewLoanContainer';
+import LoanListContainer from './components/TWGold/Manager/containers/LoanListContainer';
+import InventoryContainer from './components/TWGold/Manager/containers/InventoryContainer';
+import CustomersContainer from './components/TWGold/Manager/containers/CustomersContainer';
+import RepaymentsContainer from './components/TWGold/Manager/containers/RepaymentsContainer';
+import ReportsContainer from './components/TWGold/Manager/containers/ReportsContainer';
+import UsersContainer from './components/TWGold/Manager/containers/UsersContainer';
+
+
+
 
 function App() {
   return (
@@ -245,14 +257,26 @@ function App() {
           } />
           
           <Route
-  path="/twgl&articles/manager/dashboard"
+  path="/twgl&articles/manager"
   element={
     <TwgoldProtectedRoute allowedRoles={['manager', 'rm', 'zm']}>
-      <TwgoldManagerDashboard />
+      <ManagerLayout />
     </TwgoldProtectedRoute>
   }
-/>
+>
+  {/* Default */}
+  <Route index element={<DashboardContainer />} />
 
+  {/* Pages */}
+  <Route path="dashboard" element={<DashboardContainer />} />
+  <Route path="new-loan" element={<NewLoanContainer />} />
+  <Route path="loans" element={<LoanListContainer />} />
+  <Route path="inventory" element={<InventoryContainer />} />
+  <Route path="repayments" element={<RepaymentsContainer />} />
+  <Route path="customers" element={<CustomersContainer />} />
+  <Route path="reports" element={<ReportsContainer />} />
+  <Route path="users" element={<UsersContainer />} />
+</Route>
           
 <Route
   path="/twgl&articles/employee/dashboard"

@@ -162,7 +162,7 @@ const TwgoldManagerDashboard = () => {
       <TwgoldManagernavbar activeModule={activeModule} setActiveModule={setActiveModule} />
       <main className="twgold_manager_content">
         <div className="twgold_manager_breadcrumb">
-          Admin / {activeModule.charAt(0).toUpperCase() + activeModule.slice(1)}
+          Manager / {activeModule.charAt(0).toUpperCase() + activeModule.slice(1)}
         </div>
         {renderModule()}
       </main>

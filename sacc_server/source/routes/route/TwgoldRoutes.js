@@ -120,15 +120,26 @@ router.get('/admin/dashboard',
 );
 
 router.get('/manager/dashboard',  
-  twgold_requireRole(['manager']),
+  twgold_requireRole(['manager','rm','zm']),
   twgold_checkPermission('loan_management', 'approve'),
-  (req, res) => {
-    res.json({
-      success: true,
-      message: 'Welcome to Manager Dashboard',
-      data: { managerData: 'Manager specific information' }
-    });
-  }
+  ServiceManager.TWgoldLoans.dashboardStats
+);
+router.get('/manager/sla-buckets',  
+  twgold_requireRole(['manager','rm','zm']),
+  twgold_checkPermission('loan_management', 'approve'),
+  ServiceManager.TWgoldLoans.slaBuckets
+);
+
+router.get('/manager/monthly-stats',  
+  twgold_requireRole(['manager','rm','zm']),
+  twgold_checkPermission('loan_management', 'approve'),
+  ServiceManager.TWgoldLoans.monthlyStats
+);
+
+router.get('/admin/branch-comparison',  
+  twgold_requireRole(['admin','rm','zm']),
+  twgold_checkPermission('reporting', 'read'),
+  ServiceManager.TWgoldLoans.branchComparison
 );
 
 router.get('/employee/dashboard',  

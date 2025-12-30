@@ -203,4 +203,115 @@ export const getActivitiesByDateRange = (params) => api.get('/twgoldbranch/activ
 export const getUserActivities = (userId) => api.get(`/twgoldbranch/activities/user/${userId}`);
 
 
+// Get customer by Customer ID
+export const getCustomerByCustomerId = (customerId) =>
+  api.get(`/twgoldcustomers/customers/by-customer-id/${customerId}`);
+
+// Update daily gold rates (ADMIN only)
+export const updateDailyGoldRates = (data) =>
+  api.post('/twgoldrate/gold-rates', data);
+
+// Get current gold rates (AUTH required)
+export const getCurrentGoldRates = () =>
+  api.get('/twgoldrate/gold-rates/current');
+
+// Get gold rate history
+export const getGoldRateHistory = () =>
+  api.get('/twgoldrate/gold-rates/history');
+
+// Create gold loan (Clerk)
+export const createGoldLoan = (data) =>
+  api.post('/twgoldloans/loans', data);
+
+// Loan preview / EMI calculation (Clerk)
+export const calculateGoldLoan = (data) =>
+  api.post('/twgoldloans/loans/calculate', data);
+
+// Get loans created by logged-in employee
+export const getMyLoans = () =>
+  api.get('/twgoldloans/loans/my');
+
+// Collect EMI (Clerk)
+export const collectLoanEmi = (data) =>
+  api.post('/twgoldloans/loans/collect-emi', data);
+
+// Get loans pending approval (Manager)
+export const getPendingLoans = () =>
+  api.get('/twgoldloans/loans/pending-approval');
+
+// Approve / Reject loan (Manager)
+export const decideLoan = (loanId, data) =>
+  api.post(`/twgoldloans/loans/${loanId}/decision`, data);
+
+// =========================================================
+// DASHBOARD & ROLE-BASED ACCESS ROUTES
+// =========================================================
+
+// Manager Dashboard
+export const getManagerDashboard = () =>
+  api.get('/twgoldlogin/manager/dashboard');
+
+// Manager Analytics
+export const getManagerMonthlyStats = () =>
+  api.get('/twgoldlogin/manager/monthly-stats');
+
+export const getManagerSLABuckets = () =>
+  api.get('/twgoldlogin/manager/sla-buckets');
+
+export const fetchInventorySummary = () =>
+  api.get('/twgoldlogin/manager/fetch-inventory');
+
+// Employee Dashboard
+export const getEmployeeDashboard = () =>
+  api.get('/twgoldlogin/employee/dashboard');
+
+// Grivirence Dashboard
+export const getGrivirenceDashboard = () =>
+  api.get('/twgoldlogin/grivirence/dashboard');
+
+// Admin / Management
+export const getManagementData = () =>
+  api.get('/twgoldlogin/management/data');
+
+export const getBranchComparison = () =>
+  api.get('/twgoldlogin/admin/branch-comparison');
+
+// 🔍 Search Employees (for UI)
+export const searchEmployees = (params) =>
+  api.get('/twgoldbranch/employees/search', { params });
+
+// =========================================================
+// 🏦 BRANCH – EMPLOYEE MANAGEMENT (MISSING APIs)
+// =========================================================
+
+// ❌ Remove employee from branch
+export const removeEmployeeFromBranch = (branchId, employeeId) =>
+  api.delete(`/twgoldbranch/branches/${branchId}/employees/${employeeId}`);
+
+// 🔁 Transfer employee to another branch
+// payload example: { toBranchId: '...' }
+export const transferEmployee = (employeeId, data) =>
+  api.post(`/twgoldbranch/employees/${employeeId}/transfer`, data);
+
+// 🧾 Employee branch history (audit / timeline)
+export const getEmployeeBranchHistory = (employeeId) =>
+  api.get(`/twgoldbranch/employees/${employeeId}/branch-history`);
+
+// =========================================================
+// 👥 BULK EMPLOYEE ASSIGNMENT (OPTIONAL BUT RECOMMENDED)
+// =========================================================
+
+// Bulk assign employees to branch
+// payload example: { employees: ['id1','id2'] }
+export const addEmployeesToBranchBulk = (branchId, data) =>
+  api.post(`/twgoldbranch/branches/${branchId}/employees/bulk`, data);
+
+// =========================================================
+// 📊 BRANCH DASHBOARD STATS
+// =========================================================
+
+export const getBranchDashboardStats = () =>
+  api.get('/twgoldbranch/dashboard/stats');
+
+
 export default api;

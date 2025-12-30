@@ -34,6 +34,8 @@ router.post(
  */
 router.get(
   '/branches',
+  twgold_requireRole(['admin', 'manager', 'rm', 'zm']),
+  twgold_checkPermission('reporting', 'read'),
   ServiceManager.TWgoldBranches.getAllBranches
 );
 
@@ -81,6 +83,49 @@ router.post(
   twgold_checkScope('branch'),
   ServiceManager.TWgoldBranches.addEmployeeToBranch
 );
+
+// Get Branch by ID
+router.get(
+  '/branches/:id',
+  twgold_requireRole(['admin', 'manager', 'rm', 'zm']),
+  twgold_checkPermission('reporting', 'read'),
+  ServiceManager.TWgoldBranches.getBranchById
+);
+
+// Get Branch by ID
+router.get(
+  '/branches/:id',
+  twgold_requireRole(['admin', 'manager', 'rm', 'zm']),
+  twgold_checkPermission('reporting', 'read'),
+  ServiceManager.TWgoldBranches.getBranchById
+);
+
+/* =========================================================
+   EMPLOYEE–BRANCH ACTION ROUTES
+========================================================= */
+
+router.delete(
+  '/branches/:branchId/employees/:employeeId',
+  twgold_requireRole(['admin', 'manager']),
+  twgold_checkPermission('employee_management', 'manage'),
+  twgold_checkScope('branch'),
+  ServiceManager.TWgoldBranches.removeEmployeeFromBranch
+);
+
+router.post(
+  '/employees/:employeeId/transfer',
+  twgold_requireRole(['admin', 'rm', 'zm']),
+  twgold_checkPermission('employee_management', 'manage'),
+  ServiceManager.TWgoldBranches.transferEmployee
+);
+
+router.get(
+  '/employees/:employeeId/branch-history',
+  twgold_requireRole(['admin', 'manager']),
+  twgold_checkPermission('reporting', 'read'),
+  ServiceManager.TWgoldBranches.getEmployeeBranchHistory
+);
+
 
 /* =========================================================
    📜 ACTIVITY LOG ROUTES

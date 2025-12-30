@@ -69,7 +69,6 @@ const branchSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'TWgoldUser',
     required: [true, 'Branch manager is required'],
-    unique: true
   },
   performance: {
     type: branchPerformanceSchema,

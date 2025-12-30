@@ -68,10 +68,11 @@ router.post(
  */
 router.get(
   '/loans/pending-approval',
-  twgold_requireRole(['manager']),
+  twgold_requireRole(['manager','rm','zm','admin']),
   twgold_checkPermission('loan_management', 'read'),
-  ServiceManager.TWgoldLoans.getPendingLoans // optional, if implemented
+  ServiceManager.TWgoldLoans.getPendingLoans
 );
+
 
 /**
  * Approve / Reject Loan
@@ -79,7 +80,7 @@ router.get(
  */
 router.post(
   '/loans/:loanId/decision',
-  twgold_requireRole(['manager']),
+  twgold_requireRole(['manager','rm','zm','admin']),
   twgold_checkPermission('loan_management', 'write'),
   twgold_checkScope('branch'),
   ServiceManager.TWgoldLoans.approveOrRejectLoan // optional, if implemented

@@ -36,7 +36,25 @@ const userSchema = new mongoose.Schema({
     uppercase: true
   },
   profileImage: String, // URL to avatar (lightweight)
-
+  region: {
+    type: String,
+    index: true
+  },
+  zone: {
+    type: String,
+    index: true
+  },
+  branchHistory: [{
+    branch: { type: mongoose.Schema.Types.ObjectId, ref: 'TWGoldBranch' },
+    assignedAt: Date,
+    removedAt: Date,
+    action: {
+      type: String,
+      enum: ['assigned', 'transferred', 'removed']
+    }
+  }],
+  
+  
   // --- Organization Role ---
   role: {
     type: String,
@@ -58,6 +76,7 @@ branch: {
 
   // --- Hierarchy ---
   reportsTo: { type: mongoose.Schema.Types.ObjectId, ref: 'TWgoldUser' },
+  
 
   // --- Permissions (RBAC) ---
   // Kept in User Schema for fast middleware checkin

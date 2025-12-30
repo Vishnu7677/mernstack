@@ -294,7 +294,7 @@ const CreatingEmployee = () => {
           setIsAadhaarAlreadyVerified(true);
           
           // Fetch verified details
-          const verifiedResponse = await api.post('/twgoldlogin/user/aadhaar/get-verified-details', {
+          const verifiedResponse = await api.post('/twgoldlogin/aadhaar/get-verified-details', {
             aadhaar_number: aadhaarNumber
           });
           
@@ -404,7 +404,7 @@ const CreatingEmployee = () => {
         return;
       }
 
-      const response = await api.post('/twgoldlogin/user/aadhaar/generate-otp', {
+      const response = await api.post('/twgoldlogin/aadhaar/generate-otp', {
         aadhaar_number: aadhaarData.aadhaar_number,
         phone_number: aadhaarData.phone_number,
         email_id: aadhaarData.email_id,
@@ -433,7 +433,7 @@ const CreatingEmployee = () => {
       setLoading(true);
       setError('');
 
-      const response = await api.post('/twgoldlogin/user/aadhaar/verify-otp', {
+      const response = await api.post('/twgoldlogin/aadhaar/verify-otp', {
         aadhaar_number: aadhaarData.aadhaar_number,
         otp: otp,
         reference_id: referenceId,

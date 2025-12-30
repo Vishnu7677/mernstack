@@ -368,5 +368,326 @@ Controller.prototype.approveOrRejectLoan = async function (req, res) {
   }
 };
 
+Controller.prototype.dashboardStats = async function (req, res) {
+  try {
+    const branchId = req.user.branch;
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [
+      pendingApprovals,
+      activeLoans,
+      totalGold,
+      todayDisbursement,
+      approvedToday,
+      rejectedToday
+    ] = await Promise.all([
+      Loan.aggregate([
+        { $match: { branch: branchId, status: 'pending_approval' } },
+        { $count: 'count' }
+      ]),
+
+      Loan.aggregate([
+        {
+          $match: {
+            branch: branchId,
+            status: { $in: ['active', 'overdue', 'npa'] }
+          }
+        },
+        { $count: 'count' }
+      ]),
+
+      Loan.aggregate([
+        {
+          $match: {
+            branch: branchId,
+            status: { $in: ['approved', 'active', 'overdue', 'npa'] }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalGold: { $sum: '$totalGoldWeight' }
+          }
+        }
+      ]),
+
+      Loan.aggregate([
+        {
+          $match: {
+            branch: branchId,
+            status: { $in: ['approved', 'active'] },
+            disbursementDate: { $gte: todayStart }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$sanctionedAmount' }
+          }
+        }
+      ]),
+
+      Loan.aggregate([
+        {
+          $match: {
+            branch: branchId,
+            status: 'approved',
+            updatedAt: { $gte: todayStart }
+          }
+        },
+        { $count: 'count' }
+      ]),
+
+      Loan.aggregate([
+        {
+          $match: {
+            branch: branchId,
+            status: 'rejected',
+            updatedAt: { $gte: todayStart }
+          }
+        },
+        { $count: 'count' }
+      ])
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        pendingApprovals: pendingApprovals[0]?.count || 0,
+        activeLoans: activeLoans[0]?.count || 0,
+        totalGold: totalGold[0]?.totalGold || 0,
+        todayDisbursement: todayDisbursement[0]?.total || 0,
+        approvedToday: approvedToday[0]?.count || 0,
+        rejectedToday: rejectedToday[0]?.count || 0
+      }
+    });
+
+  } catch (err) {
+    console.error('Manager dashboard error:', err);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load manager dashboard',
+      error: err.message
+    });
+  }
+};
+
+
+Controller.prototype.slaBuckets = async function (req, res) {
+  try {
+    const branchId = req.user.branch;
+
+    const buckets = await Loan.aggregate([
+      {
+        $match: {
+          branch: branchId,
+          status: 'pending_approval'
+        }
+      },
+      {
+        $project: {
+          hoursPending: {
+            $divide: [
+              { $subtract: [new Date(), '$createdAt'] },
+              1000 * 60 * 60
+            ]
+          }
+        }
+      },
+      {
+        $bucket: {
+          groupBy: '$hoursPending',
+          boundaries: [0, 24, 48, 100000],
+          default: 'unknown',
+          output: {
+            count: { $sum: 1 }
+          }
+        }
+      }
+    ]);
+
+    const response = {
+      '0-24h': 0,
+      '24-48h': 0,
+      '48h+': 0
+    };
+
+    buckets.forEach(b => {
+      if (b._id === 0) response['0-24h'] = b.count;
+      if (b._id === 24) response['24-48h'] = b.count;
+      if (b._id === 48) response['48h+'] = b.count;
+    });
+
+    res.json({
+      success: true,
+      data: response
+    });
+
+  } catch (err) {
+    console.error('SLA bucket error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load SLA buckets',
+      error: err.message
+    });
+  }
+};
+
+
+Controller.prototype.monthlyStats = async function (req, res) {
+  try {
+    const branchId = req.user.branch;
+
+    const approvalTrend = await Loan.aggregate([
+      {
+        $match: {
+          branch: branchId,
+          status: { $in: ['approved', 'rejected'] }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$updatedAt' },
+            month: { $month: '$updatedAt' },
+            status: '$status'
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: '$_id.year',
+            month: '$_id.month'
+          },
+          approved: {
+            $sum: {
+              $cond: [{ $eq: ['$_id.status', 'approved'] }, '$count', 0]
+            }
+          },
+          rejected: {
+            $sum: {
+              $cond: [{ $eq: ['$_id.status', 'rejected'] }, '$count', 0]
+            }
+          }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ]);
+
+    const disbursementTrend = await Loan.aggregate([
+      {
+        $match: {
+          branch: branchId,
+          status: { $in: ['approved', 'active'] },
+          disbursementDate: { $ne: null }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$disbursementDate' },
+            month: { $month: '$disbursementDate' }
+          },
+          totalDisbursed: { $sum: '$sanctionedAmount' }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ]);
+
+    const goldTrend = await Loan.aggregate([
+      {
+        $match: {
+          branch: branchId,
+          status: { $in: ['approved', 'active', 'overdue', 'npa'] }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          goldWeight: { $sum: '$totalGoldWeight' }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        approvalTrend,
+        disbursementTrend,
+        goldTrend
+      }
+    });
+
+  } catch (err) {
+    console.error('Monthly stats error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load monthly statistics',
+      error: err.message
+    });
+  }
+};
+
+Controller.prototype.branchComparison = async function (req, res) {
+  try {
+    const comparison = await Loan.aggregate([
+      {
+        $match: {
+          status: { $in: ['active', 'overdue', 'npa'] }
+        }
+      },
+      {
+        $group: {
+          _id: '$branch',
+          activeLoans: { $sum: 1 },
+          totalGold: { $sum: '$totalGoldWeight' },
+          totalOutstanding: { $sum: '$outstandingPrincipal' }
+        }
+      },
+      {
+        $lookup: {
+          from: 'twgoldbranches',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'branch'
+        }
+      },
+      { $unwind: '$branch' },
+      {
+        $project: {
+          branchId: '$_id',
+          branchName: '$branch.branchName',
+          activeLoans: 1,
+          totalGold: 1,
+          totalOutstanding: 1
+        }
+      },
+      { $sort: { totalOutstanding: -1 } }
+    ]);
+
+    res.json({
+      success: true,
+      data: comparison
+    });
+
+  } catch (err) {
+    console.error('Branch comparison error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load branch comparison',
+      error: err.message
+    });
+  }
+};
+
 
 module.exports = new Controller();
