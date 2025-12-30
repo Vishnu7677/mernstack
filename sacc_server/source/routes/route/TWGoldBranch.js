@@ -34,8 +34,8 @@ router.post(
  */
 router.get(
   '/branches',
-  twgold_requireRole(['admin', 'manager', 'rm', 'zm']),
-  twgold_checkPermission('reporting', 'read'),
+  // twgold_requireRole(['admin', 'manager', 'rm', 'zm']),
+  // twgold_checkPermission('reporting', 'read'),
   ServiceManager.TWgoldBranches.getAllBranches
 );
 
