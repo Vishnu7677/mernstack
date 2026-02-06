@@ -8,7 +8,7 @@ const TWgoldAdmin = require('../../commons/models/mongo/documents/TWGoldAdmin');
 const EmploymentProfile = require('../../commons/models/mongo/documents/TWGoldEmploymentProfile');
 const { generateToken, generateRefreshToken } = require('../../middleware/TwGold/jwtConfig');
 const { mapEmployeePayload } = require('../../commons/util/PayloadManager/employeePayloadMapper');
-
+const ActivityLog = require('../../commons/models/mongo/documents/TWGoldActivitylog');
 
 // Temporary Session Schemas
 const AadhaarSessionSchema = new mongoose.Schema({
@@ -329,7 +329,7 @@ Controller.prototype.registerAdmin = async function (req, res) {
       name,
       role: 'admin',
       department,
-      branch: branch || 'Head Office',
+      branch: branch || null,
       designation: designation || 'Administrator'
     });
     
