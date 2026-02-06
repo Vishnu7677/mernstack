@@ -50,6 +50,7 @@ const LoanCreation = () => {
   const fetchGoldRates = async () => {
     try {
       const res = await api.get('/twgoldrate/gold-rates/current');
+      console.log(res.data)
       if (res.data.success) {
         setGoldRates(res.data.data.rates);
         setRateDate(res.data.data.date);
@@ -114,7 +115,7 @@ const LoanCreation = () => {
     try {
       setValidationError('');
 
-      const res = await api.post('/twgoldloan/loans/calculate', {
+      const res = await api.post('/twgoldloans/loans/calculate', {
         carat: loanForm.purity,
         weight: Number(loanForm.goldWeight),
         requestedAmount: Number(loanForm.reqAmount),
@@ -189,7 +190,7 @@ const LoanCreation = () => {
   /* ================= CREATE LOAN ================= */
   const createLoan = async () => {
     try {
-      const res = await api.post('/twgoldloan/loans', {
+      const res = await api.post('/twgoldloans/loans', {
         customerId: fullCustomerId,
         goldItems: [
           {

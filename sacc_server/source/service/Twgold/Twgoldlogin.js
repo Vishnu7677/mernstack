@@ -1690,76 +1690,52 @@ Controller.prototype.updateUserStatus = async function(req, res) {
 };
 
 // Update User Permissions
-Controller.prototype.updateUserPermissions = async function(req, res) {
+Controller.prototype.updateUserPermissions = async function (req, res) {
   try {
     const { id } = req.params;
     const { permissions } = req.body;
 
-    if (!permissions || !Array.isArray(permissions)) {
+    if (!Array.isArray(permissions)) {
       return res.status(400).json({
         success: false,
-        message: 'Permissions array required',
-        code: 'INVALID_PERMISSIONS'
+        message: 'Permissions array required'
       });
     }
+
+    // ✅ REMOVE DUPLICATES (module + access + scope)
+    const uniquePermissions = Array.from(
+      new Map(
+        permissions.map(p => [
+          `${p.module}_${p.access}_${p.scope || 'branch'}`,
+          {
+            module: p.module,
+            access: p.access,
+            scope: p.scope || 'branch'
+          }
+        ])
+      ).values()
+    );
 
     const user = await TWgoldUser.findById(id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-        code: 'USER_NOT_FOUND'
-      });
+      return res.status(404).json({ success: false });
     }
 
-    // Only admin can update permissions
     if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only admin can update permissions',
-        code: 'INSUFFICIENT_PERMISSIONS'
-      });
+      return res.status(403).json({ success: false });
     }
 
-    user.permissions = permissions;
+    user.permissions = uniquePermissions;
     await user.save();
-
-    await this.logActivity({
-      action: 'User permissions updated',
-      module: 'compliance',
-      user: req.user._id,
-      branch: user.branch,
-      targetEntity: {
-        entityId: user._id,
-        modelName: 'TWgoldUser'
-      },
-      details: {
-        permissions
-      },
-      req
-    });
-    
 
     res.status(200).json({
       success: true,
-      message: 'User permissions updated successfully',
-      data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        roleDisplay: this.getRoleDisplayName(user.role),
-        permissions: user.permissions
-      }
+      permissions: user.permissions
     });
 
-  } catch (error) {
-    console.error('Update permissions error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to update permissions',
-      code: 'PERMISSIONS_UPDATE_FAILED'
-    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
   }
 };
 

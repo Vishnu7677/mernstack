@@ -8,6 +8,8 @@ const CreatingEmployee = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [createdEmployeeId, setCreatedEmployeeId] = useState('');
+
 
   // Step 1: Aadhaar Verification
   const [aadhaarData, setAadhaarData] = useState({
@@ -550,9 +552,7 @@ const CreatingEmployee = () => {
         setSuccess(true);
         setCurrentStep(5);
         setCreatedUserRole(userData.role || selectedRole);
-        
-        // Reset form on success
-        resetForm();
+        setCreatedEmployeeId(response.data?.data?.user?.employeeId || '');
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to create user');
@@ -2193,21 +2193,33 @@ const CreatingEmployee = () => {
   const renderSuccess = () => (
     <div className="creating-employee-success">
       <div className="creating-employee-success-icon">✓</div>
+  
       <h2>User Created Successfully!</h2>
+  
       <p>
-        The {getRoleDisplayName(createdUserRole)} has been added to the system with Aadhaar verification.
+        The {getRoleDisplayName(createdUserRole)} has been added to the system.
       </p>
-
+  
+      <div className="creating-employee-review-item">
+        <span className="creating-employee-review-label">Employee ID</span>
+        <span className="creating-employee-review-value">
+          {createdEmployeeId || '—'}
+        </span>
+      </div>
+  
       <div className="creating-employee-button-group" style={{ justifyContent: 'center', gap: '15px' }}>
         <button
           className="creating-employee-button creating-employee-button-primary"
-          onClick={clearAllAndStartNew}
+          onClick={() => {
+            clearAllAndStartNew(); // now reset safely
+          }}
         >
           Create Another User
         </button>
       </div>
     </div>
   );
+  
 
   return (
     <div>

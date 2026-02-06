@@ -12,21 +12,32 @@ const normalizeDate = (date = new Date()) => {
 
 /* CURRENT RATES */
 Controller.prototype.getCurrentRates = async (req, res) => {
-  const today = normalizeDate();
+  try {
+    const record = await DailyGoldRate
+    .findOne({})
+    .sort({ date: -1, updatedAt: -1 })
+    .select('rates date updatedAt remarks');
 
-  const record = await DailyGoldRate.findOne({
-    date: { $lte: today }
-  })
-    .sort({ date: -1 })
-    .select('rates date');
-
-  res.json({
-    success: true,
-    data: record
-      ? { rates: record.rates, date: record.date }
-      : null
-  });
+    return res.json({
+      success: true,
+      data: record
+        ? {
+            rates: record.rates,
+            date: record.date,
+            updatedAt: record.updatedAt,
+            remarks: record.remarks
+          }
+        : null
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch current gold rates'
+    });
+  }
 };
+
 
 
 

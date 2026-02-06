@@ -7,7 +7,6 @@ import {
   Users, 
   Gem, 
   FileText, 
-  Settings, 
   Shield,
   Activity,
   Menu,
@@ -32,9 +31,9 @@ const Navbar = () => {
     { path: '/twgl&articles/admin/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/twgl&articles/admin/branches', icon: Building2, label: 'Branches' },
     { path: '/twgl&articles/admin/employees', icon: Users, label: 'Employees' },
+    { path: '/twgl&articles/admin/manageemployees', icon: Users, label: 'Manage Employees' },
     { path: '/twgl&articles/admin/gold-rates', icon: Gem, label: 'Gold Rates' },
     { path: '/twgl&articles/admin/loans', icon: FileText, label: 'Loans' },
-    { path: '/twgl&articles/admin/settings', icon: Settings, label: 'Settings' },
     { path: '/twgl&articles/admin/audit', icon: Activity, label: 'Audit Log' },
     { path: '/twgl&articles/admin/compliance', icon: Shield, label: 'Compliance' },
   ];

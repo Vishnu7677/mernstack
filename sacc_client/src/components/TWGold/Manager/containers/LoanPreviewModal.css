@@ -1,0 +1,54 @@
+.twgold_modal_backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .twgold_modal {
+    background: #fff;
+    width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 10px;
+  }
+  
+  .twgold_modal_header,
+  .twgold_modal_footer {
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .twgold_modal_footer {
+    border-top: 1px solid #eee;
+  }
+  
+  .twgold_modal_body {
+    padding: 16px;
+  }
+  
+  .twgold_modal_body section {
+    margin-bottom: 16px;
+  }
+  
+  .approve {
+    background: #2ecc71;
+    color: white;
+  }
+  
+  .reject {
+    background: #e74c3c;
+    color: white;
+  }
+  
+  .print {
+    background: #3498db;
+    color: #fff;
+    margin-right: auto;
+  }
+  

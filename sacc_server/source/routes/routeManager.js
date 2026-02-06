@@ -46,7 +46,7 @@ router.use('/api/upload', uploadRoutes);
 router.use('/api/twgoldlogin',TwGoldLogin)
 router.use('/api/twgoldbranch',TWGoldBranch)
 router.use('/api/twgoldrate',TWGoldRate)
-router.use('/api/twgoldloan',TWGoldLoan)
+router.use('/api/twgoldloans',TWGoldLoan)
 router.use('/api/twgoldcustomer',TWGoldCustomer)
 
 

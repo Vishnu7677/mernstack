@@ -168,7 +168,7 @@ router.get('/grivirence/dashboard',
 
 // Multi-role access example
 router.get('/management/data',  
-  twgold_requireRole(['admin', 'manager']),
+  twgold_requireRole(['admin', 'manager','rm','zm']),
   twgold_checkPermission('loan_management', 'approve'),
   (req, res) => {
     res.json({

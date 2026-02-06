@@ -60,6 +60,7 @@ import CustomersContainer from './components/TWGold/Manager/containers/Customers
 import RepaymentsContainer from './components/TWGold/Manager/containers/RepaymentsContainer';
 import ReportsContainer from './components/TWGold/Manager/containers/ReportsContainer';
 import UsersContainer from './components/TWGold/Manager/containers/UsersContainer';
+import ManageEmployees from './components/TWGold/Admin/ManageEmployees';
 
 
 
@@ -217,6 +218,11 @@ function App() {
           <Route path="/twgl&articles/admin/branches/create" element={
             <TwgoldProtectedRoute allowedRoles={['admin']}>
               <TWgoldBranchCreate />
+            </TwgoldProtectedRoute>
+          } />
+          <Route path="/twgl&articles/admin/manageemployees" element={
+            <TwgoldProtectedRoute allowedRoles={['admin']}>
+              <ManageEmployees />
             </TwgoldProtectedRoute>
           } />
           

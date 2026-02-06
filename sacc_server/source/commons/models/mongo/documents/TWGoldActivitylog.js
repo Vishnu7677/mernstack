@@ -43,7 +43,7 @@ const activityLogSchema = new mongoose.Schema({
     modelName: {
       type: String,
       required: true,
-      enum: ['TWGoldBranch', 'TWgoldUser', 'TWGoldLoan', 'TWGoldCustomer', 'TWGoldRate']
+      enum: ['TWGoldBranch', 'TWgoldUser', 'Loan', 'TWGoldCustomer', 'TWGoldRate']
     }
   },
   

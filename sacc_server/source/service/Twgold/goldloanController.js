@@ -2,6 +2,8 @@ const Loan = require('../../commons/models/mongo/documents/TWGoldItems');
 const Customer = require('../../commons/models/mongo/documents/TWGoldCustomer');
 const DailyGoldRate = require('../../commons/models/mongo/documents/TWGoldRates');
 const ActivityLog = require('../../commons/models/mongo/documents/TWGoldActivitylog');
+const { generatePaymentSchedule } = require('../../commons/util/general/paymentScheduleGenerator');
+
 
 // Calculate LTV based interest rate// Calculate LTV based interest rate
 const calculateInterestRate = (ltv) => {
@@ -23,14 +25,10 @@ const calculateInterestRate = (ltv) => {
 const normalizeCarat = (carat) => carat.toUpperCase();
 
 const getLatestGoldRate = async () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  return DailyGoldRate.findOne({
-    date: { $lte: today }
-  })
-    .sort({ date: -1 })
-    .select('rates date');
+  return DailyGoldRate
+      .findOne({})
+      .sort({ date: -1, updatedAt: -1 })
+      .select('rates date updatedAt remarks');
 };
 const getPurityPercentage = (carat) => {
   const k = parseInt(carat);
@@ -149,15 +147,8 @@ Controller.prototype.calculateLoan = async function (req, res) {
       });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // ✅ Fetch LAST UPDATED gold rate (not strictly today)
-    const dailyRate = await DailyGoldRate.findOne({
-      date: { $lte: today }
-    })
-      .sort({ date: -1 })
-      .select('rates date');
+   // ✅ Fetch MOST RECENT gold rate (same logic as getCurrentRates)
+   const dailyRate = await getLatestGoldRate()
 
     if (!dailyRate) {
       return res.status(404).json({
@@ -300,7 +291,7 @@ Controller.prototype.getPendingLoans = async function (req, res) {
       branch: req.user.branch, 
       status: 'pending_approval' 
     })
-    .populate('customer', 'name phone')
+    .populate('customer', 'name phone customerId')
     .populate('createdBy', 'name employeeId')
     .sort({ createdAt: -1 });
 
@@ -315,15 +306,17 @@ Controller.prototype.approveOrRejectLoan = async function (req, res) {
   try {
     const { loanId } = req.params; // This is the loanAccountNumber
     const { decision, remarks, finalSanctionedAmount } = req.body;
+    console.log(decision, loanId , remarks ,finalSanctionedAmount)
 
     if (!['approve', 'reject'].includes(decision)) {
       return res.status(400).json({ success: false, message: 'Invalid decision' });
     }
 
     const loan = await Loan.findOne({ 
-      loanAccountNumber: loanId, 
+      _id: loanId, 
       branch: req.user.branch 
     });
+    console.log(loan)
 
     if (!loan) {
       return res.status(404).json({ success: false, message: 'Loan account not found' });
@@ -336,26 +329,73 @@ Controller.prototype.approveOrRejectLoan = async function (req, res) {
     if (decision === 'approve') {
       loan.status = 'approved';
       loan.approvedBy = req.user.id;
-      // Manager can override the sanctioned amount if needed
+    
       loan.sanctionedAmount = finalSanctionedAmount || loan.requestedAmount;
-      loan.disbursementDate = new Date();
-      loan.outstandingPrincipal = loan.sanctionedAmount; // Update principal based on final sanction
+      loan.outstandingPrincipal = loan.sanctionedAmount;
+      loan.startDate = new Date();
+    
+      // AUTO CREATE PAYMENT SCHEDULE
+      loan.paymentSchedule = generatePaymentSchedule(loan);
+      loan.nextDueDate = loan.paymentSchedule[0]?.dueDate;
+    
+      loan.verification.finalApproved = true;
       loan.remarks = remarks || 'Approved by Manager';
+    
+      await loan.save();
+    
+      // 🔥 UPDATE CUSTOMER
+      await Customer.findByIdAndUpdate(
+        loan.customer,
+        {
+          $set: {
+            loanAccountnumber: loan.loanAccountNumber,
+            status: 'active'
+          },
+          $inc: {
+            activeLoanCount: 1,
+            totalLoansTaken: 1,
+            totalLoanAmount: loan.sanctionedAmount
+          }
+        },
+        { new: true }
+      );
+    
     } else {
       loan.status = 'rejected';
       loan.remarks = remarks || 'Rejected by Manager';
+      await loan.save();
     }
+    
 
-    await loan.save();
-
+    try {
     // Log the activity
     await ActivityLog.logActivity({
-      action: `Loan ${decision}d`,
+      action: decision === 'approve' ? 'Loan approved' : 'Loan rejected',
       module: 'loan',
       user: req.user.id,
+      roleAtThatTime: req.user.role,
       branch: req.user.branch,
-      details: { loanAccountNumber: loanId, remarks }
+    
+      // ✅ REQUIRED FOR VALIDATION
+      targetEntity: {
+        entityId: loan._id,
+        modelName: 'Loan'   // MUST MATCH ENUM
+      },
+    
+      details: {
+        loanAccountNumber: loan.loanAccountNumber,
+        sanctionedAmount: loan.sanctionedAmount,
+        remarks
+      },
+    
+      status: 'success',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
     });
+  } catch (err) {
+    console.warn('Activity log failed:', err.message);
+  }
+    
 
     res.json({ 
       success: true, 

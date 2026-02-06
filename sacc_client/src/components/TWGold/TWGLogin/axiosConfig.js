@@ -194,6 +194,14 @@ export const updateBranch = (id, data) => api.put(`/twgoldbranch/branches/${id}`
 export const getBranchPerformance = () => api.get('/twgoldbranch/branches-performance');
 export const addEmployeeToBranch = (branchId, employeeId) => api.post(`/twgoldbranch/branches/${branchId}/employees/${employeeId}`);
 
+// Fetch branches (standardized response handler)
+export const fetchBranches = async () => {
+  const res = await api.get('/twgoldbranch/branches');
+  return res.data?.success && Array.isArray(res.data?.data?.branches)
+    ? res.data.data.branches
+    : [];
+};
+
 // =========================================================
 // ACTIVITY LOG ENDPOINTS
 // =========================================================

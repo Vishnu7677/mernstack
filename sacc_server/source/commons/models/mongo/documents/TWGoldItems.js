@@ -327,9 +327,8 @@ loanSchema.pre('save', async function(next) {
   try {
     // 1. Generate Loan ID
     if (!this.loanAccountNumber && this.isNew) {
-      const year = new Date().getFullYear().toString().slice(-2);
       const seq = await getNextSequence('loan_id');
-      this.loanAccountNumber = `GL${year}${String(seq).padStart(6, '0')}`;
+      this.loanAccountNumber = `197801${String(seq).padStart(6, '0')}`;
     }
 
     // 2. Calculate Totals
